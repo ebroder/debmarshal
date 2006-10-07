@@ -1,0 +1,148 @@
+Time-stamp: <2006-09-06 09:35:44 cklin>
+
+Debmarshal Internals
+Chuan-kai Lin <cklin@google.com>
+================================
+
+This document describes the internals of debmarshal.
+
+
+
+Source Code Manifest
+--------------------
+
+Debmarshal contains 14 modules written in Python.  The first set of
+modules are repository administrator commands:
+
+  index_pool.py         Index package files in the pool (tracking)
+  enter_incoming.py     Process uploads to incoming (supervised)
+  make_release.py       Inspect, verify, and build releases
+  handle_alias.py       Manipulate release aliases
+
+The second set of modules are utilities related to deb packages,
+releases, or repositories.
+
+  alias_utils.py        Alias operations
+  deb_utils.py          Binary deb package processing
+  package_utils.py      Package metadata (i.e., .dsc files) processing
+  release_utils.py      Release production and recording
+  setting_utils.py      Repository and track configuration processing
+  verifier_utils.py     Dependency and implicit conflict checking
+
+The final set of modules are general utilities.
+
+  bsddb_utils.py        Berkeley DB operations
+  crypto_utils.py       Hash and digital signature computations
+  logging_utils.py      Error and diagnostic message reporting
+  os_utils.py           Operating system operations
+
+
+
+Assumptions and Policies
+------------------------
+
+Here I document the assumptions I made during the development of
+debmarshal and the policies that debmarshal enforces.  In general I
+try to make debmarshal follow Debian Policy as closely as possible.
+
+* A release is immutable: it cannot be modified after creation.
+
+* A package file known to debmarshall is never moved or removed.
+
+* A repository in supervised mode admits packages only through the
+  incoming process (i.e., enter_incoming.py).
+
+* The name of the first-level subdirectory inside pool/ indicates the
+  component of binary packages contained within.
+
+* A package goes into the debian-installer subcomponent if and only if
+  it is a udeb (with .udeb file extension).
+
+* Tilda (~) in version number sorts less than everything (including
+  the empty string) other than a tilda.
+
+* Values of an attribute are separated by ", " instead of a comma.
+
+* The Suite field in the Release file is set to the name of the
+  maintenance track to make apt happy
+
+* The Source field (with the omission criteria in Policy 5.6.1) is the
+  authority on which source package corresponds to a binary package.
+
+* The Version field is the authority of the version of a package (the
+  string contained in package file names tend to miss the epoch).
+
+* Two packages implicitly conflict with each other if they are both
+  not in the debian-installer subcomponent, neither Replaces the
+  other, (according to package metadata) both packages can coexist on
+  a system, and they provide the same file on a system.
+
+
+
+Naming Convention
+-----------------
+
+In the source code, I typically use "nva" as the acronym for name,
+version, and architecture.  A variable so named contains a string of
+the form name_ver_arch which represents a specific binary package.
+
+
+
+Database Table Schema
+---------------------
+
+The operations of debmarshal is backed by 8 Berkeley DB databases
+which record the known status of the repository and its packages.  All
+these tables reside in the dbs/ directory in the repository.
+
+  pkg_info :: binary nva -> description string
+
+The pkg_info table maps a binary package to its description text
+(i.e., the thing that gets written to the Packages file).
+
+  src_info :: source nv -> description string
+
+The src_info table maps a source package (source package has no
+architecture) to its description text.
+
+  pkg_deps :: binary nva -> package attributes
+
+The pkg_deps table maps a binary package to its main attributes
+necessary for release construction and dependency checking.  Multiple
+values in an attribute are separated by the ", " string, and each
+attribute is terminated by '\n'.  The attributes are defined in the
+_DEP_KEYS value in the deb_utils module:
+
+Component:    the component of the package (from pool path)
+Essential:    yes/no from binary package control file
+Source:       nv string of the source package
+Depends:      same as defined in Debian Policy
+Pre-Depends:  same as defined in Debian Policy
+Conflicts:    same as defined in Debian Policy
+Provides:     same as defined in Debian Policy
+Replaces:     same as defined in Debian Policy
+
+  file_pkg :: file pathname -> list of binary nva
+
+The file_pkg table maps the pathname (relative to /) of a file on an
+installed system to the list of binary packages providing the file.
+
+  pool_pkg :: package file name -> size
+
+The pool_pkg table maps the name of a package file (.dsc, .deb, or
+.udeb) to the size of the file.  This information is used to prevent
+duplicated uploads and to catch accidental modifications.
+
+  releases :: track/release -> list of binary nva
+
+The releases table maps a release to the list of binary packages
+contained in a release.
+
+  aliases :: track/alias -> list of timestamp_release
+
+The aliases table maps an alias to the list of release history
+records, each containing the timestamp of when the alias was updated
+to that release (seconds since epoch), a '_' character, and the
+release number that the alias pointed to.
+
+##
