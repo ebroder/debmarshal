@@ -73,7 +73,14 @@ def IndexPool((src_names, pkg_names), dbs):
 
     lg.info('Indexing ' + name)
     pool_pkg[pkg] = str(os.stat(name).st_size)
-    contents, attr_dict = du.ParseDebInfo(os.path.abspath(name))
+
+    try:
+      contents, attr_dict = du.ParseDebInfo(os.path.abspath(name))
+    except IOError:
+      lg.warning('File ' + name + ' threw an IOError while parsing.  ' +
+                 'Discarding bad .deb')
+      return
+
     nva = pu.GetPackageID(attr_dict)
     pkg_info[nva] = du.BuildDebInfoText(name, attr_dict)
     pkg_deps[nva] = du.BuildDependencyString(name, attr_dict)
