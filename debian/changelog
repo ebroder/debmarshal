@@ -1,3 +1,11 @@
+debmarshal (0.9) google; urgency=low
+
+  * Catch IOerror when parsing debs, in case they have malformed gzip
+    data.  Do not index such .debs
+  * Add debhelper Build-Depends (lbedford)
+
+ -- Drake Diedrich <dld@google.com>  Wed, 24 Jan 2007 22:21:27 -0800
+
 debmarshal (8) google; urgency=low
 
   * cl3268465 fixing multiple arch uploads (b545523)

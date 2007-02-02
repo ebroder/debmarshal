@@ -2,7 +2,7 @@ Source: debmarshal
 Section: utils
 Priority: optional
 Maintainer: Chuan-kai Lin <cklin@google.com>
-Build-Depends-Indep: cdbs (>= 0.4.4)
+Build-Depends-Indep: cdbs (>= 0.4.4), debhelper
 Standards-Version: 3.7.2
 
 Package: debmarshal
