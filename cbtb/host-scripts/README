@@ -1,0 +1,57 @@
+These are the components of the continuous build server that are run on the
+host machine and set up each run of the build and test as new releases of
+the archive are made.  As they are running on the host machine and have
+access to host resources, networks, etc, they should not automatically
+updated from the repository, and should be given a cursory inspection to be
+sure they are safe to run in your environment.  They will be running
+unprivileged in a dedicated account.
+
+0) Set up the testenv infrastructure in cbtb/host-setup/
+
+1) Create a new, dedicated build user on the host machine.
+  adduser --disabled-password zbuild
+
+2) Make sure zbuild is authorized to run tunbr, any accelerated device
+nodes, and has a tftpboot directory.  eg.
+   chmod 4711 /usr/local/bin/tunbr
+   adduser zbuild uml-net
+   adduser zbuild kvm
+   adduser zbuild kqemu
+   mkdir -p /tftpboot/zbuild/ubuntu-installer/i386
+   chown -R zbuild /tftpboot/zbuild
+   chmod -R 755 /tftpboot/zbuild
+
+3) Become the test builder
+   su - zbuild
+
+  a) create an ssh key without a passphrase
+    ssh-keygen -P '' -t dsa
+
+  b) check out a read-only copy of the zumastor repository 
+    svn checkout http://zumastor.googlecode.com/svn/trunk/ zumastor
+    svn checkout http://zumastor.googlecode.com/svn/trunk/cbtb/tests zumastor-tests
+      or a specific branch
+    mkdir 0.4
+    cd 0.4
+    svn checkout http://zumastor.googlecode.com/svn/branches/0.4/ zumastor
+    svn checkout http://zumastor.googlecode.com/svn/branches/0.4/cbtb/tests zumastor-tests
+
+  c) copy and examine as required the scripts this directory to the top level
+     directory (~ or ~/0.4), to prevent directly running scripts from
+     this repository on the host system without supervision.
+    cp zumastor/cbtb/host-scripts/*.sh ~
+      or
+    cp zumastor/cbtb/host-scripts/*.sh ~/0.4/
+
+  d) Create a dapper-i386 template image
+    cd zumastor/cbtb/host-setup/
+    tunbr ./dapper-i386.sh
+    mkdir ~/zumastor/build/
+    mv dapper-i386-r`svnversion`.img ~/zumastor/build/
+    ln -s dapper-i386-r`svnversion`.img ~/zumastor/build/dapper-i386.img
+
+  e) Launch the continuous build
+    cd ~   or  cd ~/0.4
+    ./continuous-build.sh >continuous-build.log 2>&1 </dev/null &
+    ./continuous-install.sh >continuous-install.log 2>&1 </dev/null &
+    ./continuous-test.sh >continuous-test.log 2>&1 </dev/null &

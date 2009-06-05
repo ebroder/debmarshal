@@ -1,0 +1,6 @@
+config DEVICE_MAPPER
+        bool
+        prompt "device-mapper"
+        help
+          device-mapper is a component of volume management
+          support in Linux.

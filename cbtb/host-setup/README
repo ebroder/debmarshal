@@ -1,0 +1,38 @@
+Host setup scripts.  You may wish to perform these actions by hand rather
+than the script, so you know what they're doing to your host setup.
+See ../host-scripts/README for typical runtime use.
+
+dependencies.sh - install packages on the host required by the cbtb test
+environment.
+
+interfaces-bridge.sh - set up /etc/network/interfaces with the static
+  private bridge required by the rest of the cbtb environment and tunbr.
+
+proxy.sh - Configure Apache2 as a mod_proxy of the Ubuntu and Debian
+  archives, rather than having to copy the entire archive to local disk or
+  open a squid hole into the cbtb environment and suffer apt-get/squid
+  protocol race conditions.
+
+atftpd.sh - installs atftpd, downloads the netboot installers for
+  Ubuntu/dapper, and unpacks the netboot installers in /tftpboot.  If run
+  under sudo, also creates /tftpboot/$USER so the unprivileged user may
+  provide their own netboot kernels and initrd.
+
+dapper-i386.sh - run unprivileged under tunbr to create a dapper/i386
+  template image.
+
+etch-i386.sh - run unprivileged under tunbr to create an etch/i386 template
+  image.
+
+test-dapper-i386.sh - run under tunbr to test boot the dapper/i386 image,
+  and optionally run any other script passwd as an argument in a snapshot,
+  leaving the template unchanged.
+
+test-etch-i386.sh - run under tunbr to test boot the dapper/i386 image,
+  and optionally run any other script passwd as an argument in a snapshot,
+  leaving the template unchanged.
+
+
+Other scripts and files in this directory are used by those documented
+above.  The scripts here need to run where their arguments and supporting
+files are located, but not necessarily where the script itself is.

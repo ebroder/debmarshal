@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# $Id$
+#
+# Source /etc/default/testenv for the VIRT* variables, and output
+# appropriate compiler flags to build a locally customized tunbr
+# for the network and interface bridge specified.
+
+if [ -x /etc/default/testenv ]
+then
+  . /etc/default/testenv
+fi
+
+if [ "x$VIRTNET" != "x" ]
+then
+  echo $VIRTNET | \
+    awk -F '[./]' \
+      '{ print "-DIP0=" $1; print "-DIP1=" $2 ; print "-DIP2=" $3; }'
+fi
+
+if [ "x$VIRTBR" != "x" ]
+then
+  echo '-DBRIDGE="'$VIRTBR'"'
+fi

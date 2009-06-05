@@ -1,0 +1,21 @@
+diff -r 17b2d50140aa ptxdist-1.0.0/scripts/genhdimg
+--- a/ptxdist-1.0.0/scripts/genhdimg	Mon Aug 27 13:28:18 2007 -0700
++++ b/ptxdist-1.0.0/scripts/genhdimg	Thu Aug 30 11:14:28 2007 -0700
+@@ -36,7 +36,7 @@ pad() {
+ 		exit 1
+ 	fi
+ 
+-	fromsize=$(stat --printf "%s" "$from")
++	fromsize=$(stat --format "%s" "$from")
+ 
+ 	if [ $(($fromsize)) -gt $(($blocks * 512)) ]; then
+ 		echo "warning: $from truncated. Need $fromsize bytes, but have only $(($blocks * 512))!"
+@@ -137,6 +137,8 @@ for i in $(seq 4); do
+ 	if [ -n "$pimage" ]; then
+ 		echo "Initializing partition $i with $pimage"
+ 		pad "$pimage" "$IMAGETMP" $(($psize))
++	else
++		dd if=/dev/zero bs=512 count=$(($psize)) >> "$IMAGETMP" 2>/dev/null
+ 	fi
+ 
+ 	extraarg=""

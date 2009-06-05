@@ -1,0 +1,17 @@
+menuconfig LVM2
+        bool
+        select DEVICE_MAPPER
+        select GLIBC_LIBRT
+        select GLIBC_DL
+        select GLIBC_PTHREAD
+        prompt "LVM2                          "
+        help
+          LVM2 provides volume management support in Linux.
+
+config ROOTFS_ETC_INITD_LVM2
+        depends on LVM2
+        bool
+        default y
+        prompt "Install startup script"
+        help
+          Install a startup script for LVM support.

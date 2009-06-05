@@ -1,0 +1,2 @@
+This directory contains init scripts used to launch the CBTB on the actual
+machine "zumabuild".  They shouldn't need to change release to release.

@@ -1,0 +1,20 @@
+Writing test scripts:
+   Test scripts are run as root on the first virtual instance created to run
+the test.  The current zumastor packages are already installed and have had no
+configuration done.  Additional packages may be installed using aptitude,
+though their pre-existence should be checked before installing so non-Debian
+images like PTXdist can also run the tests without failing.
+   An LVM volume group sysvg with available space (16M on PTXdist, a few G
+on dapper) is available to carve out necessary origin and snapshot stores. 
+The test script should do this.
+   If there are multiple instances required for the test, the script should
+ssh to the other node in $IPADDR2, and set up /etc/hosts as necessary on
+both machines.  2-node scripts should be in tests/2/, and single node
+scripts in tests/1/.
+   Scripts should return 0 on success, and any non-zero value on failure.
+Tests should only take a few minutes to boot and run, and can expect to be
+killed after 1 hour in any event.  All output is logged by the test harness. 
+Typically, TAP messages (see man Test::Tutorial) are printed to let the
+person reading the logs know what stage each test script got to.  These may
+be processed by other tools to generate test summaries, but this is not
+currently done.

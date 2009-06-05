@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# $Id$
+#
+# Launch the zumastor continuous build, test, and install scripts
+# on all of the automated repository branches.
+# Must be run as the unprivileged zbuild user.
+# Usually run under su from the init.d script.
+
+set -e
+
+for branch in /home/zuabuild /home/zuabuild/0.9
+do
+  cd ${branch}
+  rm -f zumastor/lock
+  LOCKFILE=/var/run/zbuild/build.lock ./continuous-build.sh >>continuous-build.log 2>&1 </dev/null &
+  sleep 10
+  ./continuous-install.sh >>continuous-install.log 2>&1 </dev/null &
+  sleep 10
+  ./continuous-test.sh >>continuous-test.log 2>&1 </dev/null &
+  sleep 10
+done

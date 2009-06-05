@@ -1,0 +1,38 @@
+#
+# $Id$
+#
+# install as /etc/apache2/sites-available/zumabuild
+# ln -s to /etc/apache2/sites-enabled
+# mkdir ~zbuild/www
+#  Create symlinks to each build branch loop running
+# ln -s ~zbuild/zumastor/build ~zbuild/www/trunk
+# ln -s ~zbuild/0.4/zumastor/build ~zbuild/www/0.4
+# ln -s ~zbuild/unittests/zumastor/build ~zbuild/www/unittests
+
+NameVirtualHost zumabuild.corp.google.com:80
+<VirtualHost zumabuild.corp.google.com:80>
+	ServerAdmin hotcakes-team@google.com
+	
+	DocumentRoot /home/zbuild/www/
+	<Directory />
+		Options FollowSymLinks
+		AllowOverride None
+	</Directory>
+	<Directory /home/zbuild/www/>
+		Options Indexes FollowSymLinks MultiViews
+		AllowOverride None
+		Order allow,deny
+		allow from all
+	</Directory>
+
+	ErrorLog /var/log/apache2/error.log
+
+	# Possible values include: debug, info, notice, warn, error, crit,
+	# alert, emerg.
+	LogLevel warn
+
+	CustomLog /var/log/apache2/access.log combined
+	ServerSignature On
+
+        AddType text/plain log
+</VirtualHost>

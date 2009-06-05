@@ -1,0 +1,9 @@
+config TCT
+	bool
+	prompt "The Coroner's Toolkit"
+
+config TCT_TIMEOUT
+	bool "timeout"
+	depends on TCT
+	help
+	  Install the timeout utility.

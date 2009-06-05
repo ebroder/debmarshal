@@ -1,0 +1,29 @@
+UML CBTB Tests
+--------------
+Prereqs:
+- Debian/Ubuntu Machine
+- ssh-key, if it requires a password make sure it is available in a ssh-agent
+(to generate run ssh-keygen)
+- Ability to sudo as root with the current user
+- Reliable networking
+- Willingness to debug issues
+- A reliable Ubuntu mirror. Update /etc/apache2/sites-enabled/proxy with the
+  url of your local and or reliable Ubuntu mirror. anl.gov is usually ok, but
+  if you experience errors with debootstrap, try changing the mirror and give
+  it another go.
+
+Notes:
+- As of this writing the test environment is now hardy, and we pull a tarball
+  of useful debs from googlecode in case your mirror sucks.
+- If a failure occurs early on, try again. Do not take this as a test failure,
+  chances are you have a unreliable network connection, or someone changed
+  permissions while we were working.
+- If you wish to test using debian etch, pass DIST=etch
+  LINUXDISTRIBUTION=debian to smoke-test as env variables
+
+Running tests:
+- `bash setup.sh` -- You probably want to do this once by hand
+- `bash smoke-test.sh` -- This will run a single node and dual node test to
+  give zumastor a good workout
+- You may append --all to smoke-test.sh's command line if you wish to run all
+  cbtb tests with UML.
