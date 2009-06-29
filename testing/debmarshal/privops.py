@@ -46,7 +46,7 @@ from debmarshal import errors
 # I really wish I could somehow incorporate a PREFIX or libexecdir or
 # something, but Python doesn't really want to export any of those
 # through distutils/setuptools
-_SETUID_BINARY = '/usr/lib/debmarshal/debmarshal-privops'
+_SETUID_BINARY = '/usr/lib/debmarshal/debmarshpriv'
 
 
 _subcommands = {}
