@@ -13,7 +13,9 @@ clean-python:
 	$(PYTHON) setup.py clean -a
 
 install-exec-local: install-python
-install-python: build-python
+install-python: build-python install-libexecPROGRAMS
+	chmod u+s $(DESTDIR)$(libexecdir)/debmarshpriv
+
 	if [ -n "$(DESTDIR)" ] ; then \
 	    $(PYTHON) setup.py install --prefix $(prefix) --exec-prefix $(exec_prefix) --root $(DESTDIR) ; \
 	else \
