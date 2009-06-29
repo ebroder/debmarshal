@@ -312,44 +312,62 @@ class TestStoreNetworkState(mox.MoxTestBase):
 
 
 class TestGenNetworkXML(mox.MoxTestBase):
+  name = 'debmarshal-1'
+  net = '10.100.4'
+  gateway = '%s.1' % net
+  netmask = '255.255.255.0'
+  hosts = {'wiki.company.com': ('10.100.4.2', 'AA:BB:CC:DD:EE:FF'),
+           'login.company.com': ('10.100.4.3', '00:11:22:33:44:55')}
   def testDhcpXml(self):
-    name = 'debmarshal-1'
-    net = '10.100.4'
-    gateway = '%s.1' % net
-    netmask = '255.255.255.0'
-    hosts = {'wiki.company.com': ('10.100.4.2', 'AA:BB:CC:DD:EE:FF'),
-             'login.company.com': ('10.100.4.3', '00:11:22:33:44:55')}
-
-    xml_string = privops._genNetworkXML(name,
-                                        gateway,
-                                        netmask,
-                                        hosts,
+    xml_string = privops._genNetworkXML(self.name,
+                                        self.gateway,
+                                        self.netmask,
+                                        self.hosts,
                                         True)
     xml = etree.fromstring(xml_string)
 
     self.assertNotEqual(xml.xpath('/network'), [])
 
     self.assertNotEqual(xml.xpath('/network/name'), [])
-    self.assertEqual(xml.xpath('string(/network/name)'), name)
+    self.assertEqual(xml.xpath('string(/network/name)'), self.name)
 
     self.assertNotEqual(xml.xpath('/network/ip'), [])
-    self.assertEqual(xml.xpath('string(/network/ip/@address)'), gateway)
-    self.assertEqual(xml.xpath('string(/network/ip/@netmask)'), netmask)
+    self.assertEqual(xml.xpath('string(/network/ip/@address)'), self.gateway)
+    self.assertEqual(xml.xpath('string(/network/ip/@netmask)'), self.netmask)
 
     self.assertNotEqual(xml.xpath('/network/ip/dhcp'), [])
 
     self.assertNotEqual(xml.xpath('/network/ip/dhcp/range'), [])
     self.assertEqual(xml.xpath('string(/network/ip/dhcp/range/@start)'),
-                     '%s.2' % net)
+                     '%s.2' % self.net)
     self.assertEqual(xml.xpath('string(/network/ip/dhcp/range/@end)'),
-                     '%s.254' % net)
+                     '%s.254' % self.net)
 
-    self.assertEqual(len(xml.xpath('/network/ip/dhcp/host')), len(hosts))
-    for h, hinfo in hosts.iteritems():
+    self.assertEqual(len(xml.xpath('/network/ip/dhcp/host')), len(self.hosts))
+    for h, hinfo in self.hosts.iteritems():
       host_node = '/network/ip/dhcp/host[@name = $name]'
       self.assertNotEqual(xml.xpath(host_node, name=h), [])
       self.assertEqual(xml.xpath('string(%s/@ip)' % host_node, name=h), hinfo[0])
       self.assertEqual(xml.xpath('string(%s/@mac)' % host_node, name=h), hinfo[1])
+
+  def testNoDhcpXML(self):
+    xml_string = privops._genNetworkXML(self.name,
+                                        self.gateway,
+                                        self.netmask,
+                                        self.hosts,
+                                        False)
+    xml = etree.fromstring(xml_string)
+
+    self.assertNotEqual(xml.xpath('/network'), [])
+
+    self.assertNotEqual(xml.xpath('/network/name'), [])
+    self.assertEqual(xml.xpath('string(/network/name)'), self.name)
+
+    self.assertNotEqual(xml.xpath('/network/ip'), [])
+    self.assertEqual(xml.xpath('string(/network/ip/@address)'), self.gateway)
+    self.assertEqual(xml.xpath('string(/network/ip/@netmask)'), self.netmask)
+
+    self.assertEqual(xml.xpath('/network/ip/*'), [])
 
 
 class TestCreateNetwork(mox.MoxTestBase):
