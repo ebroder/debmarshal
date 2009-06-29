@@ -6,7 +6,13 @@ __authors__ = [
 ]
 
 
+import errno
+import fcntl
 import os
+try:
+  import cPickle as pickle
+except:
+  import pickle
 import posix
 try:
   import cStringIO as StringIO
@@ -17,6 +23,7 @@ import sys
 import unittest
 
 import mox
+import libvirt
 import yaml
 
 from debmarshal import errors
@@ -205,6 +212,77 @@ class TestValidateHostname(mox.MoxTestBase):
     # mechanisms to mark raised exceptions as a failure instead of an
     # error, but an error seems good enough
     privops._validateHostname('real-hostname.com')
+
+
+class TestLoadNetworkState(mox.MoxTestBase):
+  def setUp(self):
+    super(TestLoadNetworkState, self).setUp()
+
+    # We're not going to be testing the lockfile, other than making
+    # sure it gets acquired, so we can do all of that here
+    self.open = self.mox.CreateMockAnything()
+    privops.open = self.open
+    self.mox.StubOutWithMock(fcntl, 'lockf')
+
+    lock_file = self.mox.CreateMock(file)
+    self.open('/var/lock/debmarshal-networks', 'w+').AndReturn(lock_file)
+    fcntl.lockf(lock_file, fcntl.LOCK_SH)
+
+  def tearDown(self):
+    del privops.open
+
+  def testNoNetworkFile(self):
+    e = IOError(errno.ENOENT, "ENOENT")
+    self.open('/var/run/debmarshal-networks').AndRaise(e)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(privops._loadNetworkState(), [])
+
+  def testExceptionOpeningNetworkFile(self):
+    e = IOError(errno.EACCES, "EACCES")
+    self.open('/var/run/debmarshal-networks').AndRaise(e)
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(IOError, privops._loadNetworkState)
+
+  def testOpeningLibvirtConnection(self):
+    networks = StringIO.StringIO(pickle.dumps([]))
+    self.open('/var/run/debmarshal-networks').AndReturn(networks)
+
+    self.mox.StubOutWithMock(libvirt, 'open')
+    virt_con = self.mox.CreateMock(libvirt.virConnect)
+    libvirt.open(mox.IgnoreArg()).AndReturn(virt_con)
+
+    self.mox.StubOutWithMock(libvirt, 'registerErrorHandler')
+    libvirt.registerErrorHandler(mox.IgnoreArg(), None)
+    libvirt.registerErrorHandler(None, None)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(privops._loadNetworkState(), [])
+
+  def testNetworkExistenceTest(self):
+    networks = StringIO.StringIO(pickle.dumps([('foo', 500, '10.100.1.1'),
+                                               ('bar', 501, '10.100.1.2')]))
+    self.open('/var/run/debmarshal-networks').AndReturn(networks)
+
+    virt_con = self.mox.CreateMock(libvirt.virConnect)
+
+    self.mox.StubOutWithMock(libvirt, 'registerErrorHandler')
+    libvirt.registerErrorHandler(mox.IgnoreArg(), None)
+
+    virt_con.networkLookupByName('foo')
+    virt_con.networkLookupByName('bar').AndRaise(libvirt.libvirtError(
+        "Network doesn't exist"))
+
+    libvirt.registerErrorHandler(None, None)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(privops._loadNetworkState(virt_con),
+                     [('foo', 500, '10.100.1.1')])
 
 
 class TestCreateNetwork(mox.MoxTestBase):
