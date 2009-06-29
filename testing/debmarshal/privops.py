@@ -78,6 +78,7 @@ def runWithPrivilege(subcommand):
       binary. Since the setuid binary simply executes this module, the
       subcommand is also tracked internally for dispatching
   """
+  @decorator.decorator
   def _runWithPrivilege(f, *args, **kwargs):
 
     # If we already have our privileges
@@ -115,7 +116,7 @@ def runWithPrivilege(subcommand):
   # subcommand with the function it's wrapping at parse time.
   def _makeRunWithPriv(f):
     _subcommands[subcommand] = f
-    return decorator.decorator(_runWithPrivilege, f)
+    return _runWithPrivilege(f)
 
   return _makeRunWithPriv
 
