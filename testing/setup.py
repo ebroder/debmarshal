@@ -13,5 +13,6 @@ entire systems and interactions between multiple systems. It uses
 libvirt and other virtualization techniques to build entire platforms
 for running automated tests in an environment isolated from the
 outside world.
-"""
+""",
+      install_requires=['decorator', 'PyYAML']
 )
