@@ -8,10 +8,15 @@ __authors__ = [
 
 import os
 import posix
+try:
+  import cStringIO as StringIO
+except ImportError:
+  import StringIO
 import subprocess
 import sys
 import unittest
 import mox
+import yaml
 from debmarshal import errors
 from debmarshal import privops
 
@@ -56,6 +61,56 @@ class TestRunWithPrivilege(mox.MoxTestBase):
       self.fail('This function should never have been run.')
 
     self.assertRaises(errors.Error, func)
+
+class TestReexecResults(mox.MoxTestBase):
+  def setUp(self):
+    super(TestReexecResults, self).setUp()
+
+    self.mox.StubOutWithMock(os, 'geteuid')
+    os.geteuid().AndReturn(1000)
+
+    self.mox.StubOutWithMock(os, 'stat')
+    os.stat(privops._SETUID_BINARY).AndReturn(posix.stat_result([
+          # st_mode
+          04755,
+          0, 0, 0,
+          # uid
+          0,
+          0, 0, 0, 0, 0]))
+
+    self.mock_popen = self.mox.CreateMock(subprocess.Popen)
+    self.mox.StubOutWithMock(subprocess, 'Popen', use_mock_anything=True)
+    subprocess.Popen([privops._SETUID_BINARY,
+                      'test',
+                      yaml.safe_dump(['a', 'b']),
+                      yaml.safe_dump({'c': 'd'})],
+                     stdin=None,
+                     stdout=subprocess.PIPE,
+                     close_fds=True).AndReturn(self.mock_popen)
+
+  def testReexecSuccessResult(self):
+    self.mock_popen.wait().AndReturn(0)
+    self.mock_popen.stdout = StringIO.StringIO(yaml.dump('foo'))
+
+    self.mox.ReplayAll()
+
+    @privops.runWithPrivilege('test')
+    def func(*args, **kwargs):
+      return 'foo'
+
+    self.assertEquals(func('a', 'b', c='d'), 'foo')
+
+  def testReexecFailureResult(self):
+    self.mock_popen.wait().AndReturn(1)
+    self.mock_popen.stdout = StringIO.StringIO(yaml.dump(Exception('failure')))
+
+    self.mox.ReplayAll()
+
+    @privops.runWithPrivilege('test')
+    def func(*args, **kwargs):
+      raise Exception('failure')
+
+    self.assertRaises(Exception, lambda: func('a', 'b', c='d'))
 
 
 if __name__ == '__main__':
