@@ -22,7 +22,11 @@ from debmarshal import privops
 
 
 class TestRunWithPrivilege(mox.MoxTestBase):
+  """Testing runWithPrivilege before it actually executes anything"""
   def testFunctionCalledDirectlyAsRoot(self):
+    """Test that functions wrapped in runWithPrivilege are executed
+    directly if you're already root.
+    """
     self.mox.StubOutWithMock(os, 'geteuid')
     os.geteuid().AndReturn(0)
 
@@ -45,6 +49,9 @@ class TestRunWithPrivilege(mox.MoxTestBase):
     self.assertEqual(func(), 1)
 
   def testAbortIfWrapperNotSetuid(self):
+    """Test that if you're not root, and the setuid wrapper isn't
+    setuid, runWithPrivileges aborts.
+    """
     self.mox.StubOutWithMock(os, 'geteuid')
     os.geteuid().AndReturn(1000)
 
@@ -63,7 +70,17 @@ class TestRunWithPrivilege(mox.MoxTestBase):
     self.assertRaises(errors.Error, func)
 
 class TestReexecResults(mox.MoxTestBase):
+  """Test the actual process of execing the setuid wrapper.
+
+  This requires some substantial mocking of both the os module and
+  subprocess.Popen.
+  """
   def setUp(self):
+    """Setup mocks through the point of actually forking and execing.
+
+    This involves faking a binary that's setuid, as well as faking
+    actually running it.
+    """
     super(TestReexecResults, self).setUp()
 
     self.mox.StubOutWithMock(os, 'geteuid')
@@ -89,6 +106,9 @@ class TestReexecResults(mox.MoxTestBase):
                      close_fds=True).AndReturn(self.mock_popen)
 
   def testReexecSuccessResult(self):
+    """Verify that the printout from runWithPrivileges is treated as a
+    return value if the program exits with a return code of 0.
+    """
     self.mock_popen.wait().AndReturn(0)
     self.mock_popen.stdout = StringIO.StringIO(yaml.dump('foo'))
 
@@ -101,6 +121,9 @@ class TestReexecResults(mox.MoxTestBase):
     self.assertEquals(func('a', 'b', c='d'), 'foo')
 
   def testReexecFailureResult(self):
+    """Verify that the printout from runWithPrivileges is treated as
+    an exception if the program exits with a return code of 1.
+    """
     self.mock_popen.wait().AndReturn(1)
     self.mock_popen.stdout = StringIO.StringIO(yaml.dump(Exception('failure')))
 
