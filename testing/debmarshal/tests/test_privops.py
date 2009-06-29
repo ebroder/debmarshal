@@ -25,6 +25,7 @@ import unittest
 import mox
 import libvirt
 from lxml import etree
+import virtinst.util
 import yaml
 
 from debmarshal import errors
@@ -372,10 +373,71 @@ class TestGenNetworkXML(mox.MoxTestBase):
 
 class TestCreateNetwork(mox.MoxTestBase):
   def setUp(self):
+    # The only two interesting conditions to test here are whether
+    # _storeNetworkState raises an exception or not, so let's
+    # commonize everything else
     super(TestCreateNetwork, self).setUp()
+
+    self.networks = [('debmarshal-0', 500, '10.100.0.1'),
+                     ('debmarshal-3', 500, '10.100.1.1'),
+                     ('debmarshal-4', 500, '10.100.2.1'),
+                     ('debmarshal-4', 500, '10.100.5.1')]
+    self.name = 'debmarshal-1'
+    self.gateway = '10.100.3.1'
+    self.hosts = ['wiki.company.com', 'login.company.com']
+    self.host_dict = {'wiki.company.com':
+                      ('10.100.3.2', '00:00:00:00:00:00'),
+                      'login.company.com':
+                      ('10.100.3.3', '00:00:00:00:00:00')}
 
     self.mox.StubOutWithMock(os, 'geteuid')
     os.geteuid().AndReturn(0)
+    self.mox.StubOutWithMock(os, 'getuid')
+    os.getuid().AndReturn(1000)
+
+    self.mox.StubOutWithMock(privops, '_validateHostname')
+    privops._validateHostname(mox.IgnoreArg()).MultipleTimes()
+
+    self.mox.StubOutWithMock(libvirt, 'open')
+    virt_con = self.mox.CreateMock(libvirt.virConnect)
+    libvirt.open(mox.IgnoreArg()).AndReturn(virt_con)
+
+    self.mox.StubOutWithMock(privops, '_loadNetworkState')
+    privops._loadNetworkState(virt_con).AndReturn(self.networks)
+
+    self.mox.StubOutWithMock(virtinst.util, 'randomMAC')
+    virtinst.util.randomMAC().MultipleTimes().AndReturn('00:00:00:00:00:00')
+
+    self.mox.StubOutWithMock(privops, '_genNetworkXML')
+    privops._genNetworkXML(self.name, self.gateway, '255.255.255.0',
+                           self.host_dict, False).AndReturn('<fake_xml />')
+
+    self.virt_net = self.mox.CreateMock(libvirt.virNetwork)
+    virt_con.networkDefineXML('<fake_xml />').AndReturn(self.virt_net)
+    self.virt_net.create()
+
+  def testStoreSuccess(self):
+    self.mox.StubOutWithMock(privops, '_storeNetworkState')
+    privops._storeNetworkState(self.networks +
+                               [(self.name, 1000, self.gateway)])
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(privops.createNetwork(self.hosts, False),
+                     (self.name, self.gateway, '255.255.255.0', self.host_dict))
+
+  def testStoreFailure(self):
+    self.mox.StubOutWithMock(privops, '_storeNetworkState')
+    privops._storeNetworkState(self.networks +
+                               [(self.name, 1000, self.gateway)]).\
+                               AndRaise(Exception("Error!"))
+
+    self.virt_net.destroy()
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(Exception,
+                      (lambda: privops.createNetwork(self.hosts, False)))
 
 
 if __name__ == '__main__':
