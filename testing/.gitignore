@@ -4,6 +4,7 @@ debmarshal.egg-info
 build
 dist
 
+debmarshal/config.py
 c/debmarshpriv
 
 # autogoo

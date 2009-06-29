@@ -40,13 +40,11 @@ from lxml import etree
 import virtinst
 import yaml
 
+from debmarshal import config
 from debmarshal import errors
 
 
-# I really wish I could somehow incorporate a PREFIX or libexecdir or
-# something, but Python doesn't really want to export any of those
-# through distutils/setuptools
-_SETUID_BINARY = '/usr/lib/debmarshal/debmarshpriv'
+_SETUID_BINARY = os.path.join(config.libexecdir, 'debmarshpriv')
 
 
 _subcommands = {}
