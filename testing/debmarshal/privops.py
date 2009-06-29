@@ -107,6 +107,47 @@ def runWithPrivilege(subcommand):
   return _makeRunWithPriv
 
 
+@runWithPrivilege('create-network')
+def createNetwork(hosts, dhcp=True):
+  """All of the networking config you need for a debmarshal test rig.
+
+  createNetwork creates an isolated virtual network within libvirt. It
+  picks an IP address space that is as-yet unused (within debmarshal),
+  and assigns that to the network. It then allocates IP addresses and
+  MAC addresses for each of the hostnames listed in hosts.
+
+  createNetwork tracks which users created which networks, and
+  debmarshal will only allow the user that created a network to attach
+  VMs to it or destroy it.
+
+  Currently IP addresses are allocated in /24 blocks from
+  10.100.0.0/16. 100 was chosen both because it is the ASCII code for
+  "d" and to try and avoid people using the lower subnets in 10/8.
+
+  This does mean that debmarshal currently has an effective limit of
+  256 test suites running simultaneously. But that also means that
+  you'd be running at least 256 VMs simultaneously, which would
+  require some pretty impressive hardware.
+
+  Args:
+    hosts: A list of hostnames that will eventually be attached to
+      this network
+    dhcp: Whether to use DHCP or static IP addresses. If dhcp is True
+      (the default), createNetwork also configures dnsmasq listening
+      on the new network to assign IP addresses
+
+  Returns:
+    A 3-tuple containing:
+      Network name: This is used to reference the newly created
+        network in the future. It is unique across the local
+        workstation
+      Netmask: The netmask for the network
+      VMs: A dict mapping hostnames in hosts to (IP address, MAC
+        address), as assigned by createNetwork
+  """
+  pass
+
+
 def usage():
   """Command-line usage information for debmarshal.privops.
 
