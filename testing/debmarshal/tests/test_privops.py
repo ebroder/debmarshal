@@ -194,18 +194,25 @@ class TestMain(mox.MoxTestBase):
           'test', yaml.safe_dump([]), yaml.safe_dump({})]), 1)
 
 
+class TestValidateHostname(mox.MoxTestBase):
+  def testInvalidInput(self):
+    self.assertRaises(
+        errors.InvalidInput,
+        (lambda: privops._validateHostname('not-a-domain.faketld')))
+
+  def testValidInput(self):
+    # Unfortunately unittest.TestCase doesn't have any built-in
+    # mechanisms to mark raised exceptions as a failure instead of an
+    # error, but an error seems good enough
+    privops._validateHostname('real-hostname.com')
+
+
 class TestCreateNetwork(mox.MoxTestBase):
   def setUp(self):
     super(TestCreateNetwork, self).setUp()
 
     self.mox.StubOutWithMock(os, 'geteuid')
     os.geteuid().AndReturn(0)
-
-  def testInputValidation(self):
-    self.mox.ReplayAll()
-
-    self.assertRaises(errors.InvalidInput,
-                      (lambda: privops.createNetwork(['not-a-domain.faketld'])))
 
 
 if __name__ == '__main__':
