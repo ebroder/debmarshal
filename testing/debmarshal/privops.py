@@ -198,10 +198,18 @@ def createNetwork(hosts, dhcp=True):
   # networks are still there, and just forget about any of the ones
   # that have been lost
   for i, network in enumerate(networks):
+    # The default handler for any libvirt error prints to stderr. In
+    # this case, we're trying to trigger an error, so we don't want
+    # the printout. This suppresses the printout temporarily
+    libvirt.registerErrorHandler((lambda ctx, err: 1), None)
+
     try:
       virt_con.networkLookupByName(network[0])
     except libvirt.libvirtError:
       del networks[i]
+
+    # Reset the error handler to its default
+    libvirt.registerErrorHandler(None, None)
 
   net_names = set(n[0] for n in networks)
   net_gateways = set(n[2] for n in networks)
