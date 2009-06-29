@@ -152,6 +152,23 @@ def main(args):
     usage()
     return 1
 
+  subcommand, posargs, kwargs = args
+  posargs = yaml.safe_load(posargs)
+  kwargs = yaml.safe_load(kwargs)
+
+  try:
+    ret = _subcommands[subcommand](*posargs, **kwargs)
+    rc = 0
+  except Exception, e:
+    ret = e
+    rc = 1
+
+  # This is the only place we don't use yaml.safe_dump, because this
+  # output is trusted when it gets parsed, and we want to be able to
+  # pass around arbitrary objects
+  print yaml.dump(ret)
+  return rc
+
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv))
