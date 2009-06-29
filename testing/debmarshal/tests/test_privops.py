@@ -158,5 +158,39 @@ class TestUsage(mox.MoxTestBase):
     self.assertEqual(privops.main(['a', 'b', 'c', 'd']), 1)
 
 
+class TestMain(mox.MoxTestBase):
+  """Test argument and return parsing in main"""
+  def testSuccess(self):
+    self.mox.StubOutWithMock(sys, 'stdout')
+    print >>sys.stdout, yaml.dump('success')
+
+    self.mox.ReplayAll()
+
+    args = ('foo', {'bar': 'quux'})
+    kwargs = {'spam': 'eggs'}
+
+    def test_args(*input_args, **input_kwargs):
+      self.assertEqual(args, input_args)
+      self.assertEqual(kwargs, input_kwargs)
+      return 'success'
+    privops._subcommands['test'] = test_args
+
+    self.assertEqual(privops.main([
+          'test', yaml.safe_dump(args), yaml.safe_dump(kwargs)]), 0)
+
+  def testFailure(self):
+    self.mox.StubOutWithMock(sys, 'stdout')
+    print >>sys.stdout, yaml.dump(Exception('failure'))
+
+    self.mox.ReplayAll()
+
+    def test():
+      raise Exception('failure')
+    privops._subcommands['test'] = test
+
+    self.assertEqual(privops.main([
+          'test', yaml.safe_dump([]), yaml.safe_dump({})]), 1)
+
+
 if __name__ == '__main__':
   unittest.main()
