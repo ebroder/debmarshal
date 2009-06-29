@@ -285,6 +285,31 @@ class TestLoadNetworkState(mox.MoxTestBase):
                      [('foo', 500, '10.100.1.1')])
 
 
+class TestStoreNetworkState(mox.MoxTestBase):
+  def testStoreNetworkState(self):
+    networks = [('debmarshal-0', 500, '10.100.1.1')]
+
+    self.open = self.mox.CreateMockAnything()
+    privops.open = self.open
+    self.mox.StubOutWithMock(fcntl, 'lockf')
+
+    lock_file = self.mox.CreateMock(file)
+    self.open('/var/lock/debmarshal-networks', 'w').AndReturn(lock_file)
+    fcntl.lockf(lock_file, fcntl.LOCK_EX)
+
+    net_file = self.mox.CreateMock(file)
+    self.open('/var/run/debmarshal-networks', 'w').AndReturn(net_file)
+    pickle.dump(networks, net_file)
+
+    self.mox.ReplayAll()
+
+    privops._storeNetworkState(networks)
+
+    self.mox.VerifyAll()
+
+    del privops.open
+
+
 class TestCreateNetwork(mox.MoxTestBase):
   def setUp(self):
     super(TestCreateNetwork, self).setUp()
