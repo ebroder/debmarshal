@@ -1,4 +1,4 @@
-# -*- python-indent: 2 -*-
+# -*- python-indent: 2; py-indent-offset: 2 -*-
 """debmarshal autoconf configuration
 
 This module interprets and provides the values from debmarshal's

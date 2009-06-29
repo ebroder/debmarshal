@@ -1,4 +1,4 @@
-# -*- python-indent: 2 -*-
+# -*- python-indent: 2; py-indent-offset: 2 -*-
 """debmarshal setuid support module
 
 This module provides the necessary input sanitation and command

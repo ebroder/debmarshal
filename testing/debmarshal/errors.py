@@ -1,4 +1,4 @@
-# -*- python-indent: 2 -*-
+# -*- python-indent: 2; py-indent-offset: 2 -*-
 """debmarshal exception classes"""
 
 __authors__ = [

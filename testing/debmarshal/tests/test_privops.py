@@ -1,4 +1,4 @@
-# -*- python-indent: 2 -*-
+# -*- python-indent: 2; py-indent-offset: 2 -*-
 """tests for the debmarshal setuid support module"""
 
 __authors__ = [

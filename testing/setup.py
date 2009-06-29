@@ -1,3 +1,4 @@
+# -*- python-indent: 2; py-indent-offset: 2 -*-
 from setuptools import setup, find_packages
 
 setup(name="debmarshal",
