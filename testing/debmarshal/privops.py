@@ -340,6 +340,7 @@ def createNetwork(hosts, dhcp=True):
     _storeNetworkState(networks)
   except:
     virt_net.destroy()
+    virt_net.undefine()
     raise
 
   return (net_name, net_gateway, net_mask, net_hosts)
@@ -371,6 +372,7 @@ def destroyNetwork(name):
 
   virt_net = virt_con.networkLookupByName(name)
   virt_net.destroy()
+  virt_net.undefine()
 
   networks.remove(net)
   _storeNetworkState(networks)
