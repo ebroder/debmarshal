@@ -23,6 +23,7 @@ __authors__ = [
 
 import os
 import subprocess
+import sys
 import decorator
 import yaml
 from debmarshal import errors
@@ -103,3 +104,53 @@ def runWithPrivilege(subcommand):
     return decorator.decorator(_runWithPrivilege, f)
 
   return _makeRunWithPriv
+
+
+def usage():
+  """Command-line usage information for debmarshal.privops.
+
+  Normal users are never expected to trigger this, because normal
+  users are never supposed to run debmarshal.privops directly; instead
+  other debmarshal scripts should use functions in this module, which
+  results in the setuid re-execution.
+
+  But just in case someone runs it directly, we'll tell them what it
+  does.
+  """
+  print >>sys.stderr, ("Usage: %s subcommand args kwargs" %
+                       os.path.basename(sys.argv[0]))
+  print >>sys.stderr
+  print >>sys.stderr, "  args is a YAML-encoded list"
+  print >>sys.stderr, "  kwargs is a YAML-encoded dict"
+
+
+def main(args):
+  """Dispatch module invocations.
+
+  A sort of other half of the runWithPrivilege decorator, main parses
+  the arguments and kwargs passed in on the command line and calls the
+  appropriate function. It also intercepts any raised exceptions or
+  return values, serializes them, and passes them over standard out to
+  whatever invoked the module.
+
+  Note: this doesn't intercept exceptions raised as part of the
+  initial argument parsing, because we're optimistically assuming that
+  arguments that come in from runWithPrivilege are flawless
+  (heh...). Those exceptions will get rendered by the Python
+  interpreter to standard error, as will any errors that we generate.
+
+  Args:
+    args, a list of arguments passed in to the module, not including
+      argv[0]
+
+  Returns:
+    Return an integer, which becomes the exit code for when the module
+      is run as a script.
+  """
+  if len(args) != 3:
+    usage()
+    return 1
+
+
+if __name__ == '__main__':
+  sys.exit(main(sys.argv))
