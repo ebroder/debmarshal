@@ -91,7 +91,7 @@ def runWithPrivilege(subcommand):
       # intentional, because the source of this string is trusted, and
       # may be an object like an exception.
       ret = yaml.load(p.stdout)
-      if not rc:
+      if rc:
         raise ret
       else:
         return ret
