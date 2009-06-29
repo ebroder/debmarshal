@@ -136,5 +136,27 @@ class TestReexecResults(mox.MoxTestBase):
     self.assertRaises(Exception, lambda: func('a', 'b', c='d'))
 
 
+class TestUsage(mox.MoxTestBase):
+  """Make sure that usage information gets printed"""
+  def setUp(self):
+    """Record printing out something that looks like usage information.
+
+    We'll try to trigger it a bunch of different ways.
+    """
+    super(TestUsage, self).setUp()
+
+    self.mox.StubOutWithMock(sys, 'stderr')
+    sys.stderr.write(mox.StrContains('Usage'))
+    sys.stderr.write(mox.IgnoreArg()).MultipleTimes()
+
+    self.mox.ReplayAll()
+
+  def testNoArgs(self):
+    self.assertEqual(privops.main([]), 1)
+
+  def testTooManyArgs(self):
+    self.assertEqual(privops.main(['a', 'b', 'c', 'd']), 1)
+
+
 if __name__ == '__main__':
   unittest.main()
