@@ -82,8 +82,8 @@ class TestReexecResults(mox.MoxTestBase):
     self.mox.StubOutWithMock(subprocess, 'Popen', use_mock_anything=True)
     subprocess.Popen([privops._SETUID_BINARY,
                       'test',
-                      yaml.safe_dump(['a', 'b']),
-                      yaml.safe_dump({'c': 'd'})],
+                      mox.Func(lambda x: yaml.safe_load(x) == ['a', 'b']),
+                      mox.Func(lambda x: yaml.safe_load(x) == {'c': 'd'})],
                      stdin=None,
                      stdout=subprocess.PIPE,
                      close_fds=True).AndReturn(self.mock_popen)
