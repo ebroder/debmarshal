@@ -15,8 +15,10 @@ except ImportError:
 import subprocess
 import sys
 import unittest
+
 import mox
 import yaml
+
 from debmarshal import errors
 from debmarshal import privops
 
@@ -190,6 +192,20 @@ class TestMain(mox.MoxTestBase):
 
     self.assertEqual(privops.main([
           'test', yaml.safe_dump([]), yaml.safe_dump({})]), 1)
+
+
+class TestCreateNetwork(mox.MoxTestBase):
+  def setUp(self):
+    super(TestCreateNetwork, self).setUp()
+
+    self.mox.StubOutWithMock(os, 'geteuid')
+    os.geteuid().AndReturn(0)
+
+  def testInputValidation(self):
+    self.mox.ReplayAll()
+
+    self.assertRaises(errors.InvalidInput,
+                      (lambda: privops.createNetwork(['not-a-domain.faketld'])))
 
 
 if __name__ == '__main__':
