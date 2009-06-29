@@ -22,11 +22,24 @@ __authors__ = [
 ]
 
 
+import errno
+import fcntl
+import itertools
 import os
+try:
+  import cPickle as pickle
+except ImportError:
+  import pickle
+import re
 import subprocess
 import sys
+
 import decorator
+import libvirt
+from lxml import etree
+import virtinst
 import yaml
+
 from debmarshal import errors
 
 
@@ -137,15 +150,125 @@ def createNetwork(hosts, dhcp=True):
       on the new network to assign IP addresses
 
   Returns:
-    A 3-tuple containing:
+    A 4-tuple containing:
       Network name: This is used to reference the newly created
         network in the future. It is unique across the local
         workstation
+      Gateway: The network address. Also the DNS server, if that
+        information isn't being grabbed over DHCP
       Netmask: The netmask for the network
       VMs: A dict mapping hostnames in hosts to (IP address, MAC
         address), as assigned by createNetwork
   """
-  pass
+  # First, input validation. Everything in hosts should be a valid
+  # hostname
+  hostname_re = re.compile(r"([a-z0-9][a-z0-9-]{0,62}\.)+([a-z]{2,4})$", re.I)
+  for h in hosts:
+    if not hostname_re.match(h):
+      raise errors.InvalidInput('Invalid hostname passed to '
+                                'debmarshal.privops.createNetwork')
+
+  # Next, load stored state about currently instantiated networks, if
+  # there is any
+  #
+  # networks is a list of tuples of the form (network-name, owner,
+  # "gateway")
+  try:
+    lock = open('/var/lock/debmarshal-networks', 'r')
+    fcntl.lockf(lock, fcntl.LOCK_SH)
+    f = open('/var/run/debmarshal-networks')
+    networks = pickle.load(f)
+    del lock
+  except EnvironmentError, e:
+    if e.errno == errno.ENOENT:
+      networks = []
+    else:
+      raise
+
+  # We don't really care which particular libvirt driver we connect
+  # to, because they all share the same networking
+  # config. libvirt.open() is supposed to take None to indicate a
+  # default, but it doesn't seem to work, so we pass in what's
+  # supposed to be the default for root.
+  virt_con = libvirt.open('qemu:///system')
+
+  # Since we won't necessarily get notified if networks are deleted
+  # outside of debmarshal's code, let's make sure that all the
+  # networks are still there, and just forget about any of the ones
+  # that have been lost
+  for i, network in enumerate(networks):
+    try:
+      virt_con.networkLookupByName(network[0])
+    except libvirt.libvirtError:
+      del networks[i]
+
+  net_names = set(n[0] for n in networks)
+  net_gateways = set(n[2] for n in networks)
+
+  # Now we actually can allocate the new network.
+  #
+  # First, let's figure out what to call this network
+  for i in itertools.count(0):
+    net_name = 'debmarshal-%d' % i
+    if net_name not in net_names:
+      break
+
+  # Then find a network to assign
+  for net in itertools.count(0):
+    net_gateway = '10.100.%d.1' % net
+    if net_gateway not in net_gateways:
+      break
+
+  # Assign IP addresses and MAC addresses for every host that's
+  # supposed to end up on this network
+  net_hosts = {}
+  i = 2
+  for host in hosts:
+    # Use the virtinst package's MAC address generator because it's
+    # easier than writing another one for ourselves.
+    #
+    # This does mean that the MAC addresses are allocated from
+    # Xensource's OUI, but whatever
+    mac = virtinst.util.randomMAC()
+    ip = '10.100.%d.%d' % (net, i)
+    net_hosts[host] = (ip, mac)
+    i += 1
+
+  # Finally, now that we have all of the relevant information, create
+  # the network
+  xml = etree.Element('network')
+  etree.SubElement(xml, 'name').text = net_name
+  xml_ip = etree.SubElement(xml, 'ip',
+                            address=net_gateway,
+                            netmask='255.255.255.0')
+  if dhcp:
+    xml_dhcp = etree.SubElement(xml_ip, 'dhcp')
+    etree.SubElement(xml_dhcp, 'range',
+                     start='10.100.%d.2' % net,
+                     end='10.100.%d.254' % net)
+    for hostname, hostinfo in net_hosts.iteritems():
+      etree.SubElement(xml_dhcp, 'host',
+                       mac=hostinfo[1],
+                       name=hostname,
+                       ip=hostinfo[0])
+
+  xml_str = etree.tostring(xml)
+  virt_net = virt_con.networkDefineXML(xml_str)
+  virt_net.create()
+  networks.append((net_name, os.getuid(), net_gateway))
+
+  # Record the network information into our state file
+  try:
+    lock = open('/var/lock/debmarshal-networks', 'w')
+    fcntl.lockf(lock, fcntl.LOCK_EX)
+    f = open('/var/run/debmarshal-networks', 'w')
+    pickle.dump(networks, f)
+    del lock
+  except:
+    virt_net.destroy()
+    raise
+
+  return (net_name, net_gateway, '255.255.255.0', net_hosts)
 
 
 def usage():

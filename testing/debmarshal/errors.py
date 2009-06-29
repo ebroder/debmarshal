@@ -7,7 +7,9 @@ __authors__ = [
 
 
 class Error(Exception):
-
   """Base exception for debmarshal"""
+  pass
 
+class InvalidInput(Error):
+  """Input didn't pass validation"""
   pass
