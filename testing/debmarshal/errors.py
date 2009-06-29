@@ -1,3 +1,4 @@
+# -*- python-indent: 2 -*-
 """debmarshal exception classes"""
 
 __authors__ = [
