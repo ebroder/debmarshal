@@ -7,10 +7,12 @@ __authors__ = [
 
 
 import os
+import posix
 import subprocess
 import sys
 import unittest
 import mox
+from debmarshal import errors
 from debmarshal import privops
 
 
@@ -36,6 +38,24 @@ class TestRunWithPrivilege(mox.MoxTestBase):
       return 1
 
     self.assertEqual(func(), 1)
+
+  def testAbortIfWrapperNotSetuid(self):
+    self.mox.StubOutWithMock(os, 'geteuid')
+    os.geteuid().AndReturn(1000)
+
+    self.mox.StubOutWithMock(os, 'stat')
+    os.stat(privops._SETUID_BINARY).AndReturn(posix.stat_result([
+        # st_mode is the first argument; we don't care about anything
+        # else
+        0755, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+
+    self.mox.ReplayAll()
+
+    @privops.runWithPrivilege('test')
+    def func():
+      self.fail('This function should never have been run.')
+
+    self.assertRaises(errors.Error, func)
 
 
 if __name__ == '__main__':
