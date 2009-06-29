@@ -13,3 +13,14 @@ class Error(Exception):
 class InvalidInput(Error):
   """Input didn't pass validation"""
   pass
+
+class AccessDenied(Error):
+  pass
+
+class NotFound(Error):
+  """Some object could not be found"""
+  pass
+
+class NetworkNotFound(NotFound):
+  """The referenced network couldn't be found"""
+  pass

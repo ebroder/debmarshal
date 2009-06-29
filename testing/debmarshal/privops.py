@@ -345,6 +345,37 @@ def createNetwork(hosts, dhcp=True):
   return (net_name, net_gateway, net_mask, net_hosts)
 
 
+@runWithPrivilege('destroy-network')
+def destroyNetwork(name):
+  """Destroy a debmarshal network.
+
+  destroyNetwork uses the state recorded by createNetwork to verify
+  that the user who created a network is the only one who can destroy
+  it (except for root).
+
+  Args:
+    name: The name of the network returned from createNetwork
+  """
+
+  virt_con = libvirt.open('qemu:///system')
+
+  networks = _loadNetworkState(virt_con)
+  for net in networks:
+    if net[0] == name:
+      break
+  else:
+    raise errors.NetworkNotFound("Network %s does not exist." % name)
+
+  if os.getuid() not in (0, net[1]):
+    raise errors.AccessDenied("Network %s not owned by UID %d." % (name, os.getuid))
+
+  virt_net = virt_con.networkLookupByName(name)
+  virt_net.destroy()
+
+  networks.remove(net)
+  _storeNetworkState(networks)
+
+
 def usage():
   """Command-line usage information for debmarshal.privops.
 
