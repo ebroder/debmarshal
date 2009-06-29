@@ -156,8 +156,10 @@ def main(args):
   posargs = yaml.safe_load(posargs)
   kwargs = yaml.safe_load(kwargs)
 
+  priv_func = _subcommands[subcommand]
+
   try:
-    ret = _subcommands[subcommand](*posargs, **kwargs)
+    ret = priv_func(*posargs, **kwargs)
     rc = 0
   except Exception, e:
     ret = e
