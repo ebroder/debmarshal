@@ -175,7 +175,7 @@ def createNetwork(hosts, dhcp=True):
   # networks is a list of tuples of the form (network-name, owner,
   # "gateway")
   try:
-    lock = open('/var/lock/debmarshal-networks', 'r')
+    lock = open('/var/lock/debmarshal-networks', 'w+')
     fcntl.lockf(lock, fcntl.LOCK_SH)
     f = open('/var/run/debmarshal-networks')
     networks = pickle.load(f)
