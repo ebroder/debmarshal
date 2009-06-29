@@ -121,6 +121,130 @@ def runWithPrivilege(subcommand):
   return _makeRunWithPriv
 
 
+_hostname_re = re.compile(r"([a-z0-9][a-z0-9-]{0,62}\.)+([a-z]{2,4})$", re.I)
+def _validateHostname(name):
+  """Check that the input is a valid, fully-qualified domain name
+
+  Args:
+    name: The hostname to validate
+
+  Returns:
+    None
+
+  Raises:
+    debmarshal.errors.InvalidInput if the hostname is not valid
+  """
+  if not _hostname_re.match(name):
+    raise errors.InvalidInput('Invalid hostname: %s' % name)
+
+
+def _loadNetworkState(virt_con=None):
+  """Load state for any networks previously created by debmarshal.
+
+  State is written to /var/run/debmarshal-networks as a pickle. Ubuntu
+  makes /var/run a tmpfs, so state vanishes after reboots - which is
+  good, because the networks debmarshal has created do as well.
+
+  Not all distributions do this, though, so we loop over the networks
+  in the pickle and see which ones still exist. If a network no longer
+  exists, we assume that it was deleted outside of debmarshal, and we
+  erase our record of it.
+
+  Args:
+    virt_con: A non-read-only libvirt.virConnect instance. If one
+      isn't passed in, we'll open one of our own. It doesn't really
+      matter which libvirt driver you connect to, because all of them
+      share virtual networks.
+
+  Returns:
+    A list of networks. Each network is a tuple of (network_name,
+      owner_uid, gateway_ip_address)
+  """
+  lock = open('/var/lock/debmarshal-networks', 'w+')
+  fcntl.lockf(lock, fcntl.LOCK_SH)
+  try:
+    networks_file = open('/var/run/debmarshal-networks')
+    networks = pickle.load(networks_file)
+  except EnvironmentError, e:
+    if e.errno == errno.ENOENT:
+      return []
+    else:
+      raise
+
+  if not virt_con:
+    virt_con = libvirt.open('qemu:///system')
+
+  # The default handler for any libvirt error prints to stderr. In
+  # this case, we're trying to trigger an error, so we don't want
+  # the printout. This suppresses the printout temporarily
+  libvirt.registerErrorHandler((lambda ctx, err: 1), None)
+
+  for i, network in enumerate(networks):
+    try:
+      virt_con.networkLookupByName(network[0])
+    except libvirt.libvirtError:
+      del networks[i]
+
+  # Reset the error handler to its default
+  libvirt.registerErrorHandler(None, None)
+
+  return networks
+
+
+def _storeNetworkState(networks):
+  lock = open('/var/lock/debmarshal-networks', 'w')
+  fcntl.lockf(lock, fcntl.LOCK_EX)
+  networks_file = open('/var/run/debmarshal-networks', 'w')
+  pickle.dump(networks, networks_file)
+
+
+def _genNetworkXML(name, gateway, netmask, hosts, dhcp):
+  """Given parameters for a debmarshal network, generate the libvirt
+  XML specification.
+
+  Args:
+    name: Name of the network, usually debmarshal-##
+    gateway: The "gateway" for the network. Although debmarshal
+      networks are isolated, you still need a gateway for things like
+      the DHCP server to live at
+    netmask
+    hosts: The hosts that will be attached to this network. It is a
+      dict from hostnames to a 2-tuple of (IP address, MAC address),
+      similar to the one that's returned from createNetwork
+    dhcp: A bool indicating whether or not to run DHCP on the new
+      network
+
+  Returns:
+    The string representation of the libvirt XML network matching the
+      parameters passed in
+  """
+
+  xml = etree.Element('network')
+  etree.SubElement(xml, 'name').text = name
+  xml_ip = etree.SubElement(xml, 'ip',
+                            address=gateway,
+                            netmask=netmask)
+
+  if dhcp:
+    # TODO(ebroder): In spite of taking the netmask as an argument,
+    # this doesn't actually use the netmask to find the range of IP
+    # addresses to assign over DHCP
+    subnet = gateway.rsplit('.', 1)[0]
+
+    xml_dhcp = etree.SubElement(xml_ip, 'dhcp')
+    etree.SubElement(xml_dhcp, 'range',
+                     start='%s.2' % subnet,
+                     end='%s.254' % subnet)
+
+    for hostname, hostinfo in hosts.iteritems():
+      etree.SubElement(xml_dhcp, 'host',
+                       name=hostname,
+                       ip=hostinfo[0],
+                       mac=hostinfo[1])
+
+  return etree.tostring(xml)
+
+
 @runWithPrivilege('create-network')
 def createNetwork(hosts, dhcp=True):
   """All of the networking config you need for a debmarshal test rig.
@@ -163,28 +287,8 @@ def createNetwork(hosts, dhcp=True):
   """
   # First, input validation. Everything in hosts should be a valid
   # hostname
-  hostname_re = re.compile(r"([a-z0-9][a-z0-9-]{0,62}\.)+([a-z]{2,4})$", re.I)
   for h in hosts:
-    if not hostname_re.match(h):
-      raise errors.InvalidInput('Invalid hostname passed to '
-                                'debmarshal.privops.createNetwork')
-
-  # Next, load stored state about currently instantiated networks, if
-  # there is any
-  #
-  # networks is a list of tuples of the form (network-name, owner,
-  # "gateway")
-  try:
-    lock = open('/var/lock/debmarshal-networks', 'w+')
-    fcntl.lockf(lock, fcntl.LOCK_SH)
-    f = open('/var/run/debmarshal-networks')
-    networks = pickle.load(f)
-    del lock
-  except EnvironmentError, e:
-    if e.errno == errno.ENOENT:
-      networks = []
-    else:
-      raise
+    _validateHostname(h)
 
   # We don't really care which particular libvirt driver we connect
   # to, because they all share the same networking
@@ -193,24 +297,7 @@ def createNetwork(hosts, dhcp=True):
   # supposed to be the default for root.
   virt_con = libvirt.open('qemu:///system')
 
-  # Since we won't necessarily get notified if networks are deleted
-  # outside of debmarshal's code, let's make sure that all the
-  # networks are still there, and just forget about any of the ones
-  # that have been lost
-  for i, network in enumerate(networks):
-    # The default handler for any libvirt error prints to stderr. In
-    # this case, we're trying to trigger an error, so we don't want
-    # the printout. This suppresses the printout temporarily
-    libvirt.registerErrorHandler((lambda ctx, err: 1), None)
-
-    try:
-      virt_con.networkLookupByName(network[0])
-    except libvirt.libvirtError:
-      del networks[i]
-
-    # Reset the error handler to its default
-    libvirt.registerErrorHandler(None, None)
-
+  networks = _loadNetworkState(virt_con)
   net_names = set(n[0] for n in networks)
   net_gateways = set(n[2] for n in networks)
 
@@ -243,41 +330,21 @@ def createNetwork(hosts, dhcp=True):
     net_hosts[host] = (ip, mac)
     i += 1
 
-  # Finally, now that we have all of the relevant information, create
-  # the network
-  xml = etree.Element('network')
-  etree.SubElement(xml, 'name').text = net_name
-  xml_ip = etree.SubElement(xml, 'ip',
-                            address=net_gateway,
-                            netmask='255.255.255.0')
-  if dhcp:
-    xml_dhcp = etree.SubElement(xml_ip, 'dhcp')
-    etree.SubElement(xml_dhcp, 'range',
-                     start='10.100.%d.2' % net,
-                     end='10.100.%d.254' % net)
-    for hostname, hostinfo in net_hosts.iteritems():
-      etree.SubElement(xml_dhcp, 'host',
-                       mac=hostinfo[1],
-                       name=hostname,
-                       ip=hostinfo[0])
+  net_mask = '255.255.255.0'
 
-  xml_str = etree.tostring(xml)
-  virt_net = virt_con.networkDefineXML(xml_str)
+  xml = _genNetworkXML(net_name, net_gateway, net_mask, net_hosts, dhcp)
+  virt_net = virt_con.networkDefineXML(xml)
   virt_net.create()
   networks.append((net_name, os.getuid(), net_gateway))
 
   # Record the network information into our state file
   try:
-    lock = open('/var/lock/debmarshal-networks', 'w')
-    fcntl.lockf(lock, fcntl.LOCK_EX)
-    f = open('/var/run/debmarshal-networks', 'w')
-    pickle.dump(networks, f)
-    del lock
+    _storeNetworkState(networks)
   except:
     virt_net.destroy()
     raise
 
-  return (net_name, net_gateway, '255.255.255.0', net_hosts)
+  return (net_name, net_gateway, net_mask, net_hosts)
 
 
 def usage():
