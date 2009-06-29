@@ -1,4 +1,24 @@
 *.pyc
+*.o
 debmarshal.egg-info
 build
 dist
+
+c/debmarshpriv
+
+# autogoo
+.deps
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache
+config.h
+config.h.in
+config.log
+config.status
+configure
+.dirstamp
+depcomp
+install-sh
+missing
+stamp-h1
