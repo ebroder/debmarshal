@@ -15,3 +15,25 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
+"""Hypervisor-specific configuration for debmarshal test domains.
+
+The debmarshal.hypervisors package contains classes to help with any
+specialized configuration required for the different virtualization
+engines supported by debmarshal.
+
+Note that because debmarshal.privops.domains uses
+debmarshal.hypervisors to generate the libvirt XML for a domain,
+debmarshal.hypervisors and all modules under it are trusted code.
+
+In the root of the package, we load each submodule to make sure that
+it's registered in debmarshal.hypervisors.base.hypervisors.
+"""
+
+
+__authors__ = [
+  'Evan Broder <ebroder@google.com>',
+]
+
+
+from debmarshal.hypervisors import base
+from debmarshal.hypervisors import qemu
