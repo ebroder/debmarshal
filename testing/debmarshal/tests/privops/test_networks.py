@@ -28,7 +28,7 @@ import fcntl
 import os
 try:
   import cPickle as pickle
-except:
+except ImportError:
   import pickle
 try:
   import cStringIO as StringIO
