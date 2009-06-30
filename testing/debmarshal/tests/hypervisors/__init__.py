@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- python-indent: 2; py-indent-offset: 2 -*-
 # Copyright 2009 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
