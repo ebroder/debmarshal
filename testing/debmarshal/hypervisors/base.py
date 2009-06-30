@@ -70,8 +70,8 @@ class Hypervisor(object):
   """
   __metaclass__ = HypervisorMeta
 
-  @staticmethod
-  def domainXML(vm):
+  @classmethod
+  def domainXML(cls, vm):
     """Generate the XML to pass to libvirt to create a new domain.
 
     This will generate the portions of the XML that are common to all
