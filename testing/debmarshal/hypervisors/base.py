@@ -29,6 +29,9 @@ import stat
 from lxml import etree
 
 
+hypervisors = {}
+
+
 def _diskIsBlockDevice(disk):
   """Identify whether a particular disk is an image file or block
   device
@@ -42,6 +45,21 @@ def _diskIsBlockDevice(disk):
   return stat.S_ISBLK(os.stat(disk).st_mode)
 
 
+class HypervisorMeta(type):
+  """Metaclass to register all descendents of Hypervisor.
+
+  When a subclass of Hypervisor is being constructed, this metaclass
+  adds the new class to the hypervisors dictionary. cls.__name__ is
+  used as the key, so it should be a short name to use when referring
+  to the hypervisor (e.g."xen").
+  """
+  def __init__(cls, name, bases, d):
+    super(HypervisorMeta, cls).__init__(name, bases, d)
+
+    if '__name__' in d:
+      hypervisors[d['__name__']] = cls
+
+
 class Hypervisor(object):
   """Superclass representation of an abstract hypervisor used to run
   debmarshal tests.
@@ -50,6 +68,8 @@ class Hypervisor(object):
   hypervisors capable of creating virtual domains. They also have a
   hand in the runtime configuration of such hypervisors.
   """
+  __metaclass__ = HypervisorMeta
+
   @staticmethod
   def domainXML(vm):
     """Generate the XML to pass to libvirt to create a new domain.
