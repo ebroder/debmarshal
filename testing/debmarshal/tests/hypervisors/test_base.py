@@ -29,6 +29,7 @@ import unittest
 import mox
 
 from debmarshal.hypervisors import base
+from debmarshal import vm
 
 
 class TestDiskIsBlockDevice(mox.MoxTestBase):
@@ -53,6 +54,40 @@ class TestDiskIsBlockDevice(mox.MoxTestBase):
 
     self.assertEqual(base._diskIsBlockDevice('/home/ebroder/root.img'),
                      False)
+
+
+class TestHypervisorDomainXML(mox.MoxTestBase):
+  """Test base.Hypervisor.domainXML."""
+  def testNoDisks(self):
+    """Generate XML from a VM with no disks to probe the other pieces
+    of the resulting XML."""
+    test_vm = vm.VM(name='some_name',
+                    memory=42,
+                    disks=[],
+                    network='debmarshal-0',
+                    mac='00:11:22:33:44:55')
+
+    xml = base.Hypervisor.domainXML(test_vm)
+
+    # First, is the root element <domain/>?
+    self.assertNotEqual(xml.xpath('/domain'), [])
+
+    # Is there one of each of <name/> and <memory/>? Are they right?
+    self.assertEqual(len(xml.xpath('/domain/name')), 1)
+    self.assertEqual(xml.xpath('string(/domain/name)'), test_vm.name)
+    self.assertEqual(len(xml.xpath('/domain/memory')), 1)
+    self.assertEqual(xml.xpath('string(/domain/memory)'), str(test_vm.memory))
+
+    # And did the networking get setup right?
+    self.assertEqual(len(xml.xpath('/domain/devices/interface')), 1)
+    self.assertEqual(len(xml.xpath('/domain/devices/interface/source')), 1)
+    self.assertEqual(len(xml.xpath('/domain/devices/interface/mac')), 1)
+
+    net_attr = 'string(/domain/devices/interface/%s)'
+    self.assertEqual(xml.xpath(net_attr % 'source/@network'),
+                     test_vm.network)
+    self.assertEqual(xml.xpath(net_attr % 'mac/@address'),
+                     test_vm.mac)
 
 
 if __name__ == '__main__':
