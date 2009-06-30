@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
-"""tests for the debmarshal setuid support module"""
+"""tests for the debmarshal privileged networking module"""
 
 __authors__ = [
     'Evan Broder <ebroder@google.com>',
@@ -41,24 +41,24 @@ from lxml import etree
 import virtinst.util
 
 from debmarshal import errors
-from debmarshal import privops
+from debmarshal.privops import networks
 
 
 class TestValidateHostname(mox.MoxTestBase):
-  """Test debmarshal.privops._validateHostname"""
+  """Test debmarshal.privops.networks._validateHostname"""
   def testInvalidInput(self):
     """Make sure that an exception gets raised if an invalid hostname
     is passed in"""
     self.assertRaises(
         errors.InvalidInput,
-        (lambda: privops._validateHostname('not-a-domain.faketld')))
+        (lambda: networks._validateHostname('not-a-domain.faketld')))
 
   def testValidInput(self):
     """Test that nothing happens if a valid hostname is passed in"""
     # Unfortunately unittest.TestCase doesn't have any built-in
     # mechanisms to mark raised exceptions as a failure instead of an
     # error, but an error seems good enough
-    privops._validateHostname('real-hostname.com')
+    networks._validateHostname('real-hostname.com')
 
 
 class TestLoadNetworkState(mox.MoxTestBase):
@@ -72,7 +72,7 @@ class TestLoadNetworkState(mox.MoxTestBase):
     # doesn't seem to be able to stub out __builtins__, so we'll hack
     # around it ourselves
     self.open = self.mox.CreateMockAnything()
-    privops.open = self.open
+    networks.open = self.open
     self.mox.StubOutWithMock(fcntl, 'lockf')
 
     lock_file = self.mox.CreateMock(file)
@@ -81,7 +81,7 @@ class TestLoadNetworkState(mox.MoxTestBase):
 
   def tearDown(self):
     """Undo the mock open() function"""
-    del privops.open
+    del networks.open
 
   def testNoNetworkFile(self):
     """Make sure that the network list is assumed empty if the state
@@ -91,7 +91,7 @@ class TestLoadNetworkState(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(privops._loadNetworkState(), [])
+    self.assertEqual(networks._loadNetworkState(), [])
 
   def testExceptionOpeningNetworkFile(self):
     """Make sure that any exception other than ENOENT raised opening
@@ -101,13 +101,13 @@ class TestLoadNetworkState(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertRaises(IOError, privops._loadNetworkState)
+    self.assertRaises(IOError, networks._loadNetworkState)
 
   def testOpeningLibvirtConnection(self):
     """Make sure that _loadNetworkState can open its own connection to
     libvirt if needed"""
-    networks = StringIO.StringIO(pickle.dumps([]))
-    self.open('/var/run/debmarshal-networks').AndReturn(networks)
+    self.networks = StringIO.StringIO(pickle.dumps([]))
+    self.open('/var/run/debmarshal-networks').AndReturn(self.networks)
 
     self.mox.StubOutWithMock(libvirt, 'open')
     virt_con = self.mox.CreateMock(libvirt.virConnect)
@@ -119,14 +119,14 @@ class TestLoadNetworkState(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(privops._loadNetworkState(), [])
+    self.assertEqual(networks._loadNetworkState(), [])
 
   def testNetworkExistenceTest(self):
     """Make sure that networks get dropped from the list in the state
     file if they don't still exist. And that they're kept if they do"""
-    networks = StringIO.StringIO(pickle.dumps([('foo', 500, '10.100.1.1'),
-                                               ('bar', 501, '10.100.1.2')]))
-    self.open('/var/run/debmarshal-networks').AndReturn(networks)
+    self.networks = StringIO.StringIO(pickle.dumps([('foo', 500, '10.100.1.1'),
+                                                    ('bar', 501, '10.100.1.2')]))
+    self.open('/var/run/debmarshal-networks').AndReturn(self.networks)
 
     virt_con = self.mox.CreateMock(libvirt.virConnect)
 
@@ -141,20 +141,20 @@ class TestLoadNetworkState(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(privops._loadNetworkState(virt_con),
+    self.assertEqual(networks._loadNetworkState(virt_con),
                      [('foo', 500, '10.100.1.1')])
 
 
 class TestStoreNetworkState(mox.MoxTestBase):
-  """Test privops._storeNetworkState"""
+  """Test debmarshal.privops.networks._storeNetworkState"""
   def testStoreNetworkState(self):
     """This is kind of a dumb test. There are no branches or anything
     in _storeNetworkState, and if the code doesn't throw exceptions,
     it's roughly guaranteed to work."""
-    networks = [('debmarshal-0', 500, '10.100.1.1')]
+    self.networks = [('debmarshal-0', 500, '10.100.1.1')]
 
     self.open = self.mox.CreateMockAnything()
-    privops.open = self.open
+    networks.open = self.open
     self.mox.StubOutWithMock(fcntl, 'lockf')
 
     lock_file = self.mox.CreateMock(file)
@@ -163,15 +163,15 @@ class TestStoreNetworkState(mox.MoxTestBase):
 
     net_file = self.mox.CreateMock(file)
     self.open('/var/run/debmarshal-networks', 'w').AndReturn(net_file)
-    pickle.dump(networks, net_file)
+    pickle.dump(self.networks, net_file)
 
     self.mox.ReplayAll()
 
-    privops._storeNetworkState(networks)
+    networks._storeNetworkState(self.networks)
 
     self.mox.VerifyAll()
 
-    del privops.open
+    del networks.open
 
 
 class TestNetworkBounds(mox.MoxTestBase):
@@ -179,12 +179,12 @@ class TestNetworkBounds(mox.MoxTestBase):
   addresses in the network"""
   def test24(self):
     """Test a converting a /24 network, what debmarshal uses"""
-    self.assertEqual(privops._networkBounds('192.168.1.1', '255.255.255.0'),
+    self.assertEqual(networks._networkBounds('192.168.1.1', '255.255.255.0'),
                      ('192.168.1.2', '192.168.1.254'))
 
 
 class TestGenNetworkXML(mox.MoxTestBase):
-  """Test the XML generated by privops._genNetworkXML"""
+  """Test the XML generated by networks._genNetworkXML"""
   name = 'debmarshal-1'
   net = '10.100.4'
   gateway = '%s.1' % net
@@ -193,7 +193,7 @@ class TestGenNetworkXML(mox.MoxTestBase):
            'login.company.com': ('10.100.4.3', '00:11:22:33:44:55')}
   def testDhcpXml(self):
     """Test an XML tree with DHCP enabled"""
-    xml_string = privops._genNetworkXML(self.name,
+    xml_string = networks._genNetworkXML(self.name,
                                         self.gateway,
                                         self.netmask,
                                         self.hosts,
@@ -228,7 +228,7 @@ class TestGenNetworkXML(mox.MoxTestBase):
 
   def testNoDhcpXML(self):
     """Test an XML without DHCP enabled"""
-    xml_string = privops._genNetworkXML(self.name,
+    xml_string = networks._genNetworkXML(self.name,
                                         self.gateway,
                                         self.netmask,
                                         self.hosts,
@@ -273,21 +273,21 @@ class TestCreateNetwork(mox.MoxTestBase):
     self.mox.StubOutWithMock(os, 'getuid')
     os.getuid().AndReturn(1000)
 
-    self.mox.StubOutWithMock(privops, '_validateHostname')
-    privops._validateHostname(mox.IgnoreArg()).MultipleTimes()
+    self.mox.StubOutWithMock(networks, '_validateHostname')
+    networks._validateHostname(mox.IgnoreArg()).MultipleTimes()
 
     self.mox.StubOutWithMock(libvirt, 'open')
     virt_con = self.mox.CreateMock(libvirt.virConnect)
     libvirt.open(mox.IgnoreArg()).AndReturn(virt_con)
 
-    self.mox.StubOutWithMock(privops, '_loadNetworkState')
-    privops._loadNetworkState(virt_con).AndReturn(self.networks)
+    self.mox.StubOutWithMock(networks, '_loadNetworkState')
+    networks._loadNetworkState(virt_con).AndReturn(self.networks)
 
     self.mox.StubOutWithMock(virtinst.util, 'randomMAC')
     virtinst.util.randomMAC().MultipleTimes().AndReturn('00:00:00:00:00:00')
 
-    self.mox.StubOutWithMock(privops, '_genNetworkXML')
-    privops._genNetworkXML(self.name, self.gateway, '255.255.255.0',
+    self.mox.StubOutWithMock(networks, '_genNetworkXML')
+    networks._genNetworkXML(self.name, self.gateway, '255.255.255.0',
                            self.host_dict, False).AndReturn('<fake_xml />')
 
     self.virt_net = self.mox.CreateMock(libvirt.virNetwork)
@@ -296,20 +296,20 @@ class TestCreateNetwork(mox.MoxTestBase):
 
   def testStoreSuccess(self):
     """Test createNetwork when everything goes right"""
-    self.mox.StubOutWithMock(privops, '_storeNetworkState')
-    privops._storeNetworkState(self.networks +
+    self.mox.StubOutWithMock(networks, '_storeNetworkState')
+    networks._storeNetworkState(self.networks +
                                [(self.name, 1000, self.gateway)])
 
     self.mox.ReplayAll()
 
-    self.assertEqual(privops.createNetwork(self.hosts, False),
+    self.assertEqual(networks.createNetwork(self.hosts, False),
                      (self.name, self.gateway, '255.255.255.0', self.host_dict))
 
   def testStoreFailure(self):
     """Test that the network is destroyed if state about it can't be
     stored"""
-    self.mox.StubOutWithMock(privops, '_storeNetworkState')
-    privops._storeNetworkState(self.networks +
+    self.mox.StubOutWithMock(networks, '_storeNetworkState')
+    networks._storeNetworkState(self.networks +
                                [(self.name, 1000, self.gateway)]).\
                                AndRaise(Exception("Error!"))
 
@@ -319,7 +319,7 @@ class TestCreateNetwork(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     self.assertRaises(Exception,
-                      (lambda: privops.createNetwork(self.hosts, False)))
+                      (lambda: networks.createNetwork(self.hosts, False)))
 
 class TestDestroyNetwork(mox.MoxTestBase):
   def setUp(self):
@@ -335,8 +335,8 @@ class TestDestroyNetwork(mox.MoxTestBase):
 
     self.networks = [('debmarshal-0', 501, '10.100.0.1'),
                      ('debmarshal-1', 500, '10.100.1.1')]
-    self.mox.StubOutWithMock(privops, '_loadNetworkState')
-    privops._loadNetworkState(self.virt_con).AndReturn(self.networks)
+    self.mox.StubOutWithMock(networks, '_loadNetworkState')
+    networks._loadNetworkState(self.virt_con).AndReturn(self.networks)
 
   def testNoNetwork(self):
     """Test that destroyNetwork doesn't try to delete a network it
@@ -344,7 +344,7 @@ class TestDestroyNetwork(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     self.assertRaises(errors.NetworkNotFound,
-                      (lambda: privops.destroyNetwork('debmarshal-3')))
+                      (lambda: networks.destroyNetwork('debmarshal-3')))
 
   def testNoPermissions(self):
     """Test that destroyNetwork refuses to delete a network if you
@@ -355,7 +355,7 @@ class TestDestroyNetwork(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     self.assertRaises(errors.AccessDenied,
-                      (lambda: privops.destroyNetwork('debmarshal-1')))
+                      (lambda: networks.destroyNetwork('debmarshal-1')))
 
   def testSuccess(self):
     """Test that destroyNetwork will actually delete an existing
@@ -368,13 +368,13 @@ class TestDestroyNetwork(mox.MoxTestBase):
     virt_net.destroy()
     virt_net.undefine()
 
-    self.mox.StubOutWithMock(privops, '_storeNetworkState')
+    self.mox.StubOutWithMock(networks, '_storeNetworkState')
     new_networks = self.networks[1:]
-    privops._storeNetworkState(new_networks)
+    networks._storeNetworkState(new_networks)
 
     self.mox.ReplayAll()
 
-    privops.destroyNetwork('debmarshal-0')
+    networks.destroyNetwork('debmarshal-0')
 
 
 if __name__ == '__main__':
