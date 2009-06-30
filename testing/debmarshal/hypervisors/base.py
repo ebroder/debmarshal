@@ -83,7 +83,8 @@ class Hypervisor(object):
         VM
 
     Returns:
-      An lxml.etree.Element object containing the parsed XML tree.
+      The XML specification for the domain specified by vm as an
+        lxml.etree.Element object
     """
     xml = etree.Element('domain')
     etree.SubElement(xml, 'name').text = vm.name
@@ -108,3 +109,22 @@ class Hypervisor(object):
     etree.SubElement(xml_net, 'mac', address=vm.mac)
 
     return xml
+
+  @classmethod
+  def domainXMLString(cls, vm):
+    """Generate the XML string to pass to libvirt to create a new
+    domain.
+
+    Similar to domainXML, this generates the XML needed to create a
+    new domain, but returns the XML as a string, instead of an XML
+    object.
+
+    Args:
+      vm: an instance of debmarshal.vm.VM with the parameters for the
+        VM
+
+    Returns:
+      A string containing the XML specification for a domain described
+        by vm
+    """
+    return etree.tostring(cls.domainXML(vm))

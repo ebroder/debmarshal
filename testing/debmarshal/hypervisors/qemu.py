@@ -43,7 +43,8 @@ class QEMU(base.Hypervisor):
         VM to create
 
     Returns:
-      An lxml.etree Element object with the parsed XML tree.
+      An lxml.etree.Element object containing the XML to specify the
+        domain
     """
     # TODO(ebroder): Take advantage of qemu's cross-architecture
     #   support to let us specify the architecture/bittedness/etc of
