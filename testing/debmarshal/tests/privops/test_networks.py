@@ -43,6 +43,7 @@ import virtinst.util
 
 from debmarshal import errors
 from debmarshal.privops import networks
+from debmarshal.privops import utils
 
 
 class TestValidateHostname(mox.MoxTestBase):
@@ -272,8 +273,8 @@ class TestCreateNetwork(mox.MoxTestBase):
 
     self.mox.StubOutWithMock(os, 'geteuid')
     os.geteuid().AndReturn(0)
-    self.mox.StubOutWithMock(os, 'getuid')
-    os.getuid().AndReturn(1000)
+    self.mox.StubOutWithMock(utils, 'getCaller')
+    utils.getCaller().AndReturn(1000)
 
     self.mox.StubOutWithMock(networks, '_validateHostname')
     networks._validateHostname(mox.IgnoreArg()).MultipleTimes()
@@ -352,8 +353,8 @@ class TestDestroyNetwork(mox.MoxTestBase):
   def testNoPermissions(self):
     """Test that destroyNetwork refuses to delete a network if you
     don't own it"""
-    self.mox.StubOutWithMock(os, 'getuid')
-    os.getuid().MultipleTimes().AndReturn(501)
+    self.mox.StubOutWithMock(utils, 'getCaller')
+    utils.getCaller().MultipleTimes().AndReturn(501)
 
     self.mox.ReplayAll()
 
@@ -363,8 +364,8 @@ class TestDestroyNetwork(mox.MoxTestBase):
   def testSuccess(self):
     """Test that destroyNetwork will actually delete an existing
     network owned by the right user."""
-    self.mox.StubOutWithMock(os, 'getuid')
-    os.getuid().MultipleTimes().AndReturn(501)
+    self.mox.StubOutWithMock(utils, 'getCaller')
+    utils.getCaller().MultipleTimes().AndReturn(501)
 
     virt_net = self.mox.CreateMock(libvirt.virNetwork)
     self.virt_con.networkLookupByName('debmarshal-0').AndReturn(virt_net)
