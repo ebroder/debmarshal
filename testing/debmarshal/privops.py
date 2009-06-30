@@ -384,7 +384,7 @@ def destroyNetwork(name):
     raise errors.NetworkNotFound("Network %s does not exist." % name)
 
   if os.getuid() not in (0, net[1]):
-    raise errors.AccessDenied("Network %s not owned by UID %d." % (name, os.getuid))
+    raise errors.AccessDenied("Network %s not owned by UID %d." % (name, os.getuid()))
 
   virt_net = virt_con.networkLookupByName(name)
   virt_net.destroy()
