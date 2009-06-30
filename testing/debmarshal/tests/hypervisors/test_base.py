@@ -27,6 +27,7 @@ import os
 import posix
 import unittest
 
+from lxml import etree
 import mox
 
 from debmarshal.hypervisors import base
@@ -141,6 +142,18 @@ class TestHypervisorDomainXML(mox.MoxTestBase):
     self.assertEqual(disk.xpath('string(@type)'), 'file')
     self.assertEqual(len(disk.xpath('source')), 1)
     self.assertEqual(disk.xpath('string(source/@file)'), test_vm.disks[1])
+
+
+class TestDomainXMLString(mox.MoxTestBase):
+  """Test hypervisors.base.Hypervisor.domainXMLString."""
+  def test(self):
+    self.mox.StubOutWithMock(base.Hypervisor, 'domainXML')
+    xml = etree.Element('some_element')
+    base.Hypervisor.domainXML(mox.IgnoreArg()).AndReturn(xml)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(base.Hypervisor.domainXMLString(None), etree.tostring(xml))
 
 
 if __name__ == '__main__':
