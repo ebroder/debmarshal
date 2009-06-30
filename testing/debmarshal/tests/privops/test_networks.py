@@ -93,7 +93,7 @@ class TestLoadNetworkState(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(networks._loadNetworkState(), [])
+    self.assertEqual(networks.loadNetworkState(), [])
 
   def testExceptionOpeningNetworkFile(self):
     """Make sure that any exception other than ENOENT raised opening
@@ -103,10 +103,10 @@ class TestLoadNetworkState(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertRaises(IOError, networks._loadNetworkState)
+    self.assertRaises(IOError, networks.loadNetworkState)
 
   def testOpeningLibvirtConnection(self):
-    """Make sure that _loadNetworkState can open its own connection to
+    """Make sure that loadNetworkState can open its own connection to
     libvirt if needed"""
     self.networks = StringIO.StringIO(pickle.dumps([]))
     self.open('/var/run/debmarshal-networks').AndReturn(self.networks)
@@ -121,7 +121,7 @@ class TestLoadNetworkState(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(networks._loadNetworkState(), [])
+    self.assertEqual(networks.loadNetworkState(), [])
 
   def testNetworkExistenceTest(self):
     """Make sure that networks get dropped from the list in the state
@@ -143,7 +143,7 @@ class TestLoadNetworkState(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(networks._loadNetworkState(virt_con),
+    self.assertEqual(networks.loadNetworkState(virt_con),
                      [('foo', 500, '10.100.1.1')])
 
 
@@ -283,8 +283,8 @@ class TestCreateNetwork(mox.MoxTestBase):
     virt_con = self.mox.CreateMock(libvirt.virConnect)
     libvirt.open(mox.IgnoreArg()).AndReturn(virt_con)
 
-    self.mox.StubOutWithMock(networks, '_loadNetworkState')
-    networks._loadNetworkState(virt_con).AndReturn(self.networks)
+    self.mox.StubOutWithMock(networks, 'loadNetworkState')
+    networks.loadNetworkState(virt_con).AndReturn(self.networks)
 
     self.mox.StubOutWithMock(virtinst.util, 'randomMAC')
     virtinst.util.randomMAC().MultipleTimes().AndReturn('00:00:00:00:00:00')
@@ -339,8 +339,8 @@ class TestDestroyNetwork(mox.MoxTestBase):
 
     self.networks = [('debmarshal-0', 501, '10.100.0.1'),
                      ('debmarshal-1', 500, '10.100.1.1')]
-    self.mox.StubOutWithMock(networks, '_loadNetworkState')
-    networks._loadNetworkState(self.virt_con).AndReturn(self.networks)
+    self.mox.StubOutWithMock(networks, 'loadNetworkState')
+    networks.loadNetworkState(self.virt_con).AndReturn(self.networks)
 
   def testNoNetwork(self):
     """Test that destroyNetwork doesn't try to delete a network it

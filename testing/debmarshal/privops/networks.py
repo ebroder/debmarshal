@@ -63,7 +63,7 @@ def _validateHostname(name):
     raise errors.InvalidInput('Invalid hostname: %s' % name)
 
 
-def _loadNetworkState(virt_con=None):
+def loadNetworkState(virt_con=None):
   """Load state for any networks previously created by debmarshal.
 
   State is written to /var/run/debmarshal-networks as a pickle. Ubuntu
@@ -234,7 +234,7 @@ def createNetwork(hosts, dhcp=True):
   # supposed to be the default for root.
   virt_con = libvirt.open('qemu:///system')
 
-  networks = _loadNetworkState(virt_con)
+  networks = loadNetworkState(virt_con)
   net_names = set(n[0] for n in networks)
   net_gateways = set(n[2] for n in networks)
 
@@ -302,7 +302,7 @@ def destroyNetwork(name):
   """
   virt_con = libvirt.open('qemu:///system')
 
-  networks = _loadNetworkState(virt_con)
+  networks = loadNetworkState(virt_con)
   for net in networks:
     if net[0] == name:
       break
