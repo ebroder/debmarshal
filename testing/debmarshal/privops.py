@@ -51,6 +51,7 @@ import subprocess
 import sys
 
 import decorator
+import ipaddr
 import libvirt
 from lxml import etree
 import virtinst
@@ -212,6 +213,23 @@ def _storeNetworkState(networks):
   pickle.dump(networks, networks_file)
 
 
+def _networkBounds(gateway, netmask):
+  """Find the start and end of available IP addresses in a network.
+
+  Args:
+    gateway: The gateway addresses of the network
+    netmask: The netmask of the network
+
+  Returns:
+    Tuple of the form (low_ip, high_ip)
+  """
+
+  net = ipaddr.IP('%s/%s' % (gateway, netmask))
+  low = ipaddr.IP(ipaddr.IP(gateway).ip + 1)
+  high = ipaddr.IP(net.broadcast - 1)
+  return (low.ip_ext, high.ip_ext)
+
+
 def _genNetworkXML(name, gateway, netmask, hosts, dhcp):
   """Given parameters for a debmarshal network, generate the libvirt
   XML specification.
@@ -240,15 +258,12 @@ def _genNetworkXML(name, gateway, netmask, hosts, dhcp):
                             netmask=netmask)
 
   if dhcp:
-    # TODO(ebroder): In spite of taking the netmask as an argument,
-    # this doesn't actually use the netmask to find the range of IP
-    # addresses to assign over DHCP
-    subnet = gateway.rsplit('.', 1)[0]
+    low, high = _networkBounds(gateway, netmask)
 
     xml_dhcp = etree.SubElement(xml_ip, 'dhcp')
     etree.SubElement(xml_dhcp, 'range',
-                     start='%s.2' % subnet,
-                     end='%s.254' % subnet)
+                     start=low,
+                     end=high)
 
     for hostname, hostinfo in hosts.iteritems():
       etree.SubElement(xml_dhcp, 'host',

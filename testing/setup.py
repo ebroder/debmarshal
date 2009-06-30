@@ -31,9 +31,10 @@ libvirt and other virtualization techniques to build entire platforms
 for running automated tests in an environment isolated from the
 outside world.
 """,
-      requires=['decorator', 'PyYAML'],
+      requires=['decorator', 'PyYAML', 'ipaddr'],
       setup_requires=['nose>=0.9.2'],
       test_suite = 'nose.collector',
       tests_require=['mox'],
-      dependency_links=['http://code.google.com/p/pymox/downloads/list']
+      dependency_links=['http://code.google.com/p/pymox/downloads/list',
+                        'http://code.google.com/p/ipaddr-py/downloads/list']
 )
