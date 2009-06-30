@@ -156,6 +156,23 @@ class TestReexecResults(mox.MoxTestBase):
     self.assertRaises(Exception, lambda: func('a', 'b', c='d'))
 
 
+class TestGetCaller(mox.MoxTestBase):
+  """Test for privops.utils.getCaller"""
+  def test(self):
+    """Verify that privops.utils.getCaller returns os.getuid.
+
+    This is sort of a dumb test, but at least it'll start failing if
+    we change the mechanisms by which debmarshal escalates privileges,
+    and then we can come up with a better test.
+    """
+    self.mox.StubOutWithMock(os, 'getuid')
+    os.getuid().AndReturn(42)
+
+    self.mox.ReplayAll()
+
+    self.assertEquals(utils.getCaller(), 42)
+
+
 class TestUsage(mox.MoxTestBase):
   """Make sure that usage information gets printed"""
   def setUp(self):
