@@ -56,6 +56,29 @@ class TestDiskIsBlockDevice(mox.MoxTestBase):
                      False)
 
 
+class TestHypervisorMeta(unittest.TestCase):
+  """Test the base.HypervisorMeta metaclass."""
+  def testWithoutName(self):
+    """Test that Hypervisor-descended classes without a __name__
+    attribute don't end up in base.hypervisors."""
+    class NamelessMetaTest(base.Hypervisor):
+      pass
+
+    self.assert_(NamelessMetaTest not in base.hypervisors.values())
+
+  def testWithName(self):
+    """Test that Hypervisor-descended classes with a __name__
+    attribute do show up in base.hypervisors."""
+    class NamedMetaTest(base.Hypervisor):
+      __name__ = 'test'
+
+    self.assertEqual(NamedMetaTest, base.hypervisors['test'])
+
+  def testNoHypervisor(self):
+    """Test that Hypervisor itself isn't in base.hypervisors."""
+    self.assert_(base.Hypervisor not in base.hypervisors.values())
+
+
 class TestHypervisorDomainXML(mox.MoxTestBase):
   """Test base.Hypervisor.domainXML."""
   def testNoDisks(self):
