@@ -17,6 +17,7 @@
 # 02110-1301, USA.
 """tests for debmarshal.hypervisors.qemu."""
 
+
 __authors__ = [
   'Evan Broder <ebroder@google.com>',
 ]

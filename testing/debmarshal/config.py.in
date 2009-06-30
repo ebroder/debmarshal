@@ -25,11 +25,14 @@ variables as @libexecdir@, which incorporate other variables in
 shell-like substitutions.
 """
 
+
 __authors__ = [
-    'Evan Broder <ebroder@google.com>',
+  'Evan Broder <ebroder@google.com>',
 ]
 
+
 import string
+
 
 def evalVariable(val):
   """Interpolate variables using a shell-like syntax
@@ -42,6 +45,7 @@ def evalVariable(val):
       that have been defined in this module
   """
   return string.Template(val).substitute(**globals())
+
 
 prefix = evalVariable('@prefix@')
 exec_prefix = evalVariable('@exec_prefix@')

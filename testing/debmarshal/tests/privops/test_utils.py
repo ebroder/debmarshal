@@ -17,8 +17,9 @@
 # 02110-1301, USA.
 """tests for debmarshal.privops.utils"""
 
+
 __authors__ = [
-    'Evan Broder <ebroder@google.com>',
+  'Evan Broder <ebroder@google.com>',
 ]
 
 
@@ -86,6 +87,7 @@ class TestRunWithPrivilege(mox.MoxTestBase):
       self.fail('This function should never have been run.')
 
     self.assertRaises(errors.Error, func)
+
 
 class TestReexecResults(mox.MoxTestBase):
   """Test the actual process of execing the setuid wrapper.

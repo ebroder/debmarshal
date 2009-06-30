@@ -17,8 +17,9 @@
 # 02110-1301, USA.
 """tests for debmarshal.hypervisors.base."""
 
+
 __authors__ = [
-    'Evan Broder <ebroder@google.com>',
+  'Evan Broder <ebroder@google.com>',
 ]
 
 

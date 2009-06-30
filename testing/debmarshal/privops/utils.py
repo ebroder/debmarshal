@@ -23,8 +23,9 @@ operations, by separating the act of gaining privilege from actually
 using that privilege.
 """
 
+
 __authors__ = [
-    'Evan Broder <ebroder@google.com>',
+  'Evan Broder <ebroder@google.com>',
 ]
 
 
@@ -112,6 +113,8 @@ def runWithPrivilege(subcommand):
     return _runWithPrivilege(f)
 
   return _makeRunWithPriv
+
+
 def usage():
   """Command-line usage information for debmarshal.privops.
 

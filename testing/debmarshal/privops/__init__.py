@@ -33,8 +33,9 @@ have to sanitize and makes it easier to switch away from libvirt in
 the future.
 """
 
+
 __authors__ = [
-    'Evan Broder <ebroder@google.com>',
+  'Evan Broder <ebroder@google.com>',
 ]
 
 

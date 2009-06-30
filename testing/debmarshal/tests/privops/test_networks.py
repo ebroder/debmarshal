@@ -17,8 +17,9 @@
 # 02110-1301, USA.
 """tests for the debmarshal privileged networking module"""
 
+
 __authors__ = [
-    'Evan Broder <ebroder@google.com>',
+  'Evan Broder <ebroder@google.com>',
 ]
 
 
@@ -191,6 +192,7 @@ class TestGenNetworkXML(mox.MoxTestBase):
   netmask = '255.255.255.0'
   hosts = {'wiki.company.com': ('10.100.4.2', 'AA:BB:CC:DD:EE:FF'),
            'login.company.com': ('10.100.4.3', '00:11:22:33:44:55')}
+
   def testDhcpXml(self):
     """Test an XML tree with DHCP enabled"""
     xml_string = networks._genNetworkXML(self.name,
@@ -320,6 +322,7 @@ class TestCreateNetwork(mox.MoxTestBase):
 
     self.assertRaises(Exception,
                       (lambda: networks.createNetwork(self.hosts, False)))
+
 
 class TestDestroyNetwork(mox.MoxTestBase):
   def setUp(self):

@@ -133,7 +133,6 @@ def _networkBounds(gateway, netmask):
   Returns:
     Tuple of the form (low_ip, high_ip)
   """
-
   net = ipaddr.IP('%s/%s' % (gateway, netmask))
   low = ipaddr.IP(ipaddr.IP(gateway).ip + 1)
   high = ipaddr.IP(net.broadcast - 1)
@@ -160,7 +159,6 @@ def _genNetworkXML(name, gateway, netmask, hosts, dhcp):
     The string representation of the libvirt XML network matching the
       parameters passed in
   """
-
   xml = etree.Element('network')
   etree.SubElement(xml, 'name').text = name
   xml_ip = etree.SubElement(xml, 'ip',
@@ -298,7 +296,6 @@ def destroyNetwork(name):
   Args:
     name: The name of the network returned from createNetwork
   """
-
   virt_con = libvirt.open('qemu:///system')
 
   networks = _loadNetworkState(virt_con)
