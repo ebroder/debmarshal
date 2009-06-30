@@ -115,6 +115,20 @@ def runWithPrivilege(subcommand):
   return _makeRunWithPriv
 
 
+def getCaller():
+  """Find what UID called into a privileged function.
+
+  This function exists to allow other functions wrapped in
+  runWithPrivilege to find out what user called them without needing
+  to be aware of the means by which runWithPrivileges escalates
+  itself.
+
+  Returns:
+    The UID of the user that called a privileged function.
+  """
+  return os.getuid()
+
+
 def usage():
   """Command-line usage information for debmarshal.privops.
 

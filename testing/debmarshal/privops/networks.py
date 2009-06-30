@@ -276,7 +276,7 @@ def createNetwork(hosts, dhcp=True):
   xml = _genNetworkXML(net_name, net_gateway, net_mask, net_hosts, dhcp)
   virt_net = virt_con.networkDefineXML(xml)
   virt_net.create()
-  networks.append((net_name, os.getuid(), net_gateway))
+  networks.append((net_name, utils.getCaller(), net_gateway))
 
   # Record the network information into our state file
   try:
@@ -309,8 +309,8 @@ def destroyNetwork(name):
   else:
     raise errors.NetworkNotFound("Network %s does not exist." % name)
 
-  if os.getuid() not in (0, net[1]):
-    raise errors.AccessDenied("Network %s not owned by UID %d." % (name, os.getuid()))
+  if utils.getCaller() not in (0, net[1]):
+    raise errors.AccessDenied("Network %s not owned by UID %d." % (name, utils.getCaller()))
 
   virt_net = virt_con.networkLookupByName(name)
   virt_net.destroy()
