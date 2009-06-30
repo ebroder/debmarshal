@@ -40,6 +40,8 @@ __authors__ = [
 
 
 from debmarshal.privops import utils
+
+from debmarshal.privops import domains
 from debmarshal.privops import networks
 
 
