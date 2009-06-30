@@ -44,7 +44,7 @@ import itertools
 import os
 try:
   import cPickle as pickle
-except ImportError:
+except ImportError:  # pragma: no cover
   import pickle
 import re
 import subprocess
@@ -459,5 +459,5 @@ def main(args):
   return rc
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
   sys.exit(main(sys.argv[1:]))
