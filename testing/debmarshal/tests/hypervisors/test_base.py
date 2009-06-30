@@ -89,6 +89,35 @@ class TestHypervisorDomainXML(mox.MoxTestBase):
     self.assertEqual(xml.xpath(net_attr % 'mac/@address'),
                      test_vm.mac)
 
+  def testDisks(self):
+    """Generate XML from a VM and verify the disk specifications"""
+    test_vm = vm.VM(name='something',
+                    memory=1000000000,
+                    disks=['/home/ebroder/block-dev',
+                           '/home/ebroder/file.img'],
+                    network='debmarshal-1',
+                    mac='AA:BB:CC:DD:EE:FF')
+
+    self.mox.StubOutWithMock(base, '_diskIsBlockDevice')
+    base._diskIsBlockDevice('/home/ebroder/block-dev').AndReturn(True)
+    base._diskIsBlockDevice('/home/ebroder/file.img').AndReturn(False)
+
+    self.mox.ReplayAll()
+
+    xml = base.Hypervisor.domainXML(test_vm)
+
+    self.assertEqual(len(xml.xpath('/domain/devices/disk')), 2)
+    disk = xml.xpath('/domain/devices/disk[target/@dev="sda"]')[0]
+    self.assertEqual(disk.xpath('string(@type)'), 'block')
+    self.assertEqual(len(disk.xpath('source')), 1)
+    self.assertEqual(disk.xpath('string(source/@dev)'), test_vm.disks[0])
+
+    disk = xml.xpath('/domain/devices/disk[target/@dev="sdb"]')[0]
+    self.assertEqual(len(disk.xpath('source')), 1)
+    self.assertEqual(disk.xpath('string(@type)'), 'file')
+    self.assertEqual(len(disk.xpath('source')), 1)
+    self.assertEqual(disk.xpath('string(source/@file)'), test_vm.disks[1])
+
 
 if __name__ == '__main__':
   unittest.main()
