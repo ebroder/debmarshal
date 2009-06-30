@@ -247,6 +247,10 @@ def createNetwork(hosts, dhcp=True):
       break
 
   # Then find a network to assign
+  #
+  # TODO(ebroder): Error out if we can't find an open address space to
+  #   use. Right now this block will happily assign 10.100.256.1 to a
+  #   new network.
   for net in itertools.count(0):
     net_gateway = '10.100.%d.1' % net
     if net_gateway not in net_gateways:
