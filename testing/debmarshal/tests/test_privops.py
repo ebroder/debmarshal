@@ -495,6 +495,61 @@ class TestCreateNetwork(mox.MoxTestBase):
     self.assertRaises(Exception,
                       (lambda: privops.createNetwork(self.hosts, False)))
 
+class TestDestroyNetwork(mox.MoxTestBase):
+  def setUp(self):
+    """Setup some mocks common to all tests of destroyNetwork"""
+    super(TestDestroyNetwork, self).setUp()
+
+    self.mox.StubOutWithMock(os, 'geteuid')
+    os.geteuid().MultipleTimes().AndReturn(0)
+
+    self.mox.StubOutWithMock(libvirt, 'open')
+    self.virt_con = self.mox.CreateMock(libvirt.virConnect)
+    libvirt.open(mox.IgnoreArg()).AndReturn(self.virt_con)
+
+    self.networks = [('debmarshal-0', 501, '10.100.0.1'),
+                     ('debmarshal-1', 500, '10.100.1.1')]
+    self.mox.StubOutWithMock(privops, '_loadNetworkState')
+    privops._loadNetworkState(self.virt_con).AndReturn(self.networks)
+
+  def testNoNetwork(self):
+    """Test that destroyNetwork doesn't try to delete a network it
+    doesn't know about"""
+    self.mox.ReplayAll()
+
+    self.assertRaises(errors.NetworkNotFound,
+                      (lambda: privops.destroyNetwork('debmarshal-3')))
+
+  def testNoPermissions(self):
+    """Test that destroyNetwork refuses to delete a network if you
+    don't own it"""
+    self.mox.StubOutWithMock(os, 'getuid')
+    os.getuid().MultipleTimes().AndReturn(501)
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(errors.AccessDenied,
+                      (lambda: privops.destroyNetwork('debmarshal-1')))
+
+  def testSuccess(self):
+    """Test that destroyNetwork will actually delete an existing
+    network owned by the right user."""
+    self.mox.StubOutWithMock(os, 'getuid')
+    os.getuid().MultipleTimes().AndReturn(501)
+
+    virt_net = self.mox.CreateMock(libvirt.virNetwork)
+    self.virt_con.networkLookupByName('debmarshal-0').AndReturn(virt_net)
+    virt_net.destroy()
+    virt_net.undefine()
+
+    self.mox.StubOutWithMock(privops, '_storeNetworkState')
+    new_networks = self.networks[1:]
+    privops._storeNetworkState(new_networks)
+
+    self.mox.ReplayAll()
+
+    privops.destroyNetwork('debmarshal-0')
+
 
 if __name__ == '__main__':
   unittest.main()
