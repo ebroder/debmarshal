@@ -488,6 +488,7 @@ class TestCreateNetwork(mox.MoxTestBase):
                                AndRaise(Exception("Error!"))
 
     self.virt_net.destroy()
+    self.virt_net.undefine()
 
     self.mox.ReplayAll()
 
