@@ -25,6 +25,7 @@ __authors__ = [
 
 import os
 
+import libvirt
 from lxml import etree
 
 from debmarshal.hypervisors import base
@@ -67,3 +68,12 @@ class QEMU(base.Hypervisor):
     emulator.text = '/usr/bin/qemu-system-%s' % host_arch
 
     return xml
+
+  @staticmethod
+  def open():
+    """Open a read-write libvirt connection to the qemu hypervisor.
+
+    Returns:
+      A read-write libvirt.virConncet connection to qemu
+    """
+    return libvirt.open('qemu:///system')

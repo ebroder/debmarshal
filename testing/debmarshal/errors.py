@@ -40,3 +40,7 @@ class NotFound(Error):
 class NetworkNotFound(NotFound):
   """The referenced network couldn't be found"""
   pass
+
+class NotImplementedError(Error):
+  """This method should have been overridden in a subclass."""
+  pass

@@ -28,6 +28,8 @@ import stat
 
 from lxml import etree
 
+from debmarshal import errors
+
 
 hypervisors = {}
 
@@ -128,3 +130,14 @@ class Hypervisor(object):
         by vm
     """
     return etree.tostring(cls.domainXML(vm))
+
+  @staticmethod
+  def open():
+    """Open a connection to this hypervisor.
+
+    This method should be overridden by descendants of Hypervisor.
+
+    Returns:
+      A read-write libvirt.virConnect connection to this hypervisor
+    """
+    raise errors.NotImplementedError
