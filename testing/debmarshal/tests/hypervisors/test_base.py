@@ -30,6 +30,7 @@ import unittest
 from lxml import etree
 import mox
 
+from debmarshal import errors
 from debmarshal.hypervisors import base
 from debmarshal import vm
 
@@ -154,6 +155,12 @@ class TestDomainXMLString(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     self.assertEqual(base.Hypervisor.domainXMLString(None), etree.tostring(xml))
+
+
+class TestHypervisorOpen(unittest.TestCase):
+  """Dumb test for Hypervisor.open"""
+  def test(self):
+    self.assertRaises(errors.NotImplementedError, base.Hypervisor.open)
 
 
 if __name__ == '__main__':

@@ -26,6 +26,7 @@ __authors__ = [
 import os
 import unittest
 
+import libvirt
 import mox
 
 from debmarshal.hypervisors import qemu
@@ -61,6 +62,19 @@ class TestQEMUDomainXML(mox.MoxTestBase):
     self.assertEqual(len(xml.xpath('/domain/devices/emulator')), 1)
     self.assertEqual(xml.xpath('string(/domain/devices/emulator)'),
                      '/usr/bin/qemu-system-x86_64')
+
+
+class TestQEMUOpen(mox.MoxTestBase):
+  """Test that qemu.QEMU can open a connection to libvirt."""
+  def test(self):
+    virt_con = self.mox.CreateMock(libvirt.virConnect)
+
+    self.mox.StubOutWithMock(libvirt, 'open')
+    libvirt.open('qemu:///system').AndReturn(virt_con)
+
+    self.mox.ReplayAll()
+
+    self.assertEquals(qemu.QEMU.open(), virt_con)
 
 
 if __name__ == '__main__':
