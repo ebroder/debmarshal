@@ -30,8 +30,47 @@ __authors__ = [
 ]
 
 
+import libvirt
+
 from debmarshal import errors
+from debmarshal.privops import networks
 from debmarshal.privops import utils
+
+
+def _validateNetwork(net, virt_con=None):
+  """Validate a debmarshal network.
+
+  This function checks that the network name passed in is a network
+  known to (i.e. created by) debmarshal. It also verifies that the
+  network was created by the user calling the function.
+
+  Args:
+    net: The name of the debmarshal network.
+    virt_con: A read-only libvirt.virConnect instance. We'll open one
+      of our own if one isn't passed in. Since libvirt network
+      information is shared across all hypervisors, virt_con can be a
+      connection to any libvirt driver.
+
+  Raises:
+    debmarshal.errors.NetworkNotFound if the named network doesn't
+      exist.
+    debmarshal.errors.AccessDenied if the network isn't owned by the
+      caller.
+  """
+  if not virt_con:
+    virt_con = libvirt.open('qemu:///system')
+
+  nets = networks.loadNetworkState(virt_con)
+
+  for n in nets:
+    if n[0] == net:
+      break
+  else:
+    raise errors.NetworkNotFound("Network %s does not exist." % net)
+
+  if n[1] != utils.getCaller():
+    raise errors.AccessDenied("Network %s is not owned by UID %s." %
+      (net, utils.getCaller()))
 
 
 @utils.runWithPrivilege('create-domain')
