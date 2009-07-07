@@ -65,46 +65,6 @@ class TestValidateHostname(mox.MoxTestBase):
 
 class TestLoadNetworkState(mox.MoxTestBase):
   """Test loading the network state from /var/run/debmarshal-networks"""
-  def setUp(self):
-    """The only thing that we can test about the lockfile is that it
-    gets acquired, so mock that for all tests."""
-    super(TestLoadNetworkState, self).setUp()
-
-    # When run from within a test setUp method, mox.StubOutWithMock
-    # doesn't seem to be able to stub out __builtins__, so we'll hack
-    # around it ourselves
-    self.open = self.mox.CreateMockAnything()
-    networks.open = self.open
-    self.mox.StubOutWithMock(fcntl, 'lockf')
-
-    lock_file = self.mox.CreateMock(file)
-    self.open('/var/lock/debmarshal-networks', 'w+').AndReturn(lock_file)
-    fcntl.lockf(lock_file, fcntl.LOCK_SH)
-
-  def tearDown(self):
-    """Undo the mock open() function"""
-    del networks.open
-
-  def testNoNetworkFile(self):
-    """Make sure that the network list is assumed empty if the state
-    file doesn't exist"""
-    e = IOError(errno.ENOENT,"ENOENT")
-    self.open('/var/run/debmarshal-networks').AndRaise(e)
-
-    self.mox.ReplayAll()
-
-    self.assertEqual(networks.loadNetworkState(), [])
-
-  def testExceptionOpeningNetworkFile(self):
-    """Make sure that any exception other than ENOENT raised opening
-    the state file is re-raised"""
-    e = IOError(errno.EACCES, "EACCES")
-    self.open('/var/run/debmarshal-networks').AndRaise(e)
-
-    self.mox.ReplayAll()
-
-    self.assertRaises(IOError, networks.loadNetworkState)
-
   def testOpeningLibvirtConnection(self):
     """Make sure that loadNetworkState can open its own connection to
     libvirt if needed"""

@@ -23,7 +23,13 @@ __authors__ = [
 ]
 
 
+import errno
+import fcntl
 import os
+try:
+  import cPickle as pickle
+except ImportError:
+  import pickle
 import posix
 try:
   import cStringIO as StringIO
@@ -171,6 +177,61 @@ class TestGetCaller(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     self.assertEquals(utils.getCaller(), 42)
+
+
+class TestLoadState(mox.MoxTestBase):
+  """Test loading state from /var/run."""
+  def setUp(self):
+    """The only thing that we can test about the lockfile is that it
+    gets acquired, so mock that for all tests."""
+    super(TestLoadState, self).setUp()
+
+    # When run from within a test setUp method, mox.StubOutWithMock
+    # doesn't seem to be able to stub out __builtins__, so we'll hack
+    # around it ourselves
+    self.open = self.mox.CreateMockAnything()
+    utils.open = self.open
+    self.mox.StubOutWithMock(fcntl, 'lockf')
+
+    lock_file = self.mox.CreateMock(file)
+    self.open('/var/lock/debmarshal-networks', 'w+').AndReturn(lock_file)
+    fcntl.lockf(lock_file, fcntl.LOCK_SH)
+
+  def tearDown(self):
+    """Undo the mock open() function."""
+    del utils.open
+
+    super(TestLoadState, self).tearDown()
+
+  def testNoStateFile(self):
+    """Make sure that loadState returns None if the file doesn't exist."""
+    e = IOError(errno.ENOENT,"ENOENT")
+    self.open('/var/run/debmarshal-networks').AndRaise(e)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(utils.loadState('debmarshal-networks'), None)
+
+  def testExceptionOpeningStateFile(self):
+    """Make sure that any exception other than ENOENT raised opening
+    the state file is re-raised"""
+    e = IOError(errno.EACCES, "EACCES")
+    self.open('/var/run/debmarshal-networks').AndRaise(e)
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(IOError,
+                      (lambda: utils.loadState('debmarshal-networks')))
+
+  def testSuccess(self):
+    """Test successfully loading a state file."""
+    data = ['foo', 'bar']
+    state = StringIO.StringIO(pickle.dumps(data))
+    self.open('/var/run/debmarshal-networks').AndReturn(state)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(data, utils.loadState('debmarshal-networks'))
 
 
 class TestUsage(mox.MoxTestBase):
