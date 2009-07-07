@@ -23,6 +23,7 @@ __authors__ = [
 ]
 
 
+import os
 import unittest
 
 import libvirt
@@ -89,6 +90,44 @@ class TestValidateNetwork(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     domains._validateNetwork('debmarshal-0')
+
+
+class TestValidateDisk(mox.MoxTestBase):
+  """Test debmarshal.privops.domains._validateDisk."""
+  def setUp(self):
+    """Setup the getuid/setuid dance."""
+    super(TestValidateDisk, self).setUp()
+
+    self.mox.StubOutWithMock(os, 'getuid')
+    self.mox.StubOutWithMock(os, 'setuid')
+    self.mox.StubOutWithMock(utils, 'getCaller')
+
+    os.getuid().MultipleTimes().AndReturn(0)
+    utils.getCaller().MultipleTimes().AndReturn(500)
+    os.setuid(500)
+    os.setuid(0)
+
+  def testValidDisk(self):
+    """Test access on a valid disk image."""
+    self.mox.StubOutWithMock(os, 'access')
+
+    os.access('/home/ebroder/disk.img', os.R_OK | os.W_OK).AndReturn(True)
+
+    self.mox.ReplayAll()
+
+    domains._validateDisk('/home/ebroder/disk.img')
+
+  def testInvalidDisk(self):
+    """Test access with an invalid disk image."""
+    self.mox.StubOutWithMock(os, 'access')
+
+    disk = '/home/not-ebroder/disk.img'
+    os.access(disk, os.R_OK | os.W_OK).AndReturn(False)
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(errors.AccessDenied,
+                      (lambda: domains._validateDisk(disk)))
 
 
 class TestFindUnusedName(mox.MoxTestBase):
