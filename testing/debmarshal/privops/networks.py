@@ -169,6 +169,7 @@ def _genNetworkXML(name, gateway, netmask, hosts, dhcp):
 
 
 @utils.runWithPrivilege('create-network')
+@utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
 def createNetwork(hosts, dhcp=True):
   """All of the networking config you need for a debmarshal test rig.
 
@@ -276,6 +277,7 @@ def createNetwork(hosts, dhcp=True):
 
 
 @utils.runWithPrivilege('destroy-network')
+@utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
 def destroyNetwork(name):
   """Destroy a debmarshal network.
 
