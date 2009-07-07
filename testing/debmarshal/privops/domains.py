@@ -73,6 +73,38 @@ def _validateNetwork(net, virt_con=None):
       (net, utils.getCaller()))
 
 
+def _findUnusedName(virt_con):
+  """Find a name for a new debmarshal domain.
+
+  This picks a name for a new debmarshal domain by simply incrementing
+  the name until a name is found that is not currently being used.
+
+  In order to prevent races, this function should be called by a
+  function that has taken the debmarshal-domlist lock exclusively.
+
+  Args:
+    virt_con: A read-only (or read-write) libvirt.virConnect instance
+      connceted to the driver for which we want to find a name.
+
+  Returns:
+    An unused name to use for creating a new domain.
+  """
+  libvirt.registerErrorHandler((lambda ctx, err: 1), None)
+  n = 0
+  while True:
+    name = 'debmarshal-%s' % n
+
+    try:
+      virt_con.lookupByName(name)
+    except libvirt.libvirtError:
+      break
+
+    n += 1
+
+  libvirt.registerErrorHandler(None, None)
+  return name
+
+
 @utils.runWithPrivilege('create-domain')
 def createDomain(memory, disks, network, mac, hypervisor="qemu"):
   """Create a virtual machine domain.
