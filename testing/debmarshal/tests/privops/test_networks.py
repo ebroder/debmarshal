@@ -68,8 +68,8 @@ class TestLoadNetworkState(mox.MoxTestBase):
   def testOpeningLibvirtConnection(self):
     """Make sure that loadNetworkState can open its own connection to
     libvirt if needed"""
-    self.networks = StringIO.StringIO(pickle.dumps([]))
-    self.open('/var/run/debmarshal-networks').AndReturn(self.networks)
+    self.mox.StubOutWithMock(utils, 'loadState')
+    utils.loadState('debmarshal-networks').AndReturn(None)
 
     self.mox.StubOutWithMock(libvirt, 'open')
     virt_con = self.mox.CreateMock(libvirt.virConnect)
@@ -86,9 +86,10 @@ class TestLoadNetworkState(mox.MoxTestBase):
   def testNetworkExistenceTest(self):
     """Make sure that networks get dropped from the list in the state
     file if they don't still exist. And that they're kept if they do"""
-    self.networks = StringIO.StringIO(pickle.dumps([('foo', 500, '10.100.1.1'),
-                                                    ('bar', 501, '10.100.1.2')]))
-    self.open('/var/run/debmarshal-networks').AndReturn(self.networks)
+    self.mox.StubOutWithMock(utils, 'loadState')
+    utils.loadState('debmarshal-networks').AndReturn(
+      [('foo', 500, '10.100.1.1'),
+       ('bar', 501, '10.100.1.2')])
 
     virt_con = self.mox.CreateMock(libvirt.virConnect)
 
