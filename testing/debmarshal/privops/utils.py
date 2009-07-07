@@ -160,6 +160,22 @@ def loadState(filename):
       raise
 
 
+def storeState(state, filename):
+  """Store state to a file in /var/run.
+
+  This stores state to a pickle in /var/run, including locking in
+  /var/lock that should be compatible with loadState.
+
+  Args:
+    state: The state to pickle and store.
+    filename: The basename of the state file to save to.
+  """
+  lock = open('/var/lock/%s' % filename, 'w')
+  fcntl.lockf(lock, fcntl.LOCK_EX)
+  state_file = open('/var/run/%s' % filename, 'w')
+  pickle.dump(state, state_file)
+
+
 def usage():
   """Command-line usage information for debmarshal.privops.
 
