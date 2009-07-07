@@ -109,13 +109,6 @@ def loadNetworkState(virt_con=None):
   return networks
 
 
-def _storeNetworkState(networks):
-  lock = open('/var/lock/debmarshal-networks', 'w')
-  fcntl.lockf(lock, fcntl.LOCK_EX)
-  networks_file = open('/var/run/debmarshal-networks', 'w')
-  pickle.dump(networks, networks_file)
-
-
 def _networkBounds(gateway, netmask):
   """Find the start and end of available IP addresses in a network.
 
@@ -273,7 +266,7 @@ def createNetwork(hosts, dhcp=True):
 
   # Record the network information into our state file
   try:
-    _storeNetworkState(networks)
+    utils.storeState(networks, 'debmarshal-networks')
   except:
     virt_net.destroy()
     virt_net.undefine()
@@ -310,4 +303,4 @@ def destroyNetwork(name):
   virt_net.undefine()
 
   networks.remove(net)
-  _storeNetworkState(networks)
+  utils.storeState(networks, 'debmarshal-networks')
