@@ -234,6 +234,37 @@ class TestLoadState(mox.MoxTestBase):
     self.assertEqual(data, utils.loadState('debmarshal-networks'))
 
 
+class TestStoreState(mox.MoxTestBase):
+  """Test debmarshal.privops.utils.storeState."""
+  def test(self):
+    """Dumb test for privops.utils.storeState.
+
+    This test is pretty dumb. There are no branches or anything in
+    storeState, and if the code doesn't throw exceptions, it's roughly
+    guaranteed to work."""
+    self.networks = [('debmarshal-0', 500, '10.100.1.1')]
+
+    self.open = self.mox.CreateMockAnything()
+    utils.open = self.open
+    self.mox.StubOutWithMock(fcntl, 'lockf')
+
+    lock_file = self.mox.CreateMock(file)
+    self.open('/var/lock/debmarshal-networks', 'w').AndReturn(lock_file)
+    fcntl.lockf(lock_file, fcntl.LOCK_EX)
+
+    net_file = self.mox.CreateMock(file)
+    self.open('/var/run/debmarshal-networks', 'w').AndReturn(net_file)
+    pickle.dump(self.networks, net_file)
+
+    self.mox.ReplayAll()
+
+    utils.storeState(self.networks, 'debmarshal-networks')
+
+    self.mox.VerifyAll()
+
+    del utils.open
+
+
 class TestUsage(mox.MoxTestBase):
   """Make sure that usage information gets printed"""
   def setUp(self):

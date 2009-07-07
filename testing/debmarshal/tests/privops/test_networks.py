@@ -108,35 +108,6 @@ class TestLoadNetworkState(mox.MoxTestBase):
                      [('foo', 500, '10.100.1.1')])
 
 
-class TestStoreNetworkState(mox.MoxTestBase):
-  """Test debmarshal.privops.networks._storeNetworkState"""
-  def testStoreNetworkState(self):
-    """This is kind of a dumb test. There are no branches or anything
-    in _storeNetworkState, and if the code doesn't throw exceptions,
-    it's roughly guaranteed to work."""
-    self.networks = [('debmarshal-0', 500, '10.100.1.1')]
-
-    self.open = self.mox.CreateMockAnything()
-    networks.open = self.open
-    self.mox.StubOutWithMock(fcntl, 'lockf')
-
-    lock_file = self.mox.CreateMock(file)
-    self.open('/var/lock/debmarshal-networks', 'w').AndReturn(lock_file)
-    fcntl.lockf(lock_file, fcntl.LOCK_EX)
-
-    net_file = self.mox.CreateMock(file)
-    self.open('/var/run/debmarshal-networks', 'w').AndReturn(net_file)
-    pickle.dump(self.networks, net_file)
-
-    self.mox.ReplayAll()
-
-    networks._storeNetworkState(self.networks)
-
-    self.mox.VerifyAll()
-
-    del networks.open
-
-
 class TestNetworkBounds(mox.MoxTestBase):
   """Test converting a gateway/netmask to the low and high IP
   addresses in the network"""
@@ -216,7 +187,7 @@ class TestCreateNetwork(mox.MoxTestBase):
   let's test createNetwork itself"""
   def setUp(self):
     """The only two interesting conditions to test here are whether
-    _storeNetworkState raises an exception or not, so let's commonize
+    storeState raises an exception or not, so let's commonize
     everything else"""
     super(TestCreateNetwork, self).setUp()
 
@@ -260,9 +231,10 @@ class TestCreateNetwork(mox.MoxTestBase):
 
   def testStoreSuccess(self):
     """Test createNetwork when everything goes right"""
-    self.mox.StubOutWithMock(networks, '_storeNetworkState')
-    networks._storeNetworkState(self.networks +
-                               [(self.name, 1000, self.gateway)])
+    self.mox.StubOutWithMock(utils, 'storeState')
+    utils.storeState(self.networks +
+                     [(self.name, 1000, self.gateway)],
+                     'debmarshal-networks')
 
     self.mox.ReplayAll()
 
@@ -272,10 +244,11 @@ class TestCreateNetwork(mox.MoxTestBase):
   def testStoreFailure(self):
     """Test that the network is destroyed if state about it can't be
     stored"""
-    self.mox.StubOutWithMock(networks, '_storeNetworkState')
-    networks._storeNetworkState(self.networks +
-                               [(self.name, 1000, self.gateway)]).\
-                               AndRaise(Exception("Error!"))
+    self.mox.StubOutWithMock(utils, 'storeState')
+    utils.storeState(self.networks +
+                     [(self.name, 1000, self.gateway)],
+                     'debmarshal-networks').\
+                     AndRaise(Exception("Error!"))
 
     self.virt_net.destroy()
     self.virt_net.undefine()
@@ -333,9 +306,9 @@ class TestDestroyNetwork(mox.MoxTestBase):
     virt_net.destroy()
     virt_net.undefine()
 
-    self.mox.StubOutWithMock(networks, '_storeNetworkState')
+    self.mox.StubOutWithMock(utils, 'storeState')
     new_networks = self.networks[1:]
-    networks._storeNetworkState(new_networks)
+    utils.storeState(new_networks, 'debmarshal-networks')
 
     self.mox.ReplayAll()
 
