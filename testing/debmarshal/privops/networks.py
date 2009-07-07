@@ -85,16 +85,9 @@ def loadNetworkState(virt_con=None):
     A list of networks. Each network is a tuple of (network_name,
       owner_uid, gateway_ip_address)
   """
-  lock = open('/var/lock/debmarshal-networks', 'w+')
-  fcntl.lockf(lock, fcntl.LOCK_SH)
-  try:
-    networks_file = open('/var/run/debmarshal-networks')
-    networks = pickle.load(networks_file)
-  except EnvironmentError, e:
-    if e.errno == errno.ENOENT:
-      return []
-    else:
-      raise
+  networks = utils.loadState('debmarshal-networks')
+  if not networks:
+    networks = []
 
   if not virt_con:
     virt_con = libvirt.open('qemu:///system')
