@@ -30,6 +30,7 @@ import libvirt
 import mox
 
 from debmarshal import errors
+from debmarshal import hypervisors
 from debmarshal.privops import domains
 from debmarshal.privops import networks
 from debmarshal.privops import utils
@@ -169,6 +170,78 @@ class TestParseKBytes(unittest.TestCase):
   def testK(self):
     """Make sure that parseKBytes does the right thing with kilobytes."""
     self.assertEqual(domains._parseKBytes("12K"), 12)
+
+
+class TestLoadDomainState(mox.MoxTestBase):
+  """Test loading domain state from /var/run/debmarshal-domains."""
+  def testAcquiringConnections(self):
+    """Test acquiring libvirt connections when loading domain state.
+
+    Also check that loadDomainState can reuse a connection it already
+    has open.
+    """
+    doms = [('debmarshal-1', 500, 'qemu'),
+            ('debmarshal-2', 500, 'qemu')]
+
+    self.mox.StubOutWithMock(utils, 'loadState')
+    utils.loadState('debmarshal-domains').AndReturn(doms)
+
+    self.mox.StubOutWithMock(libvirt, 'registerErrorHandler')
+    libvirt.registerErrorHandler(mox.IgnoreArg(), None)
+
+    self.mox.StubOutWithMock(hypervisors.qemu.QEMU, 'open')
+    qemu_con = self.mox.CreateMock(libvirt.virConnect)
+    hypervisors.qemu.QEMU.open().AndReturn(qemu_con)
+
+    virt_domain = self.mox.CreateMock(libvirt.virDomain)
+    qemu_con.lookupByName('debmarshal-1').AndReturn(virt_domain)
+    virt_domain = self.mox.CreateMock(libvirt.virDomain)
+    qemu_con.lookupByName('debmarshal-2').AndReturn(virt_domain)
+
+    libvirt.registerErrorHandler(None, None)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(domains.loadDomainState(), doms)
+
+  def testNonexistentDomain(self):
+    """Test that loadDomainState can deal with nonexistent domains."""
+    doms = [('debmarshal-%d' % i, 500, 'qemu') for i in xrange(6)]
+
+    self.mox.StubOutWithMock(utils, 'loadState')
+    utils.loadState('debmarshal-domains').AndReturn(doms[:])
+
+    self.mox.StubOutWithMock(libvirt, 'registerErrorHandler')
+    libvirt.registerErrorHandler(mox.IgnoreArg(), None)
+
+    self.mox.StubOutWithMock(hypervisors.qemu.QEMU, 'open')
+    qemu_con = self.mox.CreateMock(libvirt.virConnect)
+    hypervisors.qemu.QEMU.open().AndReturn(qemu_con)
+
+    qemu_con.lookupByName('debmarshal-0')
+    qemu_con.lookupByName('debmarshal-1')
+    qemu_con.lookupByName('debmarshal-2').AndRaise(libvirt.libvirtError(
+        "Domain doesn't exist"))
+    qemu_con.lookupByName('debmarshal-3')
+    qemu_con.lookupByName('debmarshal-4').AndRaise(libvirt.libvirtError(
+        "Domain doesn't exist"))
+    qemu_con.lookupByName('debmarshal-5')
+
+    libvirt.registerErrorHandler(None, None)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(domains.loadDomainState(),
+                     [doms[i] for i in [0, 1, 3, 5]])
+
+  def testEmptyList(self):
+    """Test the domain state file not existing."""
+    self.mox.StubOutWithMock(utils, 'loadState')
+    utils.loadState('debmarshal-domains').AndReturn(None)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(domains.loadDomainState(), [])
 
 
 if __name__ == '__main__':
