@@ -30,6 +30,8 @@ __authors__ = [
 ]
 
 
+import os
+
 import libvirt
 
 from debmarshal import errors
@@ -71,6 +73,38 @@ def _validateNetwork(net, virt_con=None):
   if n[1] != utils.getCaller():
     raise errors.AccessDenied("Network %s is not owned by UID %s." %
       (net, utils.getCaller()))
+
+
+def _validateDisk(disk):
+  """Validate a disk image.
+
+  _validateDisk makes sure that the user requesting a privileged
+  operation would have permission to read the disk.
+
+  Args:
+    disk: A path to a disk image
+
+  Raises:
+    debmarshal.errors.AccessDenied if the unprivileged user doesn't
+      have permission to read from and write to the disk image.
+  """
+  # Start by setting the process uid to getCaller(). This is primarily
+  # done to make sure we're respecting the abstraction introduced by
+  # getCaller().
+  #
+  # This won't guarantee that we have the necessary bits for, e.g.,
+  # AFS, where you need a separate token to prove your identity, but
+  # it would work for most other cases.
+  old_uid = os.getuid()
+  os.setuid(utils.getCaller())
+
+  try:
+    if not os.access(disk, os.R_OK | os.W_OK):
+      raise errors.AccessDenied('UID %s does not have access to %s.' %
+                                (utils.getCaller(), disk))
+  finally:
+    # Reset the process uid that we changed earlier.
+    os.setuid(old_uid)
 
 
 def _findUnusedName(virt_con):
