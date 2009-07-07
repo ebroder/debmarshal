@@ -91,5 +91,27 @@ class TestValidateNetwork(mox.MoxTestBase):
     domains._validateNetwork('debmarshal-0')
 
 
+class TestFindUnusedName(mox.MoxTestBase):
+  """Test privops.domains._findUnusedName."""
+  def test(self):
+    virt_con = self.mox.CreateMock(libvirt.virConnect)
+
+    self.mox.StubOutWithMock(libvirt, 'registerErrorHandler')
+    libvirt.registerErrorHandler(mox.IgnoreArg(), None)
+
+    name = 'debmarshal-0'
+    virt_con.lookupByName(name)
+
+    name = 'debmarshal-1'
+    virt_con.lookupByName(name).AndRaise(libvirt.libvirtError(
+      "Network doesn't exist"))
+
+    libvirt.registerErrorHandler(None, None)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(domains._findUnusedName(virt_con), name)
+
+
 if __name__ == '__main__':
   unittest.main()
