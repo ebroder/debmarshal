@@ -242,6 +242,9 @@ class TestCreateNetwork(mox.MoxTestBase):
     self.mox.StubOutWithMock(utils, 'getCaller')
     utils.getCaller().AndReturn(1000)
 
+    self.mox.StubOutWithMock(utils, '_acquireLock')
+    utils._acquireLock('debmarshal-netlist', fcntl.LOCK_EX)
+
     self.mox.StubOutWithMock(networks, '_validateHostname')
     networks._validateHostname(mox.IgnoreArg()).MultipleTimes()
 
@@ -300,6 +303,9 @@ class TestDestroyNetwork(mox.MoxTestBase):
 
     self.mox.StubOutWithMock(os, 'geteuid')
     os.geteuid().MultipleTimes().AndReturn(0)
+
+    self.mox.StubOutWithMock(utils, '_acquireLock')
+    utils._acquireLock('debmarshal-netlist', fcntl.LOCK_EX)
 
     self.mox.StubOutWithMock(libvirt, 'open')
     self.virt_con = self.mox.CreateMock(libvirt.virConnect)
