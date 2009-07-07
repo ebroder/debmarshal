@@ -208,6 +208,23 @@ class TestAcquireLock(mox.MoxTestBase):
     del utils.open
 
 
+class TestWithLockfile(mox.MoxTestBase):
+  """Test the privops.utils.withLockfile decorator."""
+  def test(self):
+    """Test wrapping a function in a file-based lock."""
+    lock_file = self.mox.CreateMock(file)
+    self.mox.StubOutWithMock(utils, '_acquireLock')
+    utils._acquireLock('debmarshal', fcntl.LOCK_EX).AndReturn(lock_file)
+
+    self.mox.ReplayAll()
+
+    @utils.withLockfile('debmarshal', fcntl.LOCK_EX)
+    def hasALock():
+      return True
+
+    self.assertEqual(hasALock(), True)
+
+
 class TestLoadState(mox.MoxTestBase):
   """Test loading state from /var/run."""
   def setUp(self):
