@@ -196,8 +196,7 @@ def loadState(filename):
     The depickled contents of the state file, or None if the state
       file does not yet exist.
   """
-  lock = open('/var/lock/%s' % filename, 'w+')
-  fcntl.lockf(lock, fcntl.LOCK_SH)
+  lock = _acquireLock(filename, fcntl.LOCK_SH)
   try:
     state_file = open('/var/run/%s' % filename)
     return pickle.load(state_file)
@@ -218,8 +217,7 @@ def storeState(state, filename):
     state: The state to pickle and store.
     filename: The basename of the state file to save to.
   """
-  lock = open('/var/lock/%s' % filename, 'w')
-  fcntl.lockf(lock, fcntl.LOCK_EX)
+  lock = _acquireLock(filename, fcntl.LOCK_EX)
   state_file = open('/var/run/%s' % filename, 'w')
   pickle.dump(state, state_file)
 

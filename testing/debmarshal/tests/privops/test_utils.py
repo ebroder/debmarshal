@@ -249,7 +249,7 @@ class TestStoreState(mox.MoxTestBase):
     self.mox.StubOutWithMock(fcntl, 'lockf')
 
     lock_file = self.mox.CreateMock(file)
-    self.open('/var/lock/debmarshal-networks', 'w').AndReturn(lock_file)
+    self.open('/var/lock/debmarshal-networks', 'w+').AndReturn(lock_file)
     fcntl.lockf(lock_file, fcntl.LOCK_EX)
 
     net_file = self.mox.CreateMock(file)
