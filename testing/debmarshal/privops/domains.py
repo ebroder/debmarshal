@@ -139,6 +139,49 @@ def _findUnusedName(virt_con):
   return name
 
 
+_SUFFIXES = ('k', 'm', 'g', 't', 'p', 'e')
+
+
+def _parseKBytes(amt):
+  """Parse a human-readable byte measurement, such as '2G', into an
+  int in kilobytes.
+
+  _parseKBytes assumes that all suffixes are in binary units
+  (multiples of 1024), as opposed to decimal units (multiples of
+  1000).
+
+  It recognizes single-letter suffixes ('G'), full-unit suffixes
+  ('GB'), and explicitly binary SI suffixes ('GiB').
+
+  Args:
+    amt: str containing a human-readable byte measurement.
+
+  Returns:
+    An int with the same value is amt but measured in kilobytes.
+  """
+  amt = amt.lower()
+
+  # We know that everything is in bytes; we don't need to hold onto
+  # the B
+  if amt.endswith('b'):
+    amt = amt[:-1]
+
+  # And all of the weird binary SI suffixes just stick a lowercase "i"
+  # after the SI multiplier
+  if amt.endswith('i'):
+    amt = amt[:-1]
+
+  # Now we have something we can work with
+  suffix = amt[-1]
+  significand = int(amt[:-1])
+
+  # This is going to be off by one (i.e. kilobytes => 0 instead of 1),
+  # but that's ok because we're returning a value in kilobytes anyway
+  exp = _SUFFIXES.index(suffix)
+
+  return significand * (1024 ** exp)
+
+
 @utils.runWithPrivilege('create-domain')
 def createDomain(memory, disks, network, mac, hypervisor="qemu"):
   """Create a virtual machine domain.
