@@ -35,6 +35,7 @@ import os
 import libvirt
 
 from debmarshal import errors
+from debmarshal import hypervisors
 from debmarshal.privops import networks
 from debmarshal.privops import utils
 
@@ -180,6 +181,48 @@ def _parseKBytes(amt):
   exp = _SUFFIXES.index(suffix)
 
   return significand * (1024 ** exp)
+
+
+def loadDomainState():
+  """Load stored state for domains previously created by debmarshal.
+
+  State is stored in /var/run/debmarshal-domains. State is generally
+  lost after reboots - which is good, since running domains tend to go
+  away after reboots as well.
+
+  Because not all distributions do this, and because domains can stop
+  independent of debmarshal, we loop over the domains and erase our
+  record of any domains that don't still exist.
+
+  Each hypervisor has its own domain namespace. We'll need to open
+  connections to multiple hypervisors, so there's no point passing a
+  libvirt connection object in.
+
+  Returns:
+    A list of domains. Each domain is a tuple of (domain_name, owner
+      hypervisor)
+  """
+  connections = {}
+
+  domains = utils.loadState('debmarshal-domains')
+  if not domains:
+    return []
+
+  libvirt.registerErrorHandler((lambda ctx, err: 1), None)
+
+  for dom, uid, hypervisor in domains[:]:
+    if hypervisor not in connections:
+      hyper_class = hypervisors.base.hypervisors[hypervisor]
+      connections[hypervisor] = hyper_class.open()
+
+    try:
+      connections[hypervisor].lookupByName(dom)
+    except libvirt.libvirtError:
+      domains.remove((dom, uid, hypervisor))
+
+  libvirt.registerErrorHandler(None, None)
+
+  return domains
 
 
 @utils.runWithPrivilege('create-domain')
