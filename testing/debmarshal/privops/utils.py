@@ -29,7 +29,13 @@ __authors__ = [
 ]
 
 
+import errno
+import fcntl
 import os
+try:
+  import cPickle as pickle
+except ImportError:  # pragma: no cover
+  import pickle
 import subprocess
 import sys
 
@@ -127,6 +133,31 @@ def getCaller():
     The UID of the user that called a privileged function.
   """
   return os.getuid()
+
+
+def loadState(filename):
+  """Load state from a file in /var/run.
+
+  debmarshal stores state as pickles in /var/run, using files with
+  corresponding names in /var/lock for locking.
+
+  Args:
+    filename: The basename of the state file to load.
+
+  Returns:
+    The depickled contents of the state file, or None if the state
+      file does not yet exist.
+  """
+  lock = open('/var/lock/%s' % filename, 'w+')
+  fcntl.lockf(lock, fcntl.LOCK_SH)
+  try:
+    state_file = open('/var/run/%s' % filename)
+    return pickle.load(state_file)
+  except EnvironmentError, e:
+    if e.errno == errno.ENOENT:
+      return
+    else:
+      raise
 
 
 def usage():
