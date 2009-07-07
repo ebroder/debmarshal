@@ -152,5 +152,24 @@ class TestFindUnusedName(mox.MoxTestBase):
     self.assertEqual(domains._findUnusedName(virt_con), name)
 
 
+class TestParseKBytes(unittest.TestCase):
+  """Test privops.domains._parseKBytes."""
+  def testGB(self):
+    """Test amount with GB suffix."""
+    self.assertEqual(domains._parseKBytes("15G"), 15728640)
+
+  def testP(self):
+    """Test amount with just 'P' for suffix."""
+    self.assertEqual(domains._parseKBytes("2P"), 2199023255552)
+
+  def testMiB(self):
+    """Test amount with MiB suffix."""
+    self.assertEqual(domains._parseKBytes("8MiB"), 8192)
+
+  def testK(self):
+    """Make sure that parseKBytes does the right thing with kilobytes."""
+    self.assertEqual(domains._parseKBytes("12K"), 12)
+
+
 if __name__ == '__main__':
   unittest.main()
