@@ -23,17 +23,12 @@ __authors__ = [
 ]
 
 
-import errno
 import fcntl
 import os
 try:
   import cPickle as pickle
 except ImportError:
   import pickle
-try:
-  import cStringIO as StringIO
-except ImportError:
-  import StringIO
 import unittest
 
 import mox

@@ -26,16 +26,13 @@ __authors__ = [
 ]
 
 
-import errno
 import fcntl
 import itertools
-import os
 try:
   import cPickle as pickle
 except ImportError:  # pragma: no cover
   import pickle
 import re
-import sys
 
 import ipaddr
 import libvirt
