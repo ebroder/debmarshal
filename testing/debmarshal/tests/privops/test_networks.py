@@ -107,6 +107,40 @@ class TestLoadNetworkState(mox.MoxTestBase):
     self.assertEqual(networks.loadNetworkState(virt_con),
                      [('foo', 500, '10.100.1.1')])
 
+  def testTwoBadNetworks(self):
+    """Test finding two nonexistent networks when loading state."""
+    nets = [('foo', 500, '10.100.1.1'),
+            ('bar', 500, '10.100.2.1'),
+            ('baz', 500, '10.100.3.1'),
+            ('quux', 500, '10.100.4.1'),
+            ('spam', 500, '10.100.5.1'),
+            ('eggs', 500, '10.100.6.1')]
+
+    self.mox.StubOutWithMock(utils, 'loadState')
+    utils.loadState('debmarshal-networks').AndReturn(nets[:])
+
+    virt_con = self.mox.CreateMock(libvirt.virConnect)
+
+    self.mox.StubOutWithMock(libvirt, 'registerErrorHandler')
+
+    libvirt.registerErrorHandler(mox.IgnoreArg(), None)
+
+    virt_con.networkLookupByName('foo')
+    virt_con.networkLookupByName('bar')
+    virt_con.networkLookupByName('baz').AndRaise(libvirt.libvirtError(
+        "Network doens't exist"))
+    virt_con.networkLookupByName('quux')
+    virt_con.networkLookupByName('spam').AndRaise(libvirt.libvirtError(
+        "Network doesn't exist"))
+    virt_con.networkLookupByName('eggs')
+
+    libvirt.registerErrorHandler(None, None)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(networks.loadNetworkState(virt_con),
+                     [nets[0], nets[1], nets[3], nets[5]])
+
 
 class TestNetworkBounds(mox.MoxTestBase):
   """Test converting a gateway/netmask to the low and high IP

@@ -97,11 +97,11 @@ def loadNetworkState(virt_con=None):
   # the printout. This suppresses the printout temporarily
   libvirt.registerErrorHandler((lambda ctx, err: 1), None)
 
-  for i, network in enumerate(networks):
+  for n in networks[:]:
     try:
-      virt_con.networkLookupByName(network[0])
+      virt_con.networkLookupByName(n[0])
     except libvirt.libvirtError:
-      del networks[i]
+      networks.remove(n)
 
   # Reset the error handler to its default
   libvirt.registerErrorHandler(None, None)
