@@ -23,6 +23,7 @@ __authors__ = [
 ]
 
 
+import fcntl
 import os
 import unittest
 
@@ -234,6 +235,61 @@ class TestLoadDomainState(mox.MoxTestBase):
 
     self.assertEqual(domains.loadDomainState(), [])
 
+
+class TestCreateDomain(mox.MoxTestBase):
+  """Tests for privops.domains.createNetwork."""
+  def test(self):
+    """Test privops.domains.createNetwork.
+
+    With all of the functionality pulled into helper functions,
+    createNetwork doesn't actually do all that much work.
+    """
+    name = 'debmarshal-12'
+    memory = '128M'
+    disks = ['/home/ebroder/root.img']
+    net = 'debmarshal-0'
+    mac = '00:11:22:33:44:55'
+
+    self.mox.StubOutWithMock(os, 'geteuid')
+    os.geteuid().MultipleTimes().AndReturn(0)
+    self.mox.StubOutWithMock(utils, 'getCaller')
+    utils.getCaller().MultipleTimes().AndReturn(500)
+    self.mox.StubOutWithMock(utils, '_acquireLock')
+    utils._acquireLock('debmarshal-domlist', fcntl.LOCK_EX)
+
+    self.mox.StubOutWithMock(hypervisors.qemu.QEMU, 'open')
+    qemu_con = self.mox.CreateMock(libvirt.virConnect)
+    hypervisors.qemu.QEMU.open().AndReturn(qemu_con)
+
+    self.mox.StubOutWithMock(domains, '_validateNetwork')
+    domains._validateNetwork(net, qemu_con)
+
+    self.mox.StubOutWithMock(domains, '_validateDisk')
+    for d in disks:
+      domains._validateDisk(d)
+
+    self.mox.StubOutWithMock(domains, '_findUnusedName')
+    domains._findUnusedName(qemu_con).AndReturn(name)
+
+    self.mox.StubOutWithMock(hypervisors.qemu.QEMU, 'domainXMLString')
+    hypervisors.qemu.QEMU.domainXMLString(mox.IgnoreArg()).AndReturn(
+      '<fake_xml/>')
+
+    self.mox.StubOutWithMock(domains, 'loadDomainState')
+    domains.loadDomainState().AndReturn([
+      ('debmarshal-1', 500, 'qemu')])
+
+    self.mox.StubOutWithMock(utils, 'storeState')
+    utils.storeState([
+      ('debmarshal-1', 500, 'qemu'),
+      (name, 500, 'qemu')], 'debmarshal-domains')
+
+    qemu_con.createXML('<fake_xml/>', 0)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(domains.createDomain(
+      memory, disks, net, mac), name)
 
 if __name__ == '__main__':
   unittest.main()
