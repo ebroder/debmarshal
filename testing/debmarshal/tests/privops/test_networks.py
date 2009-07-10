@@ -46,9 +46,8 @@ class TestValidateHostname(mox.MoxTestBase):
   def testInvalidInput(self):
     """Make sure that an exception gets raised if an invalid hostname
     is passed in"""
-    self.assertRaises(
-        errors.InvalidInput,
-        (lambda: networks._validateHostname('not-a-domain.faketld')))
+    self.assertRaises(errors.InvalidInput, networks._validateHostname,
+                      'not-a-domain.faketld')
 
   def testValidInput(self):
     """Test that nothing happens if a valid hostname is passed in"""
@@ -267,8 +266,8 @@ class TestFindUnusedNetwork(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertRaises(errors.NoAvailableIPs,
-                      (lambda: networks._findUnusedNetwork(virt_con, 8)))
+    self.assertRaises(errors.NoAvailableIPs, networks._findUnusedNetwork,
+                      virt_con, 8)
 
 
 class TestCreateNetwork(mox.MoxTestBase):
@@ -354,8 +353,7 @@ class TestCreateNetwork(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertRaises(Exception,
-                      (lambda: networks.createNetwork(self.hosts, False)))
+    self.assertRaises(Exception, networks.createNetwork, self.hosts, False)
 
 
 class TestDestroyNetwork(mox.MoxTestBase):
@@ -383,8 +381,8 @@ class TestDestroyNetwork(mox.MoxTestBase):
     doesn't know about"""
     self.mox.ReplayAll()
 
-    self.assertRaises(errors.NetworkNotFound,
-                      (lambda: networks.destroyNetwork('debmarshal-3')))
+    self.assertRaises(errors.NetworkNotFound, networks.destroyNetwork,
+                      'debmarshal-3')
 
   def testNoPermissions(self):
     """Test that destroyNetwork refuses to delete a network if you
@@ -394,8 +392,8 @@ class TestDestroyNetwork(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertRaises(errors.AccessDenied,
-                      (lambda: networks.destroyNetwork('debmarshal-1')))
+    self.assertRaises(errors.AccessDenied, networks.destroyNetwork,
+                      'debmarshal-1')
 
   def testSuccess(self):
     """Test that destroyNetwork will actually delete an existing

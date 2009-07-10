@@ -55,13 +55,13 @@ class TestVM(unittest.TestCase):
   def testExtraArguments(self):
     """Make sure that an exception is raised if vm.VM.__init__ gets
     too many arguments."""
-    self.assertRaises(errors.InvalidInput,
-                      (lambda: vm.VM(name='debmarshal-12',
-                                     memory=524288,
-                                     disks=['/home/ebroder/root.img'],
-                                     network='debmarshal-0',
-                                     mac='AA:BB:CC:DD:EE:FF',
-                                     foo='bar')))
+    self.assertRaises(errors.InvalidInput, vm.VM,
+                      name='debmarshal-12',
+                      memory=524288,
+                      disks=['/home/ebroder/root.img'],
+                      network='debmarshal-0',
+                      mac='AA:BB:CC:DD:EE:FF',
+                      foo='bar')
 
 
 if __name__ == '__main__':

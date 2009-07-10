@@ -160,7 +160,7 @@ class TestReexecResults(mox.MoxTestBase):
     def func(*args, **kwargs):
       raise Exception('failure')
 
-    self.assertRaises(Exception, lambda: func('a', 'b', c='d'))
+    self.assertRaises(Exception, func, 'a', 'b', c='d')
 
 
 class TestGetCaller(mox.MoxTestBase):
@@ -263,8 +263,7 @@ class TestLoadState(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertRaises(IOError,
-                      (lambda: utils.loadState('debmarshal-networks')))
+    self.assertRaises(IOError, utils.loadState, 'debmarshal-networks')
 
   def testSuccess(self):
     """Test successfully loading a state file."""

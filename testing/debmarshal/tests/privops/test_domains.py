@@ -65,9 +65,8 @@ class TestValidateNetwork(mox.MoxTestBase):
     """Nonexistent network leads to a NetworkNotFound exception."""
     self.mox.ReplayAll()
 
-    self.assertRaises(errors.NetworkNotFound,
-                      (lambda: domains._validateNetwork('debmarshal-12',
-                                                        self.virt_con)))
+    self.assertRaises(errors.NetworkNotFound, domains._validateNetwork,
+                      'debmarshal-12', self.virt_con)
 
   def testWrongUser(self):
     """Wrong user leads to an AcccessDenied exception."""
@@ -76,9 +75,8 @@ class TestValidateNetwork(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertRaises(errors.AccessDenied,
-                      (lambda: domains._validateNetwork('debmarshal-1',
-                                                        self.virt_con)))
+    self.assertRaises(errors.AccessDenied, domains._validateNetwork,
+                      'debmarshal-1', self.virt_con)
 
   def testNoConnection(self):
     """_validateNetwork is able to open its own libvirt connection."""
@@ -127,8 +125,7 @@ class TestValidateDisk(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertRaises(errors.AccessDenied,
-                      (lambda: domains._validateDisk(disk)))
+    self.assertRaises(errors.AccessDenied, domains._validateDisk, disk)
 
 
 class TestFindUnusedName(mox.MoxTestBase):
