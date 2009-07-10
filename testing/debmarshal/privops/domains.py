@@ -108,6 +108,7 @@ def _validateDisk(disk):
     os.setuid(old_uid)
 
 
+@utils.withoutLibvirtError
 def _findUnusedName(virt_con):
   """Find a name for a new debmarshal domain.
 
@@ -124,7 +125,6 @@ def _findUnusedName(virt_con):
   Returns:
     An unused name to use for creating a new domain.
   """
-  libvirt.registerErrorHandler((lambda ctx, err: 1), None)
   n = 0
   while True:
     name = 'debmarshal-%s' % n
@@ -132,12 +132,9 @@ def _findUnusedName(virt_con):
     try:
       virt_con.lookupByName(name)
     except libvirt.libvirtError:
-      break
+      return name
 
     n += 1
-
-  libvirt.registerErrorHandler(None, None)
-  return name
 
 
 _SUFFIXES = ('k', 'm', 'g', 't', 'p', 'e')
@@ -183,6 +180,7 @@ def _parseKBytes(amt):
   return significand * (1024 ** exp)
 
 
+@utils.withoutLibvirtError
 def loadDomainState():
   """Load stored state for domains previously created by debmarshal.
 
@@ -208,8 +206,6 @@ def loadDomainState():
   if not domains:
     return []
 
-  libvirt.registerErrorHandler((lambda ctx, err: 1), None)
-
   for dom, uid, hypervisor in domains[:]:
     if hypervisor not in connections:
       hyper_class = hypervisors.base.hypervisors[hypervisor]
@@ -219,8 +215,6 @@ def loadDomainState():
       connections[hypervisor].lookupByName(dom)
     except libvirt.libvirtError:
       domains.remove((dom, uid, hypervisor))
-
-  libvirt.registerErrorHandler(None, None)
 
   return domains
 

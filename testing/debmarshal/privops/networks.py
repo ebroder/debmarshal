@@ -60,6 +60,7 @@ def _validateHostname(name):
     raise errors.InvalidInput('Invalid hostname: %s' % name)
 
 
+@utils.withoutLibvirtError
 def loadNetworkState(virt_con=None):
   """Load state for any networks previously created by debmarshal.
 
@@ -89,19 +90,11 @@ def loadNetworkState(virt_con=None):
   if not virt_con:
     virt_con = libvirt.open('qemu:///system')
 
-  # The default handler for any libvirt error prints to stderr. In
-  # this case, we're trying to trigger an error, so we don't want
-  # the printout. This suppresses the printout temporarily
-  libvirt.registerErrorHandler((lambda ctx, err: 1), None)
-
   for n in networks[:]:
     try:
       virt_con.networkLookupByName(n[0])
     except libvirt.libvirtError:
       networks.remove(n)
-
-  # Reset the error handler to its default
-  libvirt.registerErrorHandler(None, None)
 
   return networks
 
@@ -165,6 +158,7 @@ def _genNetworkXML(name, gateway, netmask, hosts, dhcp):
   return etree.tostring(xml)
 
 
+@utils.withoutLibvirtError
 def _findUnusedName(virt_con):
   """Find a name for a new debmarshal network.
 
@@ -182,7 +176,6 @@ def _findUnusedName(virt_con):
   Returns:
     An unused name to use for creating a new network.
   """
-  libvirt.registerErrorHandler((lambda ctx, err: 1), None)
   n = 0
   while True:
     name = 'debmarshal-%s' % n
@@ -190,12 +183,9 @@ def _findUnusedName(virt_con):
     try:
       virt_con.networkLookupByName(name)
     except libvirt.libvirtError:
-      break
+      return name
 
     n += 1
-
-  libvirt.registerErrorHandler(None, None)
-  return name
 
 
 @utils.runWithPrivilege('create-network')
