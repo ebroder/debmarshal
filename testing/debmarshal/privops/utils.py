@@ -24,7 +24,7 @@ using that privilege.
 
 
 __authors__ = [
-  'Evan Broder <ebroder@google.com>',
+    'Evan Broder <ebroder@google.com>',
 ]
 
 

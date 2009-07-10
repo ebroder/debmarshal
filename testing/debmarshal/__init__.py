@@ -21,3 +21,7 @@ The debmarshal testing framework was written to simplify testing of
 whole systems and multi-system interactions by building those systems
 in a virtualized, network-isolated environment.
 """
+
+__authors__ = [
+    'Evan Broder <ebroder@google.com>',
+]

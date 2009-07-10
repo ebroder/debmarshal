@@ -31,7 +31,7 @@ it's registered in debmarshal.hypervisors.base.hypervisors.
 
 
 __authors__ = [
-  'Evan Broder <ebroder@google.com>',
+    'Evan Broder <ebroder@google.com>',
 ]
 
 

@@ -26,7 +26,7 @@ installing OS images.
 
 
 __authors__ = [
-  'Evan Broder <ebroder@google.com>',
+    'Evan Broder <ebroder@google.com>',
 ]
 
 

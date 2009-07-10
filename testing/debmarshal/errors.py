@@ -18,37 +18,37 @@
 """debmarshal exception classes."""
 
 __authors__ = [
-  'Evan Broder <ebroder@google.com>',
+    'Evan Broder <ebroder@google.com>',
 ]
 
 
 class Error(Exception):
   """Base exception for debmarshal."""
-  pass
+
 
 class InvalidInput(Error):
   """Input didn't pass validation."""
-  pass
+
 
 class AccessDenied(Error):
   """User does not have permission to perform the requested action."""
-  pass
+
 
 class NotFound(Error):
   """Some object could not be found."""
-  pass
+
 
 class DomainNotFound(NotFound):
   """The referenced domain couldn't be found."""
 
+
 class NetworkNotFound(NotFound):
   """The referenced network couldn't be found."""
-  pass
+
 
 class NotImplementedError(Error):
   """This method should have been overridden in a subclass."""
-  pass
+
 
 class NoAvailableIPs(Error):
   """No available subnet could be found."""
-  pass

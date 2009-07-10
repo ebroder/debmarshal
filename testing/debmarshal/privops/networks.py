@@ -21,6 +21,7 @@ This module handles creating and destroying virtual networks that are
 used for debmarshal test suites.
 """
 
+
 __authors__ = [
     'Evan Broder <ebroder@google.com>',
 ]
@@ -44,6 +45,8 @@ from debmarshal.privops import utils
 
 
 _hostname_re = re.compile(r"([a-z0-9][a-z0-9-]{0,62}\.)+([a-z]{2,4})$", re.I)
+
+
 def _validateHostname(name):
   """Check that the input is a valid, fully-qualified domain name.
 

@@ -19,7 +19,7 @@
 
 
 __authors__ = [
-  'Evan Broder <ebroder@google.com>',
+    'Evan Broder <ebroder@google.com>',
 ]
 
 
@@ -58,7 +58,7 @@ class VM(object):
     for var in self.__slots__:
       if var not in kwargs:
         raise errors.InvalidInput(
-          'Expected argument "%s" to VM.__init__ missing' % var)
+            'Expected argument "%s" to VM.__init__ missing' % var)
       setattr(self, var, kwargs.pop(var))
 
     if kwargs:

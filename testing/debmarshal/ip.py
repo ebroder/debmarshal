@@ -17,8 +17,9 @@
 # 02110-1301, USA.
 """debmarshal extensions to the ipaddr module."""
 
+
 __authors__ = [
-  'Evan Broder <ebroder@google.com>',
+    'Evan Broder <ebroder@google.com>',
 ]
 
 
@@ -46,6 +47,7 @@ class IPv4(ipaddr.IPv4, ArithmeticMixin):
 
 class IPv6(ipaddr.IPv6, ArithmeticMixin):
   __doc__ = ipaddr.IPv6.__doc__
+
 
 def IP(addr):
   """Take an IP string/int and return an object of the correct type.
