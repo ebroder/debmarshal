@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
-"""debmarshal autoconf configuration
+"""debmarshal autoconf configuration.
 
 This module interprets and provides the values from debmarshal's
 autoconf configuration for use in Python code.
@@ -35,7 +35,7 @@ import string
 
 
 def evalVariable(val):
-  """Interpolate variables using a shell-like syntax
+  """Interpolate variables using a shell-like syntax.
 
   Args:
     val: A string that might have ${variables} in it

@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
-"""debmarshal setuid support module
+"""debmarshal setuid support module.
 
 This module provides the necessary input sanitation and command
 wrappers to allow debmarshal test suites to be run by unprivileged

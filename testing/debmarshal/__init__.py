@@ -15,3 +15,9 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
+"""debmarshal testing framework.
+
+The debmarshal testing framework was written to simplify testing of
+whole systems and multi-system interactions by building those systems
+in a virtualized, network-isolated environment.
+"""

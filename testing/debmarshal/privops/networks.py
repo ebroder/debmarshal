@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
-"""debmarshal privileged networking operations
+"""debmarshal privileged networking operations.
 
 This module handles creating and destroying virtual networks that are
 used for debmarshal test suites.
@@ -45,7 +45,7 @@ from debmarshal.privops import utils
 
 _hostname_re = re.compile(r"([a-z0-9][a-z0-9-]{0,62}\.)+([a-z]{2,4})$", re.I)
 def _validateHostname(name):
-  """Check that the input is a valid, fully-qualified domain name
+  """Check that the input is a valid, fully-qualified domain name.
 
   Args:
     name: The hostname to validate
@@ -116,15 +116,14 @@ def _networkBounds(gateway, netmask):
 
 
 def _genNetworkXML(name, gateway, netmask, hosts, dhcp):
-  """Given parameters for a debmarshal network, generate the libvirt
-  XML specification.
+  """Generate the libvirt XML specification for a debmarshal network.
 
   Args:
     name: Name of the network, usually debmarshal-##
     gateway: The "gateway" for the network. Although debmarshal
       networks are isolated, you still need a gateway for things like
       the DHCP server to live at
-    netmask
+    netmask: Network mask for the gateway.
     hosts: The hosts that will be attached to this network. It is a
       dict from hostnames to a 2-tuple of (IP address, MAC address),
       similar to the one that's returned from createNetwork
@@ -214,6 +213,10 @@ def _findUnusedNetwork(virt_con, host_count):
 
   Returns:
     A network to use of the form (gateway, netmask)
+
+  Raises:
+    debmarshal.errors.NoAvailableIPs: Raised if no suitable subnet
+      could be found.
   """
   # TODO(ebroder): Include the netmask of the libvirt networks when
   #   calculating available IP address space
@@ -318,6 +321,12 @@ def destroyNetwork(name):
 
   Args:
     name: The name of the network returned from createNetwork
+
+  Raises:
+    debmarshal.errors.NetworkNotFound: The specified network name does
+      not exist.
+    debmarshal.errors.AccessDenied: The specified network is not owned
+      by the user calling destroyNetwork.
   """
   virt_con = libvirt.open('qemu:///system')
 

@@ -46,8 +46,9 @@ class VM(object):
   def __init__(self, **kwargs):
     """Initialize a VM object.
 
-    All public attributes of the VM should be passed in as keyword
-    arguments.
+    Args:
+      kwargs: All public attributes of the VM should be passed in as
+        keyword arguments
 
     Raises:
       debmarshal.errors.InvalidInput if any additional arguments past

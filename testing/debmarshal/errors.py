@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
-"""debmarshal exception classes"""
+"""debmarshal exception classes."""
 
 __authors__ = [
   'Evan Broder <ebroder@google.com>',
@@ -23,25 +23,26 @@ __authors__ = [
 
 
 class Error(Exception):
-  """Base exception for debmarshal"""
+  """Base exception for debmarshal."""
   pass
 
 class InvalidInput(Error):
-  """Input didn't pass validation"""
+  """Input didn't pass validation."""
   pass
 
 class AccessDenied(Error):
+  """User does not have permission to perform the requested action."""
   pass
 
 class NotFound(Error):
-  """Some object could not be found"""
+  """Some object could not be found."""
   pass
 
 class DomainNotFound(NotFound):
-  """The referenced domain couldn't be found"""
+  """The referenced domain couldn't be found."""
 
 class NetworkNotFound(NotFound):
-  """The referenced network couldn't be found"""
+  """The referenced network couldn't be found."""
   pass
 
 class NotImplementedError(Error):

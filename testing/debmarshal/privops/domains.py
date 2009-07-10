@@ -143,8 +143,7 @@ _SUFFIXES = ['k', 'm', 'g', 't', 'p', 'e']
 
 
 def _parseKBytes(amt):
-  """Parse a human-readable byte measurement, such as '2G', into an
-  int in kilobytes.
+  """Parse a human-readable byte measurement into an int in kilobytes.
 
   _parseKBytes assumes that all suffixes are in binary units
   (multiples of 1024), as opposed to decimal units (multiples of

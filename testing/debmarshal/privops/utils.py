@@ -15,8 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
-"""
-debmarshal utilities for privileged operations
+"""debmarshal utilities for privileged operations.
 
 This module contains the functions needed to support privileged
 operations, by separating the act of gaining privilege from actually
@@ -54,8 +53,7 @@ _subcommands = {}
 
 
 def runWithPrivilege(subcommand):
-  """Decorator for wrapping a function to ensure that it gets run with
-  privileges by using a small setuid wrapper binary.
+  """Decorator for running a function with privileges.
 
   If a function wrapped with runWithPrivilege is called by a non-root
   user, execute the setuid wrapper with the arguments passed in.
@@ -225,8 +223,7 @@ def storeState(state, filename):
 
 @decorator.decorator
 def withoutLibvirtError(f, *args, **kwargs):
-  """Decorator to execute a function without the default libvirt error
-  handler.
+  """Decorator to unset the default libvirt error handler.
 
   The default libvirt error handler prints any errors that occur to
   stderr. Since the Python bindings simultaneously throw an exception,
