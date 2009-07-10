@@ -44,3 +44,7 @@ class NetworkNotFound(NotFound):
 class NotImplementedError(Error):
   """This method should have been overridden in a subclass."""
   pass
+
+class NoAvailableIPs(Error):
+  """No available subnet could be found."""
+  pass

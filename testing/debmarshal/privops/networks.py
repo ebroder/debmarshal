@@ -188,6 +188,50 @@ def _findUnusedName(virt_con):
     n += 1
 
 
+@utils.withoutLibvirtError
+def _findUnusedNetwork(virt_con, host_count):
+  """Find an IP address network for a new debmarshal network.
+
+  This picks a gateway IP address by simply incrementing the subnet
+  until one is found that is not currently being used.
+
+  To prevent races, this function should be called by a function that
+  has taken out the debmarshal-netlist lock exclusively.
+
+  Currently IP addresses are allocated in /24 blocks from
+  10.100.0.0/16. 100 was chosen both because it is the ASCII code for
+  "d" and to try and avoid people using the lower subnets in 10/8.
+
+  This does mean that debmarshal currently has an effective limit of
+  256 test suites running simultaneously. But that also means that
+  you'd be running at least 256 VMs simultaneously, which would
+  require some pretty impressive hardware.
+
+  Args:
+    virt_con: A read-only (or read-write) libvirt.virConnect instance
+      connected to any driver.
+    host_count: How many hosts will be attached to this network.
+
+  Returns:
+    A network to use of the form (gateway, netmask)
+  """
+  # TODO(ebroder): Include the netmask of the libvirt networks when
+  #   calculating available IP address space
+  net_gateways = set()
+  for net in virt_con.listNetworks() + virt_con.listDefinedNetworks():
+    net_xml = etree.fromstring(virt_con.networkLookupByName(net).XMLDesc(0))
+    net_gateways.add(net_xml.xpath('string(/network/ip/@address)'))
+
+  for i in xrange(256):
+    net = '10.100.%d.1' % i
+    if net not in net_gateways:
+      # TODO(ebroder): Adjust the size of the network based on the
+      #   number of hosts that need to fit in it
+      return (net, '255.255.255.0')
+
+  raise errors.NoAvailableIPs('No unused subnet could be found.')
+
+
 @utils.runWithPrivilege('create-network')
 @utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
 def createNetwork(hosts, dhcp=True):
