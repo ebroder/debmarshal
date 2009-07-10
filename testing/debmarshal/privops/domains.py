@@ -221,6 +221,25 @@ def loadDomainState():
   return domains
 
 
+def _createDomainXML(virt_con, xml):
+  """Actually create a domain in libvirt in a version-independent way.
+
+  At some point between libvirt 0.4 and the current version,
+  libvirt.virConnect.createXML was given an extra argument. Since no
+  version number information is exposed in the libvirt module, we have
+  to guess how many arguments that method expects to take.
+
+  Args:
+    virt_con: Read-write connection to the libvirt driver with which
+      the new domain should be created.
+    xml: The XML specification for the domain to be created.
+  """
+  try:
+    virt_con.createXML(xml, 0)
+  except TypeError:
+    virt_con.createXML(xml)
+
+
 @utils.runWithPrivilege('create-domain')
 @utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
 def createDomain(memory, disks, network, mac, hypervisor="qemu"):
@@ -280,6 +299,6 @@ def createDomain(memory, disks, network, mac, hypervisor="qemu"):
   doms.append((name, utils.getCaller(), hypervisor))
   utils.storeState(doms, 'debmarshal-domains')
 
-  virt_con.createXML(dom_xml, 0)
+  _createDomainXML(virt_con, dom_xml)
 
   return name
