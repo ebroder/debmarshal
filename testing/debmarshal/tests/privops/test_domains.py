@@ -236,6 +236,34 @@ class TestLoadDomainState(mox.MoxTestBase):
     self.assertEqual(domains.loadDomainState(), [])
 
 
+class TestCreateDomainXML(mox.MoxTestBase):
+  """Tests for privops.domains._createDomainXML."""
+  def testThreeArgs(self):
+    """virConnect.createXML that takes three arguments.
+
+    Because we can't specify that it's OK if a particular call never
+    occurs, this test has to be dependent on the order of call
+    attempts in _createDomainXML.
+    """
+    virt_con = self.mox.CreateMockAnything()
+    virt_con.createXML('<fake_xml/>', 0).InAnyOrder()
+
+    self.mox.ReplayAll()
+
+    domains._createDomainXML(virt_con, '<fake_xml/>')
+
+  def testTwoArgs(self):
+    """virConnect.createXML that takes two arguments."""
+    virt_con = self.mox.CreateMockAnything()
+    virt_con.createXML('<fake_xml/>').InAnyOrder()
+    virt_con.createXML('<fake_xml/>', 0).InAnyOrder().AndRaise(TypeError(
+      'createXML() takes exactly 2 arguments (3 given)'))
+
+    self.mox.ReplayAll()
+
+    domains._createDomainXML(virt_con, '<fake_xml/>')
+
+
 class TestCreateDomain(mox.MoxTestBase):
   """Tests for privops.domains.createNetwork."""
   def test(self):
