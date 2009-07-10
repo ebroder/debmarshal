@@ -37,6 +37,9 @@ class NotFound(Error):
   """Some object could not be found"""
   pass
 
+class DomainNotFound(NotFound):
+  """The referenced domain couldn't be found"""
+
 class NetworkNotFound(NotFound):
   """The referenced network couldn't be found"""
   pass

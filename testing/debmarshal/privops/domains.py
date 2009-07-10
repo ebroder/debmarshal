@@ -302,3 +302,37 @@ def createDomain(memory, disks, network, mac, hypervisor="qemu"):
   _createDomainXML(virt_con, dom_xml)
 
   return name
+
+@utils.runWithPrivilege('destroy-domain')
+@utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
+def destroyDomain(name, hypervisor="qemu"):
+  """Destroy a debmarshal domain.
+
+  destroyDomain uses the state recorded by createDomain to verify
+  ownership of the domain.
+
+  Domains can be destroyed by the user that created them, or by root.
+
+  Args:
+    name: The name of the domain to destroy.
+    hypervisor: The hypervisor for this domain.
+  """
+  hyper_class = hypervisors.base.hypervisors[hypervisor]
+  virt_con = hyper_class.open()
+
+  domains = loadDomainState()
+  for dom in domains:
+    if dom[0] == name and dom[2] == hypervisor:
+      break
+  else:
+    raise errors.DomainNotFound("Domain %s does not exist." % name)
+
+  if utils.getCaller() not in (0, dom[1]):
+    raise errors.AccessDenied("Domain %s is not owned by UID %d." %
+                              (name, utils.getCaller()))
+
+  virt_dom = virt_con.lookupByName(name)
+  virt_dom.destroy()
+
+  domains.remove(dom)
+  utils.storeState(domains, 'debmarshal-domains')
