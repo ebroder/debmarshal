@@ -63,16 +63,15 @@ class TestLoadNetworkState(mox.MoxTestBase):
   def testOpeningLibvirtConnection(self):
     """Make sure that loadNetworkState can open its own connection to
     libvirt if needed"""
+    self.mox.StubOutWithMock(utils, '_clearLibvirtError')
+    utils._clearLibvirtError()
+
     self.mox.StubOutWithMock(utils, 'loadState')
     utils.loadState('debmarshal-networks').AndReturn(None)
 
     self.mox.StubOutWithMock(libvirt, 'open')
     virt_con = self.mox.CreateMock(libvirt.virConnect)
     libvirt.open(mox.IgnoreArg()).AndReturn(virt_con)
-
-    self.mox.StubOutWithMock(libvirt, 'registerErrorHandler')
-    libvirt.registerErrorHandler(mox.IgnoreArg(), None)
-    libvirt.registerErrorHandler(None, None)
 
     self.mox.ReplayAll()
 
@@ -81,6 +80,9 @@ class TestLoadNetworkState(mox.MoxTestBase):
   def testNetworkExistenceTest(self):
     """Make sure that networks get dropped from the list in the state
     file if they don't still exist. And that they're kept if they do"""
+    self.mox.StubOutWithMock(utils, '_clearLibvirtError')
+    utils._clearLibvirtError()
+
     self.mox.StubOutWithMock(utils, 'loadState')
     utils.loadState('debmarshal-networks').AndReturn(
       [('foo', 500, '10.100.1.1'),
@@ -88,14 +90,9 @@ class TestLoadNetworkState(mox.MoxTestBase):
 
     virt_con = self.mox.CreateMock(libvirt.virConnect)
 
-    self.mox.StubOutWithMock(libvirt, 'registerErrorHandler')
-    libvirt.registerErrorHandler(mox.IgnoreArg(), None)
-
     virt_con.networkLookupByName('foo')
     virt_con.networkLookupByName('bar').AndRaise(libvirt.libvirtError(
         "Network doesn't exist"))
-
-    libvirt.registerErrorHandler(None, None)
 
     self.mox.ReplayAll()
 
@@ -111,14 +108,13 @@ class TestLoadNetworkState(mox.MoxTestBase):
             ('spam', 500, '10.100.5.1'),
             ('eggs', 500, '10.100.6.1')]
 
+    self.mox.StubOutWithMock(utils, '_clearLibvirtError')
+    utils._clearLibvirtError()
+
     self.mox.StubOutWithMock(utils, 'loadState')
     utils.loadState('debmarshal-networks').AndReturn(nets[:])
 
     virt_con = self.mox.CreateMock(libvirt.virConnect)
-
-    self.mox.StubOutWithMock(libvirt, 'registerErrorHandler')
-
-    libvirt.registerErrorHandler(mox.IgnoreArg(), None)
 
     virt_con.networkLookupByName('foo')
     virt_con.networkLookupByName('bar')
@@ -128,8 +124,6 @@ class TestLoadNetworkState(mox.MoxTestBase):
     virt_con.networkLookupByName('spam').AndRaise(libvirt.libvirtError(
         "Network doesn't exist"))
     virt_con.networkLookupByName('eggs')
-
-    libvirt.registerErrorHandler(None, None)
 
     self.mox.ReplayAll()
 
@@ -216,8 +210,8 @@ class TestFindUnusedName(mox.MoxTestBase):
   def test(self):
     virt_con = self.mox.CreateMock(libvirt.virConnect)
 
-    self.mox.StubOutWithMock(libvirt, 'registerErrorHandler')
-    libvirt.registerErrorHandler(mox.IgnoreArg(), None)
+    self.mox.StubOutWithMock(utils, '_clearLibvirtError')
+    utils._clearLibvirtError()
 
     name = 'debmarshal-0'
     virt_con.networkLookupByName(name)
@@ -225,8 +219,6 @@ class TestFindUnusedName(mox.MoxTestBase):
     name = 'debmarshal-1'
     virt_con.networkLookupByName(name).AndRaise(libvirt.libvirtError(
       "Network doesn't exist."))
-
-    libvirt.registerErrorHandler(None, None)
 
     self.mox.ReplayAll()
 

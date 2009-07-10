@@ -136,8 +136,8 @@ class TestFindUnusedName(mox.MoxTestBase):
   def test(self):
     virt_con = self.mox.CreateMock(libvirt.virConnect)
 
-    self.mox.StubOutWithMock(libvirt, 'registerErrorHandler')
-    libvirt.registerErrorHandler(mox.IgnoreArg(), None)
+    self.mox.StubOutWithMock(utils, '_clearLibvirtError')
+    utils._clearLibvirtError()
 
     name = 'debmarshal-0'
     virt_con.lookupByName(name)
@@ -145,8 +145,6 @@ class TestFindUnusedName(mox.MoxTestBase):
     name = 'debmarshal-1'
     virt_con.lookupByName(name).AndRaise(libvirt.libvirtError(
       "Network doesn't exist"))
-
-    libvirt.registerErrorHandler(None, None)
 
     self.mox.ReplayAll()
 
@@ -183,11 +181,11 @@ class TestLoadDomainState(mox.MoxTestBase):
     doms = [('debmarshal-1', 500, 'qemu'),
             ('debmarshal-2', 500, 'qemu')]
 
+    self.mox.StubOutWithMock(utils, '_clearLibvirtError')
+    utils._clearLibvirtError()
+
     self.mox.StubOutWithMock(utils, 'loadState')
     utils.loadState('debmarshal-domains').AndReturn(doms)
-
-    self.mox.StubOutWithMock(libvirt, 'registerErrorHandler')
-    libvirt.registerErrorHandler(mox.IgnoreArg(), None)
 
     self.mox.StubOutWithMock(hypervisors.qemu.QEMU, 'open')
     qemu_con = self.mox.CreateMock(libvirt.virConnect)
@@ -198,8 +196,6 @@ class TestLoadDomainState(mox.MoxTestBase):
     virt_domain = self.mox.CreateMock(libvirt.virDomain)
     qemu_con.lookupByName('debmarshal-2').AndReturn(virt_domain)
 
-    libvirt.registerErrorHandler(None, None)
-
     self.mox.ReplayAll()
 
     self.assertEqual(domains.loadDomainState(), doms)
@@ -208,11 +204,11 @@ class TestLoadDomainState(mox.MoxTestBase):
     """Test that loadDomainState can deal with nonexistent domains."""
     doms = [('debmarshal-%d' % i, 500, 'qemu') for i in xrange(6)]
 
+    self.mox.StubOutWithMock(utils, '_clearLibvirtError')
+    utils._clearLibvirtError()
+
     self.mox.StubOutWithMock(utils, 'loadState')
     utils.loadState('debmarshal-domains').AndReturn(doms[:])
-
-    self.mox.StubOutWithMock(libvirt, 'registerErrorHandler')
-    libvirt.registerErrorHandler(mox.IgnoreArg(), None)
 
     self.mox.StubOutWithMock(hypervisors.qemu.QEMU, 'open')
     qemu_con = self.mox.CreateMock(libvirt.virConnect)
@@ -226,8 +222,6 @@ class TestLoadDomainState(mox.MoxTestBase):
     qemu_con.lookupByName('debmarshal-4').AndRaise(libvirt.libvirtError(
         "Domain doesn't exist"))
     qemu_con.lookupByName('debmarshal-5')
-
-    libvirt.registerErrorHandler(None, None)
 
     self.mox.ReplayAll()
 

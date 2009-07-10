@@ -39,6 +39,7 @@ import subprocess
 import sys
 import unittest
 
+import libvirt
 import mox
 import yaml
 
@@ -305,6 +306,32 @@ class TestStoreState(mox.MoxTestBase):
     self.mox.VerifyAll()
 
     del utils.open
+
+
+class TestWithoutLibvirtError(mox.MoxTestBase):
+  """Test privops.utils.withoutLibvirtError."""
+  def test(self):
+    self.mox.StubOutWithMock(utils, '_clearLibvirtError')
+    utils._clearLibvirtError()
+
+    self.mox.ReplayAll()
+
+    @utils.withoutLibvirtError
+    def func():
+      return 1
+
+    self.assertEqual(func(), 1)
+
+
+class TestClearLibvirtError(mox.MoxTestBase):
+  """Very dumb test for privops.utils._clearLibvirtError."""
+  def test(self):
+    self.mox.StubOutWithMock(libvirt, 'registerErrorHandler')
+    libvirt.registerErrorHandler(mox.IgnoreArg(), None)
+
+    self.mox.ReplayAll()
+
+    utils._clearLibvirtError()
 
 
 class TestUsage(mox.MoxTestBase):
