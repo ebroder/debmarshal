@@ -139,7 +139,7 @@ def _findUnusedName(virt_con):
     n += 1
 
 
-_SUFFIXES = ('k', 'm', 'g', 't', 'p', 'e')
+_SUFFIXES = ['k', 'm', 'g', 't', 'p', 'e']
 
 
 def _parseKBytes(amt):
