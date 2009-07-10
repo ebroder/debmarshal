@@ -40,6 +40,7 @@ import subprocess
 import sys
 
 import decorator
+import libvirt
 import yaml
 
 from debmarshal import config
@@ -220,6 +221,42 @@ def storeState(state, filename):
   lock = _acquireLock(filename, fcntl.LOCK_EX)
   state_file = open('/var/run/%s' % filename, 'w')
   pickle.dump(state, state_file)
+
+
+@decorator.decorator
+def withoutLibvirtError(f, *args, **kwargs):
+  """Decorator to execute a function without the default libvirt error
+  handler.
+
+  The default libvirt error handler prints any errors that occur to
+  stderr. Since the Python bindings simultaneously throw an exception,
+  this behavior is redundant, not to mention potentially confusing to
+  users, who might be seeing error messages that were otherwise
+  handled.
+
+  withoutLibvirtError will set a new error handler that ignores
+  errors, allowing them to bubble up as exceptions instead. So that
+  withoutLibvirtError can be used on functions that might call each
+  other, and because it is never desirable for the default error
+  handler to be used in debmarshal, withoutLibvirtError does not reset
+  the error handler to its default.
+
+  Any function that is expected to generate libvirt errors in the
+  course of regular operation should be wrapped in
+  withoutLibvirtError.
+  """
+  _clearLibvirtError()
+  return f(*args, **kwargs)
+
+
+def _clearLibvirtError():
+  """Disable libvirt error messages.
+
+  _clearLibvirtError is a helper function to withoutLibvirtError,
+  designed to make mocks and testing easy. It simply registers NOOP
+  error handler for libvirt.
+  """
+  libvirt.registerErrorHandler((lambda ctx, err: 1), None)
 
 
 def usage():
