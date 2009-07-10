@@ -85,8 +85,8 @@ class TestLoadNetworkState(mox.MoxTestBase):
 
     self.mox.StubOutWithMock(utils, 'loadState')
     utils.loadState('debmarshal-networks').AndReturn(
-      [('foo', 500, '10.100.1.1'),
-       ('bar', 501, '10.100.1.2')])
+      [('foo', 500),
+       ('bar', 501)])
 
     virt_con = self.mox.CreateMock(libvirt.virConnect)
 
@@ -97,16 +97,16 @@ class TestLoadNetworkState(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     self.assertEqual(networks.loadNetworkState(virt_con),
-                     [('foo', 500, '10.100.1.1')])
+                     [('foo', 500)])
 
   def testTwoBadNetworks(self):
     """Test finding two nonexistent networks when loading state."""
-    nets = [('foo', 500, '10.100.1.1'),
-            ('bar', 500, '10.100.2.1'),
-            ('baz', 500, '10.100.3.1'),
-            ('quux', 500, '10.100.4.1'),
-            ('spam', 500, '10.100.5.1'),
-            ('eggs', 500, '10.100.6.1')]
+    nets = [('foo', 500),
+            ('bar', 500),
+            ('baz', 500),
+            ('quux', 500),
+            ('spam', 500),
+            ('eggs', 500)]
 
     self.mox.StubOutWithMock(utils, '_clearLibvirtError')
     utils._clearLibvirtError()
@@ -280,10 +280,10 @@ class TestCreateNetwork(mox.MoxTestBase):
     everything else"""
     super(TestCreateNetwork, self).setUp()
 
-    self.networks = [('debmarshal-0', 500, '10.100.0.1'),
-                     ('debmarshal-3', 500, '10.100.1.1'),
-                     ('debmarshal-4', 500, '10.100.2.1'),
-                     ('debmarshal-4', 500, '10.100.5.1')]
+    self.networks = [('debmarshal-0', 500),
+                     ('debmarshal-3', 500),
+                     ('debmarshal-4', 500),
+                     ('debmarshal-4', 500)]
     self.name = 'debmarshal-1'
     self.gateway = '10.100.3.1'
     self.hosts = ['wiki.company.com', 'login.company.com']
@@ -332,7 +332,7 @@ class TestCreateNetwork(mox.MoxTestBase):
     """Test createNetwork when everything goes right"""
     self.mox.StubOutWithMock(utils, 'storeState')
     utils.storeState(self.networks +
-                     [(self.name, 1000, self.gateway)],
+                     [(self.name, 1000)],
                      'debmarshal-networks')
 
     self.mox.ReplayAll()
@@ -345,7 +345,7 @@ class TestCreateNetwork(mox.MoxTestBase):
     stored"""
     self.mox.StubOutWithMock(utils, 'storeState')
     utils.storeState(self.networks +
-                     [(self.name, 1000, self.gateway)],
+                     [(self.name, 1000)],
                      'debmarshal-networks').\
                      AndRaise(Exception("Error!"))
 
@@ -373,8 +373,8 @@ class TestDestroyNetwork(mox.MoxTestBase):
     self.virt_con = self.mox.CreateMock(libvirt.virConnect)
     libvirt.open(mox.IgnoreArg()).AndReturn(self.virt_con)
 
-    self.networks = [('debmarshal-0', 501, '10.100.0.1'),
-                     ('debmarshal-1', 500, '10.100.1.1')]
+    self.networks = [('debmarshal-0', 501),
+                     ('debmarshal-1', 500)]
     self.mox.StubOutWithMock(networks, 'loadNetworkState')
     networks.loadNetworkState(self.virt_con).AndReturn(self.networks)
 

@@ -297,7 +297,7 @@ def createNetwork(hosts, dhcp=True):
 
   try:
     networks = loadNetworkState(virt_con)
-    networks.append((net_name, utils.getCaller(), net_gateway))
+    networks.append((net_name, utils.getCaller()))
     utils.storeState(networks, 'debmarshal-networks')
   except:
     virt_net.destroy()
