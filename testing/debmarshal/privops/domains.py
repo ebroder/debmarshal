@@ -30,12 +30,14 @@ __authors__ = [
 ]
 
 
+import fcntl
 import os
 
 import libvirt
 
 from debmarshal import errors
 from debmarshal import hypervisors
+from debmarshal import vm
 from debmarshal.privops import networks
 from debmarshal.privops import utils
 
@@ -220,6 +222,7 @@ def loadDomainState():
 
 
 @utils.runWithPrivilege('create-domain')
+@utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
 def createDomain(memory, disks, network, mac, hypervisor="qemu"):
   """Create a virtual machine domain.
 
@@ -247,5 +250,36 @@ def createDomain(memory, disks, network, mac, hypervisor="qemu"):
       test suite, it is the caller's responsibility to keep track of
       that when destroyDomain is called later. Currently only qemu is
       supported.
+
+  Returns:
+    The name of the new domain.
   """
-  pass
+  hyper_class = hypervisors.base.hypervisors[hypervisor]
+  virt_con = hyper_class.open()
+
+  _validateNetwork(network, virt_con)
+  for d in disks:
+    _validateDisk(d)
+
+  name = _findUnusedName(virt_con)
+  memory = _parseKBytes(memory)
+
+  vm_params = vm.VM(name=name,
+                    memory=memory,
+                    disks=disks,
+                    network=network,
+                    mac=mac)
+
+  dom_xml = hyper_class.domainXMLString(vm_params)
+
+  # The new domain is intentionally recorded to the statefile before
+  # starting the VM, because it's much worse to have a running VM we
+  # don't know about than to have state on a VM that doesn't actually
+  # exist (loadDomainState already handles the latter case).
+  doms = loadDomainState()
+  doms.append((name, utils.getCaller(), hypervisor))
+  utils.storeState(doms, 'debmarshal-domains')
+
+  virt_con.createXML(dom_xml, 0)
+
+  return name
