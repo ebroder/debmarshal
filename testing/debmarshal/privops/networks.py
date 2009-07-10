@@ -34,12 +34,12 @@ except ImportError:  # pragma: no cover
   import pickle
 import re
 
-import ipaddr
 import libvirt
 from lxml import etree
 import virtinst
 
 from debmarshal import errors
+from debmarshal import ip
 from debmarshal.privops import utils
 
 
@@ -109,9 +109,9 @@ def _networkBounds(gateway, netmask):
   Returns:
     Tuple of the form (low_ip, high_ip)
   """
-  net = ipaddr.IP('%s/%s' % (gateway, netmask))
-  low = ipaddr.IP(ipaddr.IP(gateway).ip + 1)
-  high = ipaddr.IP(net.broadcast - 1)
+  net = ip.IP('%s/%s' % (gateway, netmask))
+  low = ip.IP(ip.IP(gateway).ip + 1)
+  high = ip.IP(net.broadcast - 1)
   return (low.ip_ext, high.ip_ext)
 
 
