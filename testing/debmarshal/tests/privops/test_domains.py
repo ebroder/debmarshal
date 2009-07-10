@@ -320,5 +320,62 @@ class TestCreateDomain(mox.MoxTestBase):
     self.assertEqual(domains.createDomain(
       memory, disks, net, mac), name)
 
+
+class TestDestroyDomain(mox.MoxTestBase):
+  def setUp(self):
+    super(TestDestroyDomain, self).setUp()
+
+    self.domains = [
+      ('debmarshal-0', 500, 'qemu'),
+      ('debmarshal-1', 501, 'qemu')]
+
+    self.mox.StubOutWithMock(os, 'geteuid')
+    os.geteuid().MultipleTimes().AndReturn(0)
+
+    self.mox.StubOutWithMock(utils, '_acquireLock')
+    utils._acquireLock('debmarshal-domlist', fcntl.LOCK_EX)
+
+    self.mox.StubOutWithMock(hypervisors.qemu.QEMU, 'open')
+    self.virt_con = self.mox.CreateMock(libvirt.virConnect)
+    hypervisors.qemu.QEMU.open().AndReturn(self.virt_con)
+
+    self.mox.StubOutWithMock(domains, 'loadDomainState')
+    domains.loadDomainState().AndReturn(self.domains)
+
+  def testNoNetwork(self):
+    """Test destroyDomain with a nonexistent domain."""
+    self.mox.ReplayAll()
+
+    self.assertRaises(errors.DomainNotFound, domains.destroyDomain,
+                      'debmarshal-3')
+
+  def testNoPermissions(self):
+    """Test destroyDomain with a network owned by someone else."""
+    self.mox.StubOutWithMock(utils, 'getCaller')
+    utils.getCaller().MultipleTimes().AndReturn(500)
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(errors.AccessDenied, domains.destroyDomain,
+                      'debmarshal-1')
+
+  def testSuccess(self):
+    """Test that destroyDomain can succeed."""
+    self.mox.StubOutWithMock(utils, 'getCaller')
+    utils.getCaller().MultipleTimes().AndReturn(500)
+
+    virt_dom = self.mox.CreateMock(libvirt.virDomain)
+    self.virt_con.lookupByName('debmarshal-0').AndReturn(virt_dom)
+    virt_dom.destroy()
+
+    self.mox.StubOutWithMock(utils, 'storeState')
+    new_domains = self.domains[1:]
+    utils.storeState(new_domains, 'debmarshal-domains')
+
+    self.mox.ReplayAll()
+
+    domains.destroyDomain('debmarshal-0')
+
+
 if __name__ == '__main__':
   unittest.main()
