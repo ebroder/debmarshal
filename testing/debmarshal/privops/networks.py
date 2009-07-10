@@ -246,15 +246,6 @@ def createNetwork(hosts, dhcp=True):
   debmarshal will only allow the user that created a network to attach
   VMs to it or destroy it.
 
-  Currently IP addresses are allocated in /24 blocks from
-  10.100.0.0/16. 100 was chosen both because it is the ASCII code for
-  "d" and to try and avoid people using the lower subnets in 10/8.
-
-  This does mean that debmarshal currently has an effective limit of
-  256 test suites running simultaneously. But that also means that
-  you'd be running at least 256 VMs simultaneously, which would
-  require some pretty impressive hardware.
-
   Args:
     hosts: A list of hostnames that will eventually be attached to
       this network
@@ -285,25 +276,11 @@ def createNetwork(hosts, dhcp=True):
   # supposed to be the default for root.
   virt_con = libvirt.open('qemu:///system')
 
-  networks = loadNetworkState(virt_con)
-  net_gateways = set(n[2] for n in networks)
-
   net_name = _findUnusedName(virt_con)
+  net_gateway, net_mask = _findUnusedNetwork(virt_con, len(hosts))
 
-  # Find a network to assign
-  #
-  # TODO(ebroder): Error out if we can't find an open address space to
-  #   use. Right now this block will happily assign 10.100.256.1 to a
-  #   new network.
-  for net in itertools.count(0):
-    net_gateway = '10.100.%d.1' % net
-    if net_gateway not in net_gateways:
-      break
-
-  # Assign IP addresses and MAC addresses for every host that's
-  # supposed to end up on this network
   net_hosts = {}
-  i = 2
+  host_addr = ip.IP(net_gateway) + 1
   for host in hosts:
     # Use the virtinst package's MAC address generator because it's
     # easier than writing another one for ourselves.
@@ -311,19 +288,16 @@ def createNetwork(hosts, dhcp=True):
     # This does mean that the MAC addresses are allocated from
     # Xensource's OUI, but whatever
     mac = virtinst.util.randomMAC()
-    ip = '10.100.%d.%d' % (net, i)
-    net_hosts[host] = (ip, mac)
-    i += 1
-
-  net_mask = '255.255.255.0'
+    net_hosts[host] = (host_addr.ip_ext, mac)
+    host_addr += 1
 
   xml = _genNetworkXML(net_name, net_gateway, net_mask, net_hosts, dhcp)
   virt_net = virt_con.networkDefineXML(xml)
   virt_net.create()
-  networks.append((net_name, utils.getCaller(), net_gateway))
 
-  # Record the network information into our state file
   try:
+    networks = loadNetworkState(virt_con)
+    networks.append((net_name, utils.getCaller(), net_gateway))
     utils.storeState(networks, 'debmarshal-networks')
   except:
     virt_net.destroy()
