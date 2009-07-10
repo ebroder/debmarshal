@@ -211,6 +211,28 @@ class TestGenNetworkXML(mox.MoxTestBase):
     self.assertEqual(xml.xpath('/network/ip/*'), [])
 
 
+class TestFindUnusedName(mox.MoxTestBase):
+  """Test privops.networks._findUnusedName."""
+  def test(self):
+    virt_con = self.mox.CreateMock(libvirt.virConnect)
+
+    self.mox.StubOutWithMock(libvirt, 'registerErrorHandler')
+    libvirt.registerErrorHandler(mox.IgnoreArg(), None)
+
+    name = 'debmarshal-0'
+    virt_con.networkLookupByName(name)
+
+    name = 'debmarshal-1'
+    virt_con.networkLookupByName(name).AndRaise(libvirt.libvirtError(
+      "Network doesn't exist."))
+
+    libvirt.registerErrorHandler(None, None)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(networks._findUnusedName(virt_con), name)
+
+
 class TestCreateNetwork(mox.MoxTestBase):
   """Now that we've tested the pieces that make up createNetwork,
   let's test createNetwork itself"""
@@ -246,6 +268,9 @@ class TestCreateNetwork(mox.MoxTestBase):
     self.mox.StubOutWithMock(libvirt, 'open')
     virt_con = self.mox.CreateMock(libvirt.virConnect)
     libvirt.open(mox.IgnoreArg()).AndReturn(virt_con)
+
+    self.mox.StubOutWithMock(networks, '_findUnusedName')
+    networks._findUnusedName(virt_con).AndReturn(self.name)
 
     self.mox.StubOutWithMock(networks, 'loadNetworkState')
     networks.loadNetworkState(virt_con).AndReturn(self.networks)
