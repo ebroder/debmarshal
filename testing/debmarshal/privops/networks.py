@@ -165,6 +165,39 @@ def _genNetworkXML(name, gateway, netmask, hosts, dhcp):
   return etree.tostring(xml)
 
 
+def _findUnusedName(virt_con):
+  """Find a name for a new debmarshal network.
+
+  This picks a name for a new debmarshal network by simply
+  incrementing the name until a name is found that is not currently
+  being used.
+
+  To prevent races, this function should be called by a function that
+  has taken out the debmarshal-netlist lock exclusively.
+
+  Args:
+    virt_con: A read-only (or read-write) libvirt.virConnect instance
+      connected to any driver.
+
+  Returns:
+    An unused name to use for creating a new network.
+  """
+  libvirt.registerErrorHandler((lambda ctx, err: 1), None)
+  n = 0
+  while True:
+    name = 'debmarshal-%s' % n
+
+    try:
+      virt_con.networkLookupByName(name)
+    except libvirt.libvirtError:
+      break
+
+    n += 1
+
+  libvirt.registerErrorHandler(None, None)
+  return name
+
+
 @utils.runWithPrivilege('create-network')
 @utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
 def createNetwork(hosts, dhcp=True):
@@ -219,18 +252,11 @@ def createNetwork(hosts, dhcp=True):
   virt_con = libvirt.open('qemu:///system')
 
   networks = loadNetworkState(virt_con)
-  net_names = set(n[0] for n in networks)
   net_gateways = set(n[2] for n in networks)
 
-  # Now we actually can allocate the new network.
-  #
-  # First, let's figure out what to call this network
-  for i in itertools.count(0):
-    net_name = 'debmarshal-%d' % i
-    if net_name not in net_names:
-      break
+  net_name = _findUnusedName(virt_con)
 
-  # Then find a network to assign
+  # Find a network to assign
   #
   # TODO(ebroder): Error out if we can't find an open address space to
   #   use. Right now this block will happily assign 10.100.256.1 to a
