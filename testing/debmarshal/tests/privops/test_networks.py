@@ -225,6 +225,52 @@ class TestFindUnusedName(mox.MoxTestBase):
     self.assertEqual(networks._findUnusedName(virt_con), name)
 
 
+class TestFindUnusedNetwork(mox.MoxTestBase):
+  def testSuccessfulFind(self):
+    """Test privops.networks._findUnusedNetwork finding an available network"""
+    nets = ['default', 'debmarshal-0', 'debmarshal-3']
+
+    virt_con = self.mox.CreateMock(libvirt.virConnect)
+
+    virt_con.listNetworks().AndReturn(nets)
+    virt_con.listDefinedNetworks().AndReturn([])
+
+    for i, net in enumerate(nets):
+      virt_net = self.mox.CreateMock(libvirt.virNetwork)
+      virt_con.networkLookupByName(net).AndReturn(virt_net)
+      virt_net.XMLDesc(0).AndReturn(
+        '<network>' +
+        ('<ip address="10.100.%s.1" netmask="255.255.255.0" />' % i) +
+        '</network>')
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(networks._findUnusedNetwork(virt_con, 8),
+                     ('10.100.3.1', '255.255.255.0'))
+
+  def testNoFind(self):
+    """privops.networks_findUnusedNetwork errors when no network available"""
+    nets = ['debmarshal-%s' % i for i in xrange(256)]
+
+    virt_con = self.mox.CreateMock(libvirt.virConnect)
+
+    virt_con.listNetworks().AndReturn(nets)
+    virt_con.listDefinedNetworks().AndReturn([])
+
+    for i, net in enumerate(nets):
+      virt_net = self.mox.CreateMock(libvirt.virNetwork)
+      virt_con.networkLookupByName(net).AndReturn(virt_net)
+      virt_net.XMLDesc(0).AndReturn(
+        '<network>' +
+        ('<ip address="10.100.%s.1" netmask="255.255.255.0" />' % i) +
+        '</network>')
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(errors.NoAvailableIPs,
+                      (lambda: networks._findUnusedNetwork(virt_con, 8)))
+
+
 class TestCreateNetwork(mox.MoxTestBase):
   """Now that we've tested the pieces that make up createNetwork,
   let's test createNetwork itself"""
