@@ -59,6 +59,8 @@ class QEMU(base.Hypervisor):
     # we're just going to use the one that's easiest to get to.
     host_arch = os.uname()[4]
 
+    xml.set('type', 'qemu')
+
     xml_os = etree.SubElement(xml, 'os')
     etree.SubElement(xml_os, 'type', arch=host_arch).text = 'hvm'
 

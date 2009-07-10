@@ -54,6 +54,7 @@ class TestQEMUDomainXML(mox.MoxTestBase):
 
     xml = qemu.QEMU.domainXML(test_vm)
 
+    self.assertEqual(xml.xpath('string(/domain/@type)'), 'qemu')
     self.assertEqual(len(xml.xpath('/domain/os')), 1)
     self.assertEqual(len(xml.xpath('/domain/os/type')), 1)
     self.assertEqual(xml.xpath('string(/domain/os/type)'), 'hvm')
