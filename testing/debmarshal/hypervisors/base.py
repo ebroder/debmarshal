@@ -106,7 +106,7 @@ class Hypervisor(object):
       disk_letter = chr(disk_num + ord('a'))
       etree.SubElement(xml_disk, 'target', dev='hd%s' % disk_letter)
 
-    xml_net = etree.SubElement(devices, 'interface')
+    xml_net = etree.SubElement(devices, 'interface', type='network')
     etree.SubElement(xml_net, 'source', network=vm.network)
     etree.SubElement(xml_net, 'mac', address=vm.mac)
 

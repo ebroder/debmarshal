@@ -110,6 +110,8 @@ class TestHypervisorDomainXML(mox.MoxTestBase):
     self.assertEqual(len(xml.xpath('/domain/devices/interface/mac')), 1)
 
     net_attr = 'string(/domain/devices/interface/%s)'
+    self.assertEqual(xml.xpath(net_attr % '@type'),
+                     'network')
     self.assertEqual(xml.xpath(net_attr % 'source/@network'),
                      test_vm.network)
     self.assertEqual(xml.xpath(net_attr % 'mac/@address'),
