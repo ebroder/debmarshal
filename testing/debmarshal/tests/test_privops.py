@@ -317,6 +317,23 @@ class TestCall(mox.MoxTestBase):
     privops.call('createNetwork', ['www.company.com', 'login.company.com'])
 
 
+class TestMaybeExit(mox.MoxTestBase):
+  """Test exiting from the main loop."""
+  def test(self):
+    """Test debmarshal.privops._maybeExit."""
+    loop = self.mox.CreateMockAnything()
+    loop.quit()
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(privops._maybeExit(loop), True)
+    self.assertEqual(privops._READY_TO_EXIT, True)
+    privops._READY_TO_EXIT = False
+    self.assertEqual(privops._maybeExit(loop), True)
+    self.assertEqual(privops._READY_TO_EXIT, True)
+    privops._maybeExit(loop)
+
+
 class TestMain(mox.MoxTestBase):
   """Test the dbus main loop setup."""
   def test(self):
