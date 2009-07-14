@@ -27,6 +27,8 @@ import fcntl
 import os
 import unittest
 
+import dbus
+import dbus.bus
 import libvirt
 import mox
 import virtinst
@@ -285,6 +287,28 @@ class TestDestroyDomain(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     privops.Privops().destroyDomain('debmarshal-0')
+
+
+class TestCall(mox.MoxTestBase):
+  """Test dispatching privileged operations."""
+  def test(self):
+    """Test debmarshal.privops.call."""
+    self.mox.StubOutWithMock(dbus, 'SystemBus', use_mock_anything=True)
+    bus = self.mox.CreateMock(dbus.bus.BusConnection)
+    proxy = self.mox.CreateMockAnything()
+    method = self.mox.CreateMockAnything()
+
+    dbus.SystemBus().AndReturn(bus)
+    bus.get_object(privops.DBUS_BUS_NAME, privops.DBUS_OBJECT_PATH).AndReturn(
+      proxy)
+    proxy.get_dbus_method(
+        'createNetwork', dbus_interface=privops.DBUS_INTERFACE).AndReturn(
+        method)
+    method(['www.company.com', 'login.company.com'])
+
+    self.mox.ReplayAll()
+
+    privops.call('createNetwork', ['www.company.com', 'login.company.com'])
 
 
 if __name__ == '__main__':
