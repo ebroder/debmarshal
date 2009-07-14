@@ -70,6 +70,18 @@ _READY_TO_EXIT=False
 
 
 @decorator.decorator
+def _coerceDbusArgs(f, *args, **kwargs):
+  """Decorator to coerce all positional arguments into normal Python types.
+
+  Arguments to DBus methods usually come in as specialized DBus types,
+  but those are annoying to work with, and don't contain any
+  information we care about keeping, so let's coerce them into normal
+  Python types instead.
+  """
+  return f(*(utils.coerceDbusType(arg) for arg in args), **kwargs)
+
+
+@decorator.decorator
 def _resetExitTimer(f, *args, **kwargs):
   """Decorator to reset the exit timer.
 
@@ -97,6 +109,7 @@ class Privops(dbus.service.Object):
   @_resetExitTimer
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='asb', out_signature='(sssa{s(ss)})')
+  @_coerceDbusArgs
   @utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
   def createNetwork(self, hosts, dhcp, _debmarshal_sender=None):
     """All of the networking config you need for a debmarshal test rig.
@@ -178,6 +191,7 @@ class Privops(dbus.service.Object):
   @_resetExitTimer
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='s', out_signature='')
+  @_coerceDbusArgs
   @utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
   def destroyNetwork(self, name, _debmarshal_sender=None):
     """Destroy a debmarshal network.
@@ -220,6 +234,7 @@ class Privops(dbus.service.Object):
   @_resetExitTimer
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='sassss', out_signature='s')
+  @_coerceDbusArgs
   @utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
   def createDomain(self, memory, disks, network, mac, hypervisor,
                    _debmarshal_sender=None):
@@ -292,6 +307,7 @@ class Privops(dbus.service.Object):
   @_resetExitTimer
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='ss', out_signature='')
+  @_coerceDbusArgs
   @utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
   def destroyDomain(self, name, hypervisor, _debmarshal_sender=None):
     """Destroy a debmarshal domain.

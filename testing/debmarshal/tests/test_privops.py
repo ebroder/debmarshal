@@ -44,6 +44,18 @@ from debmarshal.privops import networks
 from debmarshal.privops import utils
 
 
+class TestCoerceDbusArgs(unittest.TestCase):
+  """Test debmarshal.privops._coerceDbusArgs."""
+  def test(self):
+
+    @privops._coerceDbusArgs
+    def func(a):
+      self.assert_(type(a) is int)
+      return True
+
+    self.assertEqual(func(dbus.Int16(12)), True)
+
+
 class TestCreateNetwork(mox.MoxTestBase):
   """Test debmarshal.privops.createNetwork."""
   def setUp(self):
