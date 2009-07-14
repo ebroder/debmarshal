@@ -133,12 +133,12 @@ class TestHypervisorDomainXML(mox.MoxTestBase):
     xml = base.Hypervisor.domainXML(test_vm)
 
     self.assertEqual(len(xml.xpath('/domain/devices/disk')), 2)
-    disk = xml.xpath('/domain/devices/disk[target/@dev="sda"]')[0]
+    disk = xml.xpath('/domain/devices/disk[target/@dev="hda"]')[0]
     self.assertEqual(disk.xpath('string(@type)'), 'block')
     self.assertEqual(len(disk.xpath('source')), 1)
     self.assertEqual(disk.xpath('string(source/@dev)'), test_vm.disks[0])
 
-    disk = xml.xpath('/domain/devices/disk[target/@dev="sdb"]')[0]
+    disk = xml.xpath('/domain/devices/disk[target/@dev="hdb"]')[0]
     self.assertEqual(len(disk.xpath('source')), 1)
     self.assertEqual(disk.xpath('string(@type)'), 'file')
     self.assertEqual(len(disk.xpath('source')), 1)
