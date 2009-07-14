@@ -336,12 +336,14 @@ class TestMain(mox.MoxTestBase):
     self.mox.StubOutWithMock(dbus.service, 'BusName', use_mock_anything=True)
     self.mox.StubOutWithMock(privops, 'Privops', use_mock_anything=True)
     self.mox.StubOutWithMock(gobject, 'MainLoop', use_mock_anything=True)
+    self.mox.StubOutWithMock(gobject, 'timeout_add_seconds')
 
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
     dbus.SystemBus().AndReturn(bus)
     dbus.service.BusName(privops.DBUS_BUS_NAME, bus).AndReturn(name)
     privops.Privops(name, privops.DBUS_OBJECT_PATH).AndReturn(dbus_obj)
     gobject.MainLoop().AndReturn(loop)
+    gobject.timeout_add_seconds(1, privops._maybeExit, loop)
     loop.run()
 
     self.mox.ReplayAll()

@@ -43,6 +43,7 @@ import fcntl
 
 from dbus.mainloop import glib
 import dbus.service
+import decorator
 import gobject
 import libvirt
 import virtinst
@@ -65,6 +66,20 @@ DBUS_BUS_NAME='com.googlecode.debmarshal'
 DBUS_OBJECT_PATH='/com/googlecode/debmarshal/Privops'
 
 
+_READY_TO_EXIT=False
+
+
+@decorator.decorator
+def _resetExitTimer(f, *args, **kwargs):
+  """Decorator to reset the exit timer.
+
+  This function resets _READY_TO_EXIT to False, indicating that a dbus
+  message was received between the last and next calls to _maybeExit.
+  """
+  _READY_TO_EXIT=False
+  return f(*args, **kwargs)
+
+
 class Privops(dbus.service.Object):
   """Collection class for privileged dbus methods.
 
@@ -77,6 +92,9 @@ class Privops(dbus.service.Object):
   dbus.service.method decorator because of the introspection it
   performs on method arguments.
   """
+  Introspect = _resetExitTimer(dbus.service.Object.Introspect)
+
+  @_resetExitTimer
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='asb', out_signature='(sssa{s(ss)})')
   @utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
@@ -157,6 +175,7 @@ class Privops(dbus.service.Object):
 
     return (net_name, net_gateway, net_mask, net_hosts)
 
+  @_resetExitTimer
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='s', out_signature='')
   @utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
@@ -198,6 +217,7 @@ class Privops(dbus.service.Object):
 
     utils.caller = None
 
+  @_resetExitTimer
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='sassss', out_signature='s')
   @utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
@@ -269,6 +289,7 @@ class Privops(dbus.service.Object):
 
     return name
 
+  @_resetExitTimer
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='ss', out_signature='')
   @utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
@@ -324,6 +345,36 @@ def call(method, *args):
   return proxy.get_dbus_method(method, dbus_interface=DBUS_INTERFACE)(*args)
 
 
+def _maybeExit(loop):
+  """Exit if there were no methods called in the last second.
+
+  DBus proxy objects are associated with a connection to a specific
+  non-well-known bus name. If the main loop was configured to exit as
+  soon as there were no pending tasks, there would be a race
+  condition. Calls from the Python bindings first make an Introspect
+  call before calling the actual method, and the idle hook might
+  trigger between those two calls.
+
+  With _maybeExit, the main loop will only exit if there have been no
+  dbus methods called in the last 10 seconds. There's still a
+  potential race here. But if your bindings try to reuse a connection,
+  but are so slow that they wait for a whole seconds between the
+  Introspection and the actual method, it just sucks to be you.
+
+  Args:
+    loop: The gobject.MainLoop that we will quit if no dbus methods
+      were called.
+  """
+  global _READY_TO_EXIT
+
+  if _READY_TO_EXIT:
+    loop.quit()
+  else:
+    _READY_TO_EXIT=True
+
+  return True
+
+
 def main():
   """Main loop for the dbus service.
 
@@ -335,6 +386,7 @@ def main():
   name = dbus.service.BusName(DBUS_BUS_NAME, dbus.SystemBus())
   dbus_obj = Privops(name, DBUS_OBJECT_PATH)
   loop = gobject.MainLoop()
+  gobject.timeout_add_seconds(1, _maybeExit, loop)
   loop.run()
 
 
