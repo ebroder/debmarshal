@@ -99,12 +99,13 @@ class TestValidateDisk(mox.MoxTestBase):
     super(TestValidateDisk, self).setUp()
 
     self.mox.StubOutWithMock(os, 'getuid')
+    self.mox.StubOutWithMock(os, 'setreuid')
     self.mox.StubOutWithMock(os, 'setuid')
     self.mox.StubOutWithMock(utils, 'getCaller')
 
     os.getuid().MultipleTimes().AndReturn(0)
     utils.getCaller().MultipleTimes().AndReturn(500)
-    os.setuid(500)
+    os.setreuid(500, 0)
     os.setuid(0)
 
   def testValidDisk(self):

@@ -97,7 +97,7 @@ def _validateDisk(disk):
   # AFS, where you need a separate token to prove your identity, but
   # it would work for most other cases.
   old_uid = os.getuid()
-  os.setuid(utils.getCaller())
+  os.setreuid(utils.getCaller(), 0)
 
   try:
     if not os.access(disk, os.R_OK | os.W_OK):
