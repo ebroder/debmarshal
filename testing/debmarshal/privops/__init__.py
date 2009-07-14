@@ -45,7 +45,9 @@ import libvirt
 import virtinst
 
 from debmarshal import errors
+from debmarshal import hypervisors
 from debmarshal import ip
+from debmarshal import vm
 from debmarshal.privops import domains
 from debmarshal.privops import networks
 from debmarshal.privops import utils
@@ -162,6 +164,104 @@ def destroyNetwork(name):
 
   nets.remove(net)
   utils.storeState(nets, 'debmarshal-networks')
+
+
+@utils.runWithPrivilege('create-domain')
+@utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
+def createDomain(memory, disks, network, mac, hypervisor="qemu"):
+  """Create a virtual machine domain.
+
+  createDomain creates a domain for a virtual machine used as part of
+  a debmarshal test and boots it up.
+
+  We do no validation or accounting of memory allocations from the
+  privileged side. Since debmarshal is intended to be run on
+  single-user machines, the worst case scenario is a DoS of yourself.
+
+  Args:
+    memory: str containing the amount of memory to be allocated to the
+      new domain. This should include a suffix such as 'G' or 'M' to
+      indicate the units of the amount.
+    disks: list of strs of paths to disk images, in the order that
+      they should be attached to the guest. All disk images must be
+      owned by the user calling createDomain.
+    network: The name of the network to attach this VM to. The netwok
+      must have been created using
+      debmarshal.privops.networks.createNetwork by the user calling
+      createDomain.
+    mac: The MAC address of the new VM.
+    hypervisor: What hypervisor to use to start this VM. While it's
+      possible to mix hypervisors amongst the domains for a single
+      test suite, it is the caller's responsibility to keep track of
+      that when destroyDomain is called later. Currently only qemu is
+      supported.
+
+  Returns:
+    The name of the new domain.
+  """
+  hyper_class = hypervisors.base.hypervisors[hypervisor]
+  virt_con = hyper_class.open()
+
+  domains._validateNetwork(network, virt_con)
+  for d in disks:
+    domains._validateDisk(d)
+
+  name = domains._findUnusedName(virt_con)
+  memory = domains._parseKBytes(memory)
+
+  vm_params = vm.VM(name=name,
+                    memory=memory,
+                    disks=disks,
+                    network=network,
+                    mac=mac)
+
+  dom_xml = hyper_class.domainXMLString(vm_params)
+
+  # The new domain is intentionally recorded to the statefile before
+  # starting the VM, because it's much worse to have a running VM we
+  # don't know about than to have state on a VM that doesn't actually
+  # exist (loadDomainState already handles the latter case).
+  doms = domains.loadDomainState()
+  doms.append((name, utils.getCaller(), hypervisor))
+  utils.storeState(doms, 'debmarshal-domains')
+
+  domains._createDomainXML(virt_con, dom_xml)
+
+  return name
+
+@utils.runWithPrivilege('destroy-domain')
+@utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
+def destroyDomain(name, hypervisor="qemu"):
+  """Destroy a debmarshal domain.
+
+  destroyDomain uses the state recorded by createDomain to verify
+  ownership of the domain.
+
+  Domains can be destroyed by the user that created them, or by root.
+
+  Args:
+    name: The name of the domain to destroy.
+    hypervisor: The hypervisor for this domain.
+  """
+  hyper_class = hypervisors.base.hypervisors[hypervisor]
+  virt_con = hyper_class.open()
+
+  doms = domains.loadDomainState()
+  for dom in doms:
+    if dom[0] == name and dom[2] == hypervisor:
+      break
+  else:
+    raise errors.DomainNotFound("Domain %s does not exist." % name)
+
+  if utils.getCaller() not in (0, dom[1]):
+    raise errors.AccessDenied("Domain %s is not owned by UID %d." %
+                              (name, utils.getCaller()))
+
+  virt_dom = virt_con.lookupByName(name)
+  virt_dom.destroy()
+
+  doms.remove(dom)
+  utils.storeState(doms, 'debmarshal-domains')
 
 
 if __name__ == '__main__':  # pragma: no cover
