@@ -63,5 +63,6 @@ outside world.
       install_requires=['decorator', 'PyYAML'],
       test_suite = 'nose.collector',
       tests_require=['mox', 'nose>=0.9.2'],
-      dependency_links=['http://code.google.com/p/pymox/downloads/list']
+      dependency_links=['http://code.google.com/p/pymox/downloads/list'],
+      zip_safe=False,
 )
