@@ -74,18 +74,18 @@ class TestCreateNetwork(mox.MoxTestBase):
     networks._validateHostname(mox.IgnoreArg()).MultipleTimes()
 
     self.mox.StubOutWithMock(libvirt, 'open')
-    virt_con = self.mox.CreateMock(libvirt.virConnect)
-    libvirt.open(mox.IgnoreArg()).AndReturn(virt_con)
+    self.virt_con = self.mox.CreateMock(libvirt.virConnect)
+    libvirt.open(mox.IgnoreArg()).AndReturn(self.virt_con)
 
     self.mox.StubOutWithMock(networks, '_findUnusedName')
-    networks._findUnusedName(virt_con).AndReturn(self.name)
+    networks._findUnusedName(self.virt_con).AndReturn(self.name)
 
     self.mox.StubOutWithMock(networks, '_findUnusedNetwork')
-    networks._findUnusedNetwork(virt_con, len(self.hosts)).\
+    networks._findUnusedNetwork(self.virt_con, len(self.hosts)).\
         AndReturn((self.gateway, '255.255.255.0'))
 
     self.mox.StubOutWithMock(networks, 'loadNetworkState')
-    networks.loadNetworkState(virt_con).AndReturn(self.networks)
+    networks.loadNetworkState(self.virt_con).AndReturn(self.networks)
 
     self.mox.StubOutWithMock(virtinst.util, 'randomMAC')
     virtinst.util.randomMAC().MultipleTimes().AndReturn('00:00:00:00:00:00')
@@ -95,7 +95,7 @@ class TestCreateNetwork(mox.MoxTestBase):
                            self.host_dict, False).AndReturn('<fake_xml />')
 
     self.virt_net = self.mox.CreateMock(libvirt.virNetwork)
-    virt_con.networkDefineXML('<fake_xml />').AndReturn(self.virt_net)
+    self.virt_con.networkDefineXML('<fake_xml />').AndReturn(self.virt_net)
     self.virt_net.create()
 
   def testStoreSuccess(self):
@@ -119,6 +119,8 @@ class TestCreateNetwork(mox.MoxTestBase):
                      'debmarshal-networks').\
                      AndRaise(Exception("Error!"))
 
+    self.virt_con.networkLookupByName(self.name).MultipleTimes().AndReturn(
+        self.virt_net)
     self.virt_net.destroy()
     self.virt_net.undefine()
 
@@ -171,7 +173,8 @@ class TestDestroyNetwork(mox.MoxTestBase):
     utils.getCaller().MultipleTimes().AndReturn(501)
 
     virt_net = self.mox.CreateMock(libvirt.virNetwork)
-    self.virt_con.networkLookupByName('debmarshal-0').AndReturn(virt_net)
+    self.virt_con.networkLookupByName('debmarshal-0').MultipleTimes().AndReturn(
+        virt_net)
     virt_net.destroy()
     virt_net.undefine()
 

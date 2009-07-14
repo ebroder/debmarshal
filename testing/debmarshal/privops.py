@@ -149,8 +149,8 @@ class Privops(dbus.service.Object):
       nets.append((net_name, utils.getCaller()))
       utils.storeState(nets, 'debmarshal-networks')
     except:
-      virt_net.destroy()
-      virt_net.undefine()
+      virt_con.networkLookupByName(net_name).destroy()
+      virt_con.networkLookupByName(net_name).undefine()
       raise
 
     utils.caller = None
@@ -190,9 +190,8 @@ class Privops(dbus.service.Object):
     if utils.getCaller() not in (0, net[1]):
       raise errors.AccessDenied("Network %s not owned by UID %d." % (name, utils.getCaller()))
 
-    virt_net = virt_con.networkLookupByName(name)
-    virt_net.destroy()
-    virt_net.undefine()
+    virt_con.networkLookupByName(name).destroy()
+    virt_con.networkLookupByName(name).undefine()
 
     nets.remove(net)
     utils.storeState(nets, 'debmarshal-networks')
