@@ -17,6 +17,33 @@
 # 02110-1301, USA.
 from setuptools import setup, find_packages
 
+
+import os
+import subprocess
+
+
+def getPkgconfigVar(package, var):
+  """Retrieve a variable from pkg-config.
+
+  Args:
+    package: Name of the package.
+    var: Name of the variable.
+  """
+  p = subprocess.Popen(['pkg-config', '--variable=%s' % var, package],
+                       stdout=subprocess.PIPE)
+  p.wait()
+  return p.stdout.read().strip()
+
+
+BUSCONFIGDIR = os.path.join(getPkgconfigVar('dbus-1', 'sysconfdir'),
+                            'dbus-1', 'system.d')
+
+
+SERVICEDIR = os.path.join(
+    os.path.dirname(getPkgconfigVar('dbus-1', 'session_bus_services_dir')),
+    'system-services')
+
+
 setup(name="debmarshal",
       version="0.0.0",
       description="Virtualization-based testing framework",
@@ -24,6 +51,8 @@ setup(name="debmarshal",
       author_email="ebroder@google.com",
       url="http://code.google.com/p/debmarshal/",
       packages=find_packages(),
+      data_files=[(BUSCONFIGDIR, ['dbus/com.googlecode.debmarshal.conf']),
+                  (SERVICEDIR, ['dbus/com.googlecode.debmarshal.service'])],
       long_description="""
 The Debmarshal testing framework is designed to make it easy to test
 entire systems and interactions between multiple systems. It uses
