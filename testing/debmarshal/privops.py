@@ -358,7 +358,8 @@ def call(method, *args):
     *args: The arguments to pass to the method.
   """
   proxy = dbus.SystemBus().get_object(DBUS_BUS_NAME, DBUS_OBJECT_PATH)
-  return proxy.get_dbus_method(method, dbus_interface=DBUS_INTERFACE)(*args)
+  return utils.coerceDbusType(proxy.get_dbus_method(
+      method, dbus_interface=DBUS_INTERFACE)(*args))
 
 
 def _maybeExit(loop):
