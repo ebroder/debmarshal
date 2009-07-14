@@ -274,7 +274,3 @@ class Privops(dbus.service.Object):
 
     doms.remove(dom)
     utils.storeState(doms, 'debmarshal-domains')
-
-
-if __name__ == '__main__':  # pragma: no cover
-  sys.exit(utils.main(sys.argv[1:]))
