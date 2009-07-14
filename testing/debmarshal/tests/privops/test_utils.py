@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
-"""tests for debmarshal.privops.utils"""
+"""tests for debmarshal._privops.utils"""
 
 
 __authors__ = [
@@ -44,7 +44,7 @@ import mox
 import yaml
 
 from debmarshal import errors
-from debmarshal.privops import utils
+from debmarshal._privops import utils
 
 
 class TestRunWithPrivilege(mox.MoxTestBase):
@@ -277,7 +277,7 @@ class TestLoadState(mox.MoxTestBase):
 
 
 class TestStoreState(mox.MoxTestBase):
-  """Test debmarshal.privops.utils.storeState."""
+  """Test debmarshal._privops.utils.storeState."""
   def test(self):
     """Dumb test for privops.utils.storeState.
 

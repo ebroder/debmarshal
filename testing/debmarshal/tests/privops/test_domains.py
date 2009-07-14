@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
-"""tests for debmarshal.privops.domains."""
+"""tests for debmarshal._privops.domains."""
 
 
 __authors__ = [
@@ -32,13 +32,13 @@ import mox
 
 from debmarshal import errors
 from debmarshal import hypervisors
-from debmarshal.privops import domains
-from debmarshal.privops import networks
-from debmarshal.privops import utils
+from debmarshal._privops import domains
+from debmarshal._privops import networks
+from debmarshal._privops import utils
 
 
 class TestValidateNetwork(mox.MoxTestBase):
-  """Test debmarshal.privops.domains._validateNetwork."""
+  """Test debmarshal._privops.domains._validateNetwork."""
   networks = [('debmarshal-0', 500, '10.100.0.1'),
               ('debmarshal-1', 501, '10.100.1.1')]
 
@@ -93,7 +93,7 @@ class TestValidateNetwork(mox.MoxTestBase):
 
 
 class TestValidateDisk(mox.MoxTestBase):
-  """Test debmarshal.privops.domains._validateDisk."""
+  """Test debmarshal._privops.domains._validateDisk."""
   def setUp(self):
     """Setup the getuid/setuid dance."""
     super(TestValidateDisk, self).setUp()

@@ -35,7 +35,7 @@ from lxml import etree
 
 from debmarshal import errors
 from debmarshal import ip
-from debmarshal.privops import utils
+from debmarshal._privops import utils
 
 
 _hostname_re = re.compile(r"([a-z0-9][a-z0-9-]{0,62}\.)+([a-z]{2,4})$", re.I)

@@ -36,8 +36,8 @@ import libvirt
 
 from debmarshal import errors
 from debmarshal import hypervisors
-from debmarshal.privops import networks
-from debmarshal.privops import utils
+from debmarshal._privops import networks
+from debmarshal._privops import utils
 
 
 def _validateNetwork(net, virt_con=None):

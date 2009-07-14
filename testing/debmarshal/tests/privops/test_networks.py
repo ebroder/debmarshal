@@ -30,12 +30,12 @@ import libvirt
 from lxml import etree
 
 from debmarshal import errors
-from debmarshal.privops import networks
-from debmarshal.privops import utils
+from debmarshal._privops import networks
+from debmarshal._privops import utils
 
 
 class TestValidateHostname(mox.MoxTestBase):
-  """Test debmarshal.privops.networks._validateHostname"""
+  """Test debmarshal._privops.networks._validateHostname"""
   def testInvalidInput(self):
     """Make sure that an exception gets raised if an invalid hostname
     is passed in"""

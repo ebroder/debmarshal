@@ -48,9 +48,9 @@ from debmarshal import errors
 from debmarshal import hypervisors
 from debmarshal import ip
 from debmarshal import vm
-from debmarshal.privops import domains
-from debmarshal.privops import networks
-from debmarshal.privops import utils
+from debmarshal._privops import domains
+from debmarshal._privops import networks
+from debmarshal._privops import utils
 
 
 @utils.runWithPrivilege('create-network')
@@ -186,9 +186,8 @@ def createDomain(memory, disks, network, mac, hypervisor="qemu"):
       they should be attached to the guest. All disk images must be
       owned by the user calling createDomain.
     network: The name of the network to attach this VM to. The netwok
-      must have been created using
-      debmarshal.privops.networks.createNetwork by the user calling
-      createDomain.
+      must have been created using debmarshal.privops.createNetwork by
+      the user calling createDomain.
     mac: The MAC address of the new VM.
     hypervisor: What hypervisor to use to start this VM. While it's
       possible to mix hypervisors amongst the domains for a single
