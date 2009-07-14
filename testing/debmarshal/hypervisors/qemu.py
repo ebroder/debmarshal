@@ -66,6 +66,8 @@ class QEMU(base.Hypervisor):
 
     xml_devices = xml.xpath('/domain/devices')[0]
 
+    etree.SubElement(xml_devices, 'graphics', type='vnc')
+
     emulator = etree.SubElement(xml_devices, 'emulator')
     emulator.text = '/usr/bin/qemu-system-%s' % host_arch
 

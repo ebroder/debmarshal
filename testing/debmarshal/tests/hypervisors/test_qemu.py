@@ -60,6 +60,9 @@ class TestQEMUDomainXML(mox.MoxTestBase):
     self.assertEqual(xml.xpath('string(/domain/os/type)'), 'hvm')
     self.assertEqual(xml.xpath('string(/domain/os/type/@arch)'), 'x86_64')
 
+    self.assertEqual(len(xml.xpath('/domain/devices/graphics')), 1)
+    self.assertEqual(xml.xpath('string(/domain/devices/graphics/@type)'), 'vnc')
+
     self.assertEqual(len(xml.xpath('/domain/devices/emulator')), 1)
     self.assertEqual(xml.xpath('string(/domain/devices/emulator)'),
                      '/usr/bin/qemu-system-x86_64')
