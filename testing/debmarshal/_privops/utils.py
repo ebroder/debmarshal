@@ -43,6 +43,9 @@ import yaml
 from debmarshal import errors
 
 
+caller = None
+
+
 def getCaller():
   """Find what UID called into a privileged function.
 

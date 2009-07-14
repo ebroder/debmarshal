@@ -66,11 +66,21 @@ DBUS_OBJECT_PATH='/com/googlecode/debmarshal/Privops'
 
 
 class Privops(dbus.service.Object):
-  """Collection class for privileged dbus methods."""
-  @dbus.service.method(DBUS_INTERFACE,
+  """Collection class for privileged dbus methods.
+
+  All dbus methods should pass the sender_keyword option to the
+  dbus.service.method decorator, and store that value to
+  debmarshal.privops.utils.caller.
+
+  It sucks that this has to be done by hand for each function, but
+  it's not possible to use decorator-type metaprogramming with the
+  dbus.service.method decorator because of the introspection it
+  performs on method arguments.
+  """
+  @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='asb', out_signature='(sssa{s(ss)})')
   @utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
-  def createNetwork(self, hosts, dhcp=True):
+  def createNetwork(self, hosts, dhcp, _debmarshal_sender=None):
     """All of the networking config you need for a debmarshal test rig.
 
     createNetwork creates an isolated virtual network within
@@ -87,8 +97,8 @@ class Privops(dbus.service.Object):
       hosts: A list of hostnames that will eventually be attached to
         this network
       dhcp: Whether to use DHCP or static IP addresses. If dhcp is
-        True (the default), createNetwork also configures dnsmasq
-        listening on the new network to assign IP addresses
+        True, createNetwork also configures dnsmasq listening on the
+        new network to assign IP addresses
 
     Returns:
       A 4-tuple containing:
@@ -101,6 +111,8 @@ class Privops(dbus.service.Object):
         VMs: A dict mapping hostnames in hosts to (IP address, MAC
           address), as assigned by createNetwork
     """
+    utils.caller = _debmarshal_sender
+
     # First, input validation. Everything in hosts should be a valid
     # hostname
     for h in hosts:
@@ -141,12 +153,14 @@ class Privops(dbus.service.Object):
       virt_net.undefine()
       raise
 
+    utils.caller = None
+
     return (net_name, net_gateway, net_mask, net_hosts)
 
-  @dbus.service.method(DBUS_INTERFACE,
+  @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='s', out_signature='')
   @utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
-  def destroyNetwork(self, name):
+  def destroyNetwork(self, name, _debmarshal_sender=None):
     """Destroy a debmarshal network.
 
     destroyNetwork uses the state recorded by createNetwork to verify
@@ -162,6 +176,8 @@ class Privops(dbus.service.Object):
       debmarshal.errors.AccessDenied: The specified network is not
         owned by the user calling destroyNetwork.
     """
+    utils.caller = _debmarshal_sender
+
     virt_con = libvirt.open('qemu:///system')
 
     nets = networks.loadNetworkState(virt_con)
@@ -181,10 +197,13 @@ class Privops(dbus.service.Object):
     nets.remove(net)
     utils.storeState(nets, 'debmarshal-networks')
 
-  @dbus.service.method(DBUS_INTERFACE,
+    utils.caller = None
+
+  @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='sassss', out_signature='s')
   @utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
-  def createDomain(self, memory, disks, network, mac, hypervisor):
+  def createDomain(self, memory, disks, network, mac, hypervisor,
+                   _debmarshal_sender=None):
     """Create a virtual machine domain.
 
     createDomain creates a domain for a virtual machine used as part
@@ -216,6 +235,8 @@ class Privops(dbus.service.Object):
     Returns:
       The name of the new domain.
     """
+    utils.caller = _debmarshal_sender
+
     hyper_class = hypervisors.base.hypervisors[hypervisor]
     virt_con = hyper_class.open()
 
@@ -245,12 +266,14 @@ class Privops(dbus.service.Object):
 
     domains._createDomainXML(virt_con, dom_xml)
 
+    utils.caller = None
+
     return name
 
-  @dbus.service.method(DBUS_INTERFACE,
+  @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='ss', out_signature='')
   @utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
-  def destroyDomain(self, name, hypervisor="qemu"):
+  def destroyDomain(self, name, hypervisor, _debmarshal_sender=None):
     """Destroy a debmarshal domain.
 
     destroyDomain uses the state recorded by createDomain to verify
@@ -263,6 +286,8 @@ class Privops(dbus.service.Object):
       name: The name of the domain to destroy.
       hypervisor: The hypervisor for this domain.
     """
+    utils.caller = _debmarshal_sender
+
     hyper_class = hypervisors.base.hypervisors[hypervisor]
     virt_con = hyper_class.open()
 
@@ -282,6 +307,8 @@ class Privops(dbus.service.Object):
 
     doms.remove(dom)
     utils.storeState(doms, 'debmarshal-domains')
+
+    utils.caller = None
 
 
 def call(method, *args):
