@@ -47,6 +47,50 @@ from debmarshal import errors
 caller = None
 
 
+def coerceDbusType(arg):
+  """Coerce a dbus type into the normal Python types.
+
+  Because types like the integers don't have useful superclasses, we
+  have to more or less exhaustively loop through the types that we
+  know about.
+
+  This will recursively coerce members of structs, arrays, and dicts as
+  well.
+
+  Args:
+    arg: An object with one of the DBus types, to be converted.
+
+  Returns:
+    The argument, coerced into the standard set of Python types.
+  """
+  # First the collection types
+  if isinstance(arg, dbus.Struct):
+    return tuple(coerceDbusType(i) for i in arg)
+  elif isinstance(arg, dbus.Array):
+    return list(coerceDbusType(i) for i in arg)
+  elif isinstance(arg, dbus.Dictionary):
+    return dict((coerceDbusType(k), coerceDbusType(v))
+                for k, v in arg.iteritems())
+  # Then the scalars
+  elif isinstance(arg, (dbus.ByteArray, dbus.UTF8String,
+                        dbus.ObjectPath, dbus.Signature)):
+    return str(arg)
+  elif isinstance(arg, dbus.String):
+    return unicode(arg)
+  elif isinstance(arg, dbus.Boolean):
+    return bool(arg)
+  elif isinstance(arg, dbus.Double):
+    return float(arg)
+  # And everything else looks like an int
+  elif isinstance(arg, (dbus.Byte, dbus.Int16, dbus.Int32, dbus.Int64,
+                        dbus.UInt16, dbus.UInt32, dbus.UInt64)):
+    return int(arg)
+  # And that's everything - anything else must have started life as a
+  # Python type.
+  else:
+    return arg
+
+
 def getCaller():
   """Find what UID called into a privileged function.
 

@@ -44,6 +44,52 @@ from debmarshal import errors
 from debmarshal._privops import utils
 
 
+class TestCoerceDbusType(unittest.TestCase):
+  """Test for privops.utils.coerceDbusType."""
+  def testInts(self):
+    self.assertEqual(utils.coerceDbusType(dbus.Byte(12)), 12)
+    self.assertEqual(utils.coerceDbusType(dbus.Int16(12)), 12)
+    self.assertEqual(utils.coerceDbusType(dbus.Int32(12)), 12)
+    self.assertEqual(utils.coerceDbusType(dbus.UInt16(12)), 12)
+    self.assertEqual(utils.coerceDbusType(dbus.UInt32(12)), 12)
+
+  def testDouble(self):
+    self.assertEqual(utils.coerceDbusType(dbus.Double(12.3)), 12.3)
+
+  def testBoolean(self):
+    self.assertEqual(utils.coerceDbusType(dbus.Boolean(0)), False)
+    self.assertEqual(utils.coerceDbusType(dbus.Boolean(1)), True)
+
+  def testStrings(self):
+    self.assertEqual(utils.coerceDbusType(dbus.UTF8String("blah")), "blah")
+    self.assertEqual(utils.coerceDbusType(dbus.ByteArray(u"blah")), "blah")
+    self.assertEqual(utils.coerceDbusType(dbus.String(u"blah")), u"blah")
+    self.assertEqual(utils.coerceDbusType(dbus.Signature(u"ssi")), u"ssi")
+    self.assertEqual(utils.coerceDbusType(dbus.ObjectPath(
+        u"/com/googlecode/debmarshal/Privops")), u"/com/googlecode/debmarshal/Privops")
+
+  def testCollections(self):
+    self.assertEqual(
+        utils.coerceDbusType(dbus.Struct((
+            dbus.String('x'), dbus.String('y'), dbus.String('z')))),
+        ('x', 'y', 'z'))
+
+    self.assertEqual(
+        utils.coerceDbusType(dbus.Array([
+            dbus.Int16(12), dbus.Int16(13), dbus.Int16(14)])),
+        [12, 13, 14])
+
+    self.assertEqual(
+        utils.coerceDbusType(dbus.Dictionary({
+            dbus.Int16(12): dbus.String('foo'),
+            dbus.Int16(13): dbus.String('bar')})),
+        {12: 'foo', 13: 'bar'})
+
+  def testPythonType(self):
+    obj = object()
+    self.assertEqual(utils.coerceDbusType(obj), obj)
+
+
 class TestGetCaller(mox.MoxTestBase):
   """Test for privops.utils.getCaller"""
   def testCallerUnset(self):
