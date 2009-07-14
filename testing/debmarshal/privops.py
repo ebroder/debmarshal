@@ -57,6 +57,12 @@ from debmarshal._privops import utils
 DBUS_INTERFACE='com.googlecode.debmarshal.Privops'
 
 
+DBUS_BUS_NAME='com.googlecode.debmarshal'
+
+
+DBUS_OBJECT_PATH='/com/googlecode/debmarshal/Privops'
+
+
 class Privops(dbus.service.Object):
   """Collection class for privileged dbus methods."""
   @dbus.service.method(DBUS_INTERFACE,
@@ -274,3 +280,17 @@ class Privops(dbus.service.Object):
 
     doms.remove(dom)
     utils.storeState(doms, 'debmarshal-domains')
+
+
+def call(method, *args):
+  """Call a privileged operation.
+
+  This function handles calling privileged operations. Currently,
+  these calls are simply dispatched over dbus.
+
+  Args:
+    method: The name of the method to call.
+    *args: The arguments to pass to the method.
+  """
+  proxy = dbus.SystemBus().get_object(DBUS_BUS_NAME, DBUS_OBJECT_PATH)
+  return proxy.get_dbus_method(method, dbus_interface=DBUS_INTERFACE)(*args)
