@@ -108,10 +108,10 @@ class Privops(dbus.service.Object):
 
   @_resetExitTimer
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
-                       in_signature='asb', out_signature='(sssa{s(ss)})')
+                       in_signature='as', out_signature='(sssa{s(ss)})')
   @_coerceDbusArgs
   @utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
-  def createNetwork(self, hosts, dhcp, _debmarshal_sender=None):
+  def createNetwork(self, hosts, _debmarshal_sender=None):
     """All of the networking config you need for a debmarshal test rig.
 
     createNetwork creates an isolated virtual network within
@@ -127,9 +127,6 @@ class Privops(dbus.service.Object):
     Args:
       hosts: A list of hostnames that will eventually be attached to
         this network
-      dhcp: Whether to use DHCP or static IP addresses. If dhcp is
-        True, createNetwork also configures dnsmasq listening on the
-        new network to assign IP addresses
 
     Returns:
       A 4-tuple containing:
@@ -171,7 +168,7 @@ class Privops(dbus.service.Object):
       net_hosts[host] = (host_addr.ip_ext, mac)
       host_addr += 1
 
-    xml = networks._genNetworkXML(net_name, net_gateway, net_mask, net_hosts, dhcp)
+    xml = networks._genNetworkXML(net_name, net_gateway, net_mask, net_hosts)
     virt_net = virt_con.networkDefineXML(xml)
     virt_net.create()
 

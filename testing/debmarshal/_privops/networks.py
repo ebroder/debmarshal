@@ -112,7 +112,7 @@ def _networkBounds(gateway, netmask):
   return (low.ip_ext, high.ip_ext)
 
 
-def _genNetworkXML(name, gateway, netmask, hosts, dhcp):
+def _genNetworkXML(name, gateway, netmask, hosts):
   """Generate the libvirt XML specification for a debmarshal network.
 
   Args:
@@ -124,8 +124,6 @@ def _genNetworkXML(name, gateway, netmask, hosts, dhcp):
     hosts: The hosts that will be attached to this network. It is a
       dict from hostnames to a 2-tuple of (IP address, MAC address),
       similar to the one that's returned from createNetwork
-    dhcp: A bool indicating whether or not to run DHCP on the new
-      network
 
   Returns:
     The string representation of the libvirt XML network matching the
@@ -137,19 +135,18 @@ def _genNetworkXML(name, gateway, netmask, hosts, dhcp):
                             address=gateway,
                             netmask=netmask)
 
-  if dhcp:
-    low, high = _networkBounds(gateway, netmask)
+  low, high = _networkBounds(gateway, netmask)
 
-    xml_dhcp = etree.SubElement(xml_ip, 'dhcp')
-    etree.SubElement(xml_dhcp, 'range',
-                     start=low,
-                     end=high)
+  xml_dhcp = etree.SubElement(xml_ip, 'dhcp')
+  etree.SubElement(xml_dhcp, 'range',
+                   start=low,
+                   end=high)
 
-    for hostname, hostinfo in hosts.iteritems():
-      etree.SubElement(xml_dhcp, 'host',
-                       name=hostname,
-                       ip=hostinfo[0],
-                       mac=hostinfo[1])
+  for hostname, hostinfo in hosts.iteritems():
+    etree.SubElement(xml_dhcp, 'host',
+                     name=hostname,
+                     ip=hostinfo[0],
+                     mac=hostinfo[1])
 
   return etree.tostring(xml)
 

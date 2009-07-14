@@ -104,7 +104,7 @@ class TestCreateNetwork(mox.MoxTestBase):
 
     self.mox.StubOutWithMock(networks, '_genNetworkXML')
     networks._genNetworkXML(self.name, self.gateway, '255.255.255.0',
-                           self.host_dict, False).AndReturn('<fake_xml />')
+                           self.host_dict).AndReturn('<fake_xml />')
 
     self.virt_net = self.mox.CreateMock(libvirt.virNetwork)
     self.virt_con.networkDefineXML('<fake_xml />').AndReturn(self.virt_net)
@@ -119,7 +119,7 @@ class TestCreateNetwork(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(privops.Privops().createNetwork(self.hosts, False),
+    self.assertEqual(privops.Privops().createNetwork(self.hosts),
                      (self.name, self.gateway, '255.255.255.0', self.host_dict))
 
   def testStoreFailure(self):
@@ -139,7 +139,7 @@ class TestCreateNetwork(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     self.assertRaises(Exception, privops.Privops().createNetwork,
-                      self.hosts, False)
+                      self.hosts)
 
 
 class TestDestroyNetwork(mox.MoxTestBase):

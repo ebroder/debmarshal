@@ -141,13 +141,12 @@ class TestGenNetworkXML(mox.MoxTestBase):
   hosts = {'wiki.company.com': ('10.100.4.2', 'AA:BB:CC:DD:EE:FF'),
            'login.company.com': ('10.100.4.3', '00:11:22:33:44:55')}
 
-  def testDhcpXml(self):
-    """Test an XML tree with DHCP enabled"""
+  def testXml(self):
+    """Test an XML tree."""
     xml_string = networks._genNetworkXML(self.name,
                                         self.gateway,
                                         self.netmask,
-                                        self.hosts,
-                                        True)
+                                        self.hosts)
     xml = etree.fromstring(xml_string)
 
     # These assertions are simply used to test that the element with
@@ -175,26 +174,6 @@ class TestGenNetworkXML(mox.MoxTestBase):
       self.assertNotEqual(xml.xpath(host_node, name=h), [])
       self.assertEqual(xml.xpath('string(%s/@ip)' % host_node, name=h), hinfo[0])
       self.assertEqual(xml.xpath('string(%s/@mac)' % host_node, name=h), hinfo[1])
-
-  def testNoDhcpXML(self):
-    """Test an XML without DHCP enabled"""
-    xml_string = networks._genNetworkXML(self.name,
-                                        self.gateway,
-                                        self.netmask,
-                                        self.hosts,
-                                        False)
-    xml = etree.fromstring(xml_string)
-
-    self.assertNotEqual(xml.xpath('/network'), [])
-
-    self.assertNotEqual(xml.xpath('/network/name'), [])
-    self.assertEqual(xml.xpath('string(/network/name)'), self.name)
-
-    self.assertNotEqual(xml.xpath('/network/ip'), [])
-    self.assertEqual(xml.xpath('string(/network/ip/@address)'), self.gateway)
-    self.assertEqual(xml.xpath('string(/network/ip/@netmask)'), self.netmask)
-
-    self.assertEqual(xml.xpath('/network/ip/*'), [])
 
 
 class TestFindUnusedName(mox.MoxTestBase):
