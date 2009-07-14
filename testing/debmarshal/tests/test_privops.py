@@ -29,6 +29,9 @@ import unittest
 
 import dbus
 import dbus.bus
+import dbus.mainloop.glib
+import dbus.service
+import gobject
 import libvirt
 import mox
 import virtinst
@@ -309,6 +312,38 @@ class TestCall(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     privops.call('createNetwork', ['www.company.com', 'login.company.com'])
+
+
+class TestMain(mox.MoxTestBase):
+  """Test the dbus main loop setup."""
+  def test(self):
+    """Test debmarshal.privops.main.
+
+    Beacuse this is so tied to the system dbus session, which we can't
+    even get to as a non-privileged user, we pretty much have to mock
+    out everything.
+    """
+    bus = self.mox.CreateMock(dbus.bus.BusConnection)
+    name = self.mox.CreateMock(dbus.service.BusName)
+    dbus_obj = self.mox.CreateMock(privops.Privops)
+    loop = self.mox.CreateMock(gobject.MainLoop)
+
+    self.mox.StubOutWithMock(dbus.mainloop.glib, 'DBusGMainLoop')
+    self.mox.StubOutWithMock(dbus, 'SystemBus', use_mock_anything=True)
+    self.mox.StubOutWithMock(dbus.service, 'BusName', use_mock_anything=True)
+    self.mox.StubOutWithMock(privops, 'Privops', use_mock_anything=True)
+    self.mox.StubOutWithMock(gobject, 'MainLoop', use_mock_anything=True)
+
+    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+    dbus.SystemBus().AndReturn(bus)
+    dbus.service.BusName(privops.DBUS_BUS_NAME, bus).AndReturn(name)
+    privops.Privops(name, privops.DBUS_OBJECT_PATH).AndReturn(dbus_obj)
+    gobject.MainLoop().AndReturn(loop)
+    loop.run()
+
+    self.mox.ReplayAll()
+
+    privops.main()
 
 
 if __name__ == '__main__':
