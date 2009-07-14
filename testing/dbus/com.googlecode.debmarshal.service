@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=com.googlecode.debmarshal
+Exec=/usr/bin/python -m debmarshal.privops
+User=root
