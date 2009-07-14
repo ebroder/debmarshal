@@ -41,7 +41,9 @@ __authors__ = [
 
 import fcntl
 
+from dbus.mainloop import glib
 import dbus.service
+import gobject
 import libvirt
 import virtinst
 
@@ -294,3 +296,21 @@ def call(method, *args):
   """
   proxy = dbus.SystemBus().get_object(DBUS_BUS_NAME, DBUS_OBJECT_PATH)
   return proxy.get_dbus_method(method, dbus_interface=DBUS_INTERFACE)(*args)
+
+
+def main():
+  """Main loop for the dbus service.
+
+  This creates an instance of the Privops object at the
+  DBUS_OBJECT_PATH, connecting it to a service with DBUS_BUS_NAME on
+  the system bus.
+  """
+  glib.DBusGMainLoop(set_as_default=True)
+  name = dbus.service.BusName(DBUS_BUS_NAME, dbus.SystemBus())
+  dbus_obj = Privops(name, DBUS_OBJECT_PATH)
+  loop = gobject.MainLoop()
+  loop.run()
+
+
+if __name__ == '__main__':  # pragma: no cover
+  main()
