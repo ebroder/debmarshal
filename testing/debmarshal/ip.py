@@ -23,7 +23,7 @@ __authors__ = [
 ]
 
 
-import ipaddr
+from debmarshal.third import ipaddr
 
 
 class ArithmeticMixin(object):
