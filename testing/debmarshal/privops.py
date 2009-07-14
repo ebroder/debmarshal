@@ -295,7 +295,7 @@ class Privops(dbus.service.Object):
     doms.append((name, utils.getCaller(), hypervisor))
     utils.storeState(doms, 'debmarshal-domains')
 
-    domains._createDomainXML(virt_con, dom_xml)
+    virt_con.createLinux(dom_xml, 0)
 
     utils.caller = None
 

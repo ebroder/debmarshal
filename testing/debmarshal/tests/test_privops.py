@@ -245,8 +245,7 @@ class TestCreateDomain(mox.MoxTestBase):
       ('debmarshal-1', 500, 'qemu'),
       (name, 500, 'qemu')], 'debmarshal-domains')
 
-    self.mox.StubOutWithMock(domains, '_createDomainXML')
-    domains._createDomainXML(qemu_con, '<fake_xml/>')
+    qemu_con.createLinux('<fake_xml/>', 0)
 
     self.mox.ReplayAll()
 
