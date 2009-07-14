@@ -36,6 +36,7 @@ except ImportError:
   import StringIO
 import unittest
 
+import dbus
 import libvirt
 import mox
 
@@ -45,19 +46,43 @@ from debmarshal._privops import utils
 
 class TestGetCaller(mox.MoxTestBase):
   """Test for privops.utils.getCaller"""
-  def test(self):
-    """Verify that privops.utils.getCaller returns os.getuid.
+  def testCallerUnset(self):
+    """Verify that utils.getCaller returns 0 if not run through dbus."""
+    utils.caller = None
 
-    This is sort of a dumb test, but at least it'll start failing if
-    we change the mechanisms by which debmarshal escalates privileges,
-    and then we can come up with a better test.
+    self.assertEquals(utils.getCaller(), 0)
+
+  def testCallerSet(self):
+    """Verify that privops.utils.getCaller uses dbus correctly.
+
+    getCaller should be connecting to the bus that spawned the
+    privileged daemon.
+
+    This is sort of a dumb test, because it's hard to test code that
+    interacts with dbus in isolation, but at least it'll start failing
+    if we change the mechanisms by which debmarshal escalates
+    privileges.
     """
-    self.mox.StubOutWithMock(os, 'getuid')
-    os.getuid().AndReturn(42)
+    utils.caller = ':1:13'
+    uid = 500
+
+    bus = self.mox.CreateMock(dbus.bus.BusConnection)
+    dbus_obj = self.mox.CreateMockAnything()
+
+    self.mox.StubOutWithMock(dbus, 'StarterBus', use_mock_anything=True)
+
+    dbus.StarterBus().AndReturn(bus)
+    bus.get_object('org.freedesktop.DBus', '/org/freedesktop/DBus').AndReturn(
+        dbus_obj)
+    dbus_obj.GetConnectionUnixUser(
+        utils.caller, dbus_interface='org.freedesktop.DBus').\
+        AndReturn(dbus.UInt32(uid))
 
     self.mox.ReplayAll()
 
-    self.assertEquals(utils.getCaller(), 42)
+    self.assertEquals(utils.getCaller(), uid)
+
+    utils.caller = None
 
 
 class TestAcquireLock(mox.MoxTestBase):
