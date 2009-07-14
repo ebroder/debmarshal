@@ -36,6 +36,7 @@ try:
 except ImportError:  # pragma: no cover
   import pickle
 
+import dbus
 import decorator
 import libvirt
 import yaml
@@ -49,15 +50,22 @@ caller = None
 def getCaller():
   """Find what UID called into a privileged function.
 
-  This function exists to allow other functions wrapped in
-  runWithPrivilege to find out what user called them without needing
-  to be aware of the means by which runWithPrivileges escalates
-  itself.
+  This function exists to allow privileged functions to find out what
+  user called them without needing to be aware of the means by which
+  debmarshal escalated privilege.
 
   Returns:
     The UID of the user that called a privileged function.
   """
-  return os.getuid()
+  if caller is None:
+    # If the call didn't come in through dbus, someone must have had
+    # privilege to begin with.
+    return 0
+
+  dbus_obj = dbus.StarterBus().get_object('org.freedesktop.DBus',
+                                          '/org/freedesktop/DBus')
+  return int(dbus_obj.GetConnectionUnixUser(
+      caller, dbus_interface='org.freedesktop.DBus'))
 
 
 def _acquireLock(filename, mode):
