@@ -59,8 +59,6 @@ class TestCreateNetwork(mox.MoxTestBase):
                       'login.company.com':
                       ('10.100.3.3', '00:00:00:00:00:00')}
 
-    self.mox.StubOutWithMock(os, 'geteuid')
-    os.geteuid().AndReturn(0)
     self.mox.StubOutWithMock(utils, 'getCaller')
     utils.getCaller().AndReturn(1000)
 
@@ -130,9 +128,6 @@ class TestDestroyNetwork(mox.MoxTestBase):
     """Setup some mocks common to all tests of destroyNetwork"""
     super(TestDestroyNetwork, self).setUp()
 
-    self.mox.StubOutWithMock(os, 'geteuid')
-    os.geteuid().MultipleTimes().AndReturn(0)
-
     self.mox.StubOutWithMock(utils, '_acquireLock')
     utils._acquireLock('debmarshal-netlist', fcntl.LOCK_EX)
 
@@ -198,8 +193,6 @@ class TestCreateDomain(mox.MoxTestBase):
     net = 'debmarshal-0'
     mac = '00:11:22:33:44:55'
 
-    self.mox.StubOutWithMock(os, 'geteuid')
-    os.geteuid().MultipleTimes().AndReturn(0)
     self.mox.StubOutWithMock(utils, 'getCaller')
     utils.getCaller().MultipleTimes().AndReturn(500)
     self.mox.StubOutWithMock(utils, '_acquireLock')
@@ -238,7 +231,7 @@ class TestCreateDomain(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     self.assertEqual(privops.Privops().createDomain(
-      memory, disks, net, mac), name)
+      memory, disks, net, mac, 'qemu'), name)
 
 
 class TestDestroyDomain(mox.MoxTestBase):
@@ -248,9 +241,6 @@ class TestDestroyDomain(mox.MoxTestBase):
     self.domains = [
       ('debmarshal-0', 500, 'qemu'),
       ('debmarshal-1', 501, 'qemu')]
-
-    self.mox.StubOutWithMock(os, 'geteuid')
-    os.geteuid().MultipleTimes().AndReturn(0)
 
     self.mox.StubOutWithMock(utils, '_acquireLock')
     utils._acquireLock('debmarshal-domlist', fcntl.LOCK_EX)

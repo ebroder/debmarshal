@@ -54,9 +54,13 @@ from debmarshal._privops import networks
 from debmarshal._privops import utils
 
 
+DBUS_INTERFACE='com.googlecode.debmarshal.Privops'
+
+
 class Privops(dbus.service.Object):
   """Collection class for privileged dbus methods."""
-  @utils.runWithPrivilege('create-network')
+  @dbus.service.method(DBUS_INTERFACE,
+                       in_signature='asb', out_signature='(sssa{s(ss)})')
   @utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
   def createNetwork(self, hosts, dhcp=True):
     """All of the networking config you need for a debmarshal test rig.
@@ -131,7 +135,8 @@ class Privops(dbus.service.Object):
 
     return (net_name, net_gateway, net_mask, net_hosts)
 
-  @utils.runWithPrivilege('destroy-network')
+  @dbus.service.method(DBUS_INTERFACE,
+                       in_signature='s', out_signature='')
   @utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
   def destroyNetwork(self, name):
     """Destroy a debmarshal network.
@@ -168,9 +173,10 @@ class Privops(dbus.service.Object):
     nets.remove(net)
     utils.storeState(nets, 'debmarshal-networks')
 
-  @utils.runWithPrivilege('create-domain')
+  @dbus.service.method(DBUS_INTERFACE,
+                       in_signature='sassss', out_signature='s')
   @utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
-  def createDomain(self, memory, disks, network, mac, hypervisor="qemu"):
+  def createDomain(self, memory, disks, network, mac, hypervisor):
     """Create a virtual machine domain.
 
     createDomain creates a domain for a virtual machine used as part
@@ -233,7 +239,8 @@ class Privops(dbus.service.Object):
 
     return name
 
-  @utils.runWithPrivilege('destroy-domain')
+  @dbus.service.method(DBUS_INTERFACE,
+                       in_signature='ss', out_signature='')
   @utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
   def destroyDomain(self, name, hypervisor="qemu"):
     """Destroy a debmarshal domain.
