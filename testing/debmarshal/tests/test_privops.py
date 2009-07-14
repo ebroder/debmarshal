@@ -104,7 +104,7 @@ class TestCreateNetwork(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(privops.createNetwork(self.hosts, False),
+    self.assertEqual(privops.Privops().createNetwork(self.hosts, False),
                      (self.name, self.gateway, '255.255.255.0', self.host_dict))
 
   def testStoreFailure(self):
@@ -121,7 +121,8 @@ class TestCreateNetwork(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertRaises(Exception, privops.createNetwork, self.hosts, False)
+    self.assertRaises(Exception, privops.Privops().createNetwork,
+                      self.hosts, False)
 
 
 class TestDestroyNetwork(mox.MoxTestBase):
@@ -149,7 +150,7 @@ class TestDestroyNetwork(mox.MoxTestBase):
     doesn't know about"""
     self.mox.ReplayAll()
 
-    self.assertRaises(errors.NetworkNotFound, privops.destroyNetwork,
+    self.assertRaises(errors.NetworkNotFound, privops.Privops().destroyNetwork,
                       'debmarshal-3')
 
   def testNoPermissions(self):
@@ -160,7 +161,7 @@ class TestDestroyNetwork(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertRaises(errors.AccessDenied, privops.destroyNetwork,
+    self.assertRaises(errors.AccessDenied, privops.Privops().destroyNetwork,
                       'debmarshal-1')
 
   def testSuccess(self):
@@ -180,7 +181,7 @@ class TestDestroyNetwork(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    privops.destroyNetwork('debmarshal-0')
+    privops.Privops().destroyNetwork('debmarshal-0')
 
 
 class TestCreateDomain(mox.MoxTestBase):
@@ -236,7 +237,7 @@ class TestCreateDomain(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(privops.createDomain(
+    self.assertEqual(privops.Privops().createDomain(
       memory, disks, net, mac), name)
 
 
@@ -265,7 +266,7 @@ class TestDestroyDomain(mox.MoxTestBase):
     """Test destroyDomain with a nonexistent domain."""
     self.mox.ReplayAll()
 
-    self.assertRaises(errors.DomainNotFound, privops.destroyDomain,
+    self.assertRaises(errors.DomainNotFound, privops.Privops().destroyDomain,
                       'debmarshal-3')
 
   def testNoPermissions(self):
@@ -275,7 +276,7 @@ class TestDestroyDomain(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertRaises(errors.AccessDenied, privops.destroyDomain,
+    self.assertRaises(errors.AccessDenied, privops.Privops().destroyDomain,
                       'debmarshal-1')
 
   def testSuccess(self):
@@ -293,7 +294,7 @@ class TestDestroyDomain(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    privops.destroyDomain('debmarshal-0')
+    privops.Privops().destroyDomain('debmarshal-0')
 
 
 if __name__ == '__main__':

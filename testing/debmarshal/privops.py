@@ -41,6 +41,7 @@ __authors__ = [
 
 import fcntl
 
+import dbus.service
 import libvirt
 import virtinst
 
@@ -53,214 +54,219 @@ from debmarshal._privops import networks
 from debmarshal._privops import utils
 
 
-@utils.runWithPrivilege('create-network')
-@utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
-def createNetwork(hosts, dhcp=True):
-  """All of the networking config you need for a debmarshal test rig.
+class Privops(dbus.service.Object):
+  """Collection class for privileged dbus methods."""
+  @utils.runWithPrivilege('create-network')
+  @utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
+  def createNetwork(self, hosts, dhcp=True):
+    """All of the networking config you need for a debmarshal test rig.
 
-  createNetwork creates an isolated virtual network within libvirt. It
-  picks an IP address space that is as-yet unused (within debmarshal),
-  and assigns that to the network. It then allocates IP addresses and
-  MAC addresses for each of the hostnames listed in hosts.
+    createNetwork creates an isolated virtual network within
+    libvirt. It picks an IP address space that is as-yet unused
+    (within debmarshal), and assigns that to the network. It then
+    allocates IP addresses and MAC addresses for each of the hostnames
+    listed in hosts.
 
-  createNetwork tracks which users created which networks, and
-  debmarshal will only allow the user that created a network to attach
-  VMs to it or destroy it.
+    createNetwork tracks which users created which networks, and
+    debmarshal will only allow the user that created a network to
+    attach VMs to it or destroy it.
 
-  Args:
-    hosts: A list of hostnames that will eventually be attached to
-      this network
-    dhcp: Whether to use DHCP or static IP addresses. If dhcp is True
-      (the default), createNetwork also configures dnsmasq listening
-      on the new network to assign IP addresses
+    Args:
+      hosts: A list of hostnames that will eventually be attached to
+        this network
+      dhcp: Whether to use DHCP or static IP addresses. If dhcp is
+        True (the default), createNetwork also configures dnsmasq
+        listening on the new network to assign IP addresses
 
-  Returns:
-    A 4-tuple containing:
-      Network name: This is used to reference the newly created
-        network in the future. It is unique across the local
-        workstation
-      Gateway: The network address. Also the DNS server, if that
-        information isn't being grabbed over DHCP
-      Netmask: The netmask for the network
-      VMs: A dict mapping hostnames in hosts to (IP address, MAC
-        address), as assigned by createNetwork
-  """
-  # First, input validation. Everything in hosts should be a valid
-  # hostname
-  for h in hosts:
-    networks._validateHostname(h)
+    Returns:
+      A 4-tuple containing:
+        Network name: This is used to reference the newly created
+          network in the future. It is unique across the local
+          workstation
+        Gateway: The network address. Also the DNS server, if that
+          information isn't being grabbed over DHCP
+        Netmask: The netmask for the network
+        VMs: A dict mapping hostnames in hosts to (IP address, MAC
+          address), as assigned by createNetwork
+    """
+    # First, input validation. Everything in hosts should be a valid
+    # hostname
+    for h in hosts:
+      networks._validateHostname(h)
 
-  # We don't really care which particular libvirt driver we connect
-  # to, because they all share the same networking
-  # config. libvirt.open() is supposed to take None to indicate a
-  # default, but it doesn't seem to work, so we pass in what's
-  # supposed to be the default for root.
-  virt_con = libvirt.open('qemu:///system')
+    # We don't really care which particular libvirt driver we connect
+    # to, because they all share the same networking
+    # config. libvirt.open() is supposed to take None to indicate a
+    # default, but it doesn't seem to work, so we pass in what's
+    # supposed to be the default for root.
+    virt_con = libvirt.open('qemu:///system')
 
-  net_name = networks._findUnusedName(virt_con)
-  net_gateway, net_mask = networks._findUnusedNetwork(virt_con, len(hosts))
+    net_name = networks._findUnusedName(virt_con)
+    net_gateway, net_mask = networks._findUnusedNetwork(virt_con, len(hosts))
 
-  net_hosts = {}
-  host_addr = ip.IP(net_gateway) + 1
-  for host in hosts:
-    # Use the virtinst package's MAC address generator because it's
-    # easier than writing another one for ourselves.
-    #
-    # This does mean that the MAC addresses are allocated from
-    # Xensource's OUI, but whatever
-    mac = virtinst.util.randomMAC()
-    net_hosts[host] = (host_addr.ip_ext, mac)
-    host_addr += 1
+    net_hosts = {}
+    host_addr = ip.IP(net_gateway) + 1
+    for host in hosts:
+      # Use the virtinst package's MAC address generator because it's
+      # easier than writing another one for ourselves.
+      #
+      # This does mean that the MAC addresses are allocated from
+      # Xensource's OUI, but whatever
+      mac = virtinst.util.randomMAC()
+      net_hosts[host] = (host_addr.ip_ext, mac)
+      host_addr += 1
 
-  xml = networks._genNetworkXML(net_name, net_gateway, net_mask, net_hosts, dhcp)
-  virt_net = virt_con.networkDefineXML(xml)
-  virt_net.create()
+    xml = networks._genNetworkXML(net_name, net_gateway, net_mask, net_hosts, dhcp)
+    virt_net = virt_con.networkDefineXML(xml)
+    virt_net.create()
 
-  try:
+    try:
+      nets = networks.loadNetworkState(virt_con)
+      nets.append((net_name, utils.getCaller()))
+      utils.storeState(nets, 'debmarshal-networks')
+    except:
+      virt_net.destroy()
+      virt_net.undefine()
+      raise
+
+    return (net_name, net_gateway, net_mask, net_hosts)
+
+  @utils.runWithPrivilege('destroy-network')
+  @utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
+  def destroyNetwork(self, name):
+    """Destroy a debmarshal network.
+
+    destroyNetwork uses the state recorded by createNetwork to verify
+    that the user who created a network is the only one who can
+    destroy it (except for root).
+
+    Args:
+      name: The name of the network returned from createNetwork
+
+    Raises:
+      debmarshal.errors.NetworkNotFound: The specified network name
+        does not exist.
+      debmarshal.errors.AccessDenied: The specified network is not
+        owned by the user calling destroyNetwork.
+    """
+    virt_con = libvirt.open('qemu:///system')
+
     nets = networks.loadNetworkState(virt_con)
-    nets.append((net_name, utils.getCaller()))
-    utils.storeState(nets, 'debmarshal-networks')
-  except:
+    for net in nets:
+      if net[0] == name:
+        break
+    else:
+      raise errors.NetworkNotFound("Network %s does not exist." % name)
+
+    if utils.getCaller() not in (0, net[1]):
+      raise errors.AccessDenied("Network %s not owned by UID %d." % (name, utils.getCaller()))
+
+    virt_net = virt_con.networkLookupByName(name)
     virt_net.destroy()
     virt_net.undefine()
-    raise
 
-  return (net_name, net_gateway, net_mask, net_hosts)
+    nets.remove(net)
+    utils.storeState(nets, 'debmarshal-networks')
 
+  @utils.runWithPrivilege('create-domain')
+  @utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
+  def createDomain(self, memory, disks, network, mac, hypervisor="qemu"):
+    """Create a virtual machine domain.
 
-@utils.runWithPrivilege('destroy-network')
-@utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
-def destroyNetwork(name):
-  """Destroy a debmarshal network.
+    createDomain creates a domain for a virtual machine used as part
+    of a debmarshal test and boots it up.
 
-  destroyNetwork uses the state recorded by createNetwork to verify
-  that the user who created a network is the only one who can destroy
-  it (except for root).
+    We do no validation or accounting of memory allocations from the
+    privileged side. Since debmarshal is intended to be run on
+    single-user machines, the worst case scenario is a DoS of
+    yourself.
 
-  Args:
-    name: The name of the network returned from createNetwork
+    Args:
+      memory: str containing the amount of memory to be allocated to
+        the new domain. This should include a suffix such as 'G' or
+        'M' to indicate the units of the amount.
+      disks: list of strs of paths to disk images, in the order that
+        they should be attached to the guest. All disk images must be
+        owned by the user calling createDomain.
+      network: The name of the network to attach this VM to. The
+        netwok must have been created using
+        debmarshal.privops.createNetwork by the user calling
+        createDomain.
+      mac: The MAC address of the new VM.
+      hypervisor: What hypervisor to use to start this VM. While it's
+        possible to mix hypervisors amongst the domains for a single
+        test suite, it is the caller's responsibility to keep track of
+        that when destroyDomain is called later. Currently only qemu
+        is supported.
 
-  Raises:
-    debmarshal.errors.NetworkNotFound: The specified network name does
-      not exist.
-    debmarshal.errors.AccessDenied: The specified network is not owned
-      by the user calling destroyNetwork.
-  """
-  virt_con = libvirt.open('qemu:///system')
+    Returns:
+      The name of the new domain.
+    """
+    hyper_class = hypervisors.base.hypervisors[hypervisor]
+    virt_con = hyper_class.open()
 
-  nets = networks.loadNetworkState(virt_con)
-  for net in nets:
-    if net[0] == name:
-      break
-  else:
-    raise errors.NetworkNotFound("Network %s does not exist." % name)
+    domains._validateNetwork(network, virt_con)
+    for d in disks:
+      domains._validateDisk(d)
 
-  if utils.getCaller() not in (0, net[1]):
-    raise errors.AccessDenied("Network %s not owned by UID %d." % (name, utils.getCaller()))
+    name = domains._findUnusedName(virt_con)
+    memory = domains._parseKBytes(memory)
 
-  virt_net = virt_con.networkLookupByName(name)
-  virt_net.destroy()
-  virt_net.undefine()
+    vm_params = vm.VM(name=name,
+                      memory=memory,
+                      disks=disks,
+                      network=network,
+                      mac=mac)
 
-  nets.remove(net)
-  utils.storeState(nets, 'debmarshal-networks')
+    dom_xml = hyper_class.domainXMLString(vm_params)
 
+    # The new domain is intentionally recorded to the statefile before
+    # starting the VM, because it's much worse to have a running VM we
+    # don't know about than to have state on a VM that doesn't
+    # actually exist (loadDomainState already handles the latter
+    # case).
+    doms = domains.loadDomainState()
+    doms.append((name, utils.getCaller(), hypervisor))
+    utils.storeState(doms, 'debmarshal-domains')
 
-@utils.runWithPrivilege('create-domain')
-@utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
-def createDomain(memory, disks, network, mac, hypervisor="qemu"):
-  """Create a virtual machine domain.
+    domains._createDomainXML(virt_con, dom_xml)
 
-  createDomain creates a domain for a virtual machine used as part of
-  a debmarshal test and boots it up.
+    return name
 
-  We do no validation or accounting of memory allocations from the
-  privileged side. Since debmarshal is intended to be run on
-  single-user machines, the worst case scenario is a DoS of yourself.
+  @utils.runWithPrivilege('destroy-domain')
+  @utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
+  def destroyDomain(self, name, hypervisor="qemu"):
+    """Destroy a debmarshal domain.
 
-  Args:
-    memory: str containing the amount of memory to be allocated to the
-      new domain. This should include a suffix such as 'G' or 'M' to
-      indicate the units of the amount.
-    disks: list of strs of paths to disk images, in the order that
-      they should be attached to the guest. All disk images must be
-      owned by the user calling createDomain.
-    network: The name of the network to attach this VM to. The netwok
-      must have been created using debmarshal.privops.createNetwork by
-      the user calling createDomain.
-    mac: The MAC address of the new VM.
-    hypervisor: What hypervisor to use to start this VM. While it's
-      possible to mix hypervisors amongst the domains for a single
-      test suite, it is the caller's responsibility to keep track of
-      that when destroyDomain is called later. Currently only qemu is
-      supported.
+    destroyDomain uses the state recorded by createDomain to verify
+    ownership of the domain.
 
-  Returns:
-    The name of the new domain.
-  """
-  hyper_class = hypervisors.base.hypervisors[hypervisor]
-  virt_con = hyper_class.open()
+    Domains can be destroyed by the user that created them, or by
+    root.
 
-  domains._validateNetwork(network, virt_con)
-  for d in disks:
-    domains._validateDisk(d)
+    Args:
+      name: The name of the domain to destroy.
+      hypervisor: The hypervisor for this domain.
+    """
+    hyper_class = hypervisors.base.hypervisors[hypervisor]
+    virt_con = hyper_class.open()
 
-  name = domains._findUnusedName(virt_con)
-  memory = domains._parseKBytes(memory)
+    doms = domains.loadDomainState()
+    for dom in doms:
+      if dom[0] == name and dom[2] == hypervisor:
+        break
+    else:
+      raise errors.DomainNotFound("Domain %s does not exist." % name)
 
-  vm_params = vm.VM(name=name,
-                    memory=memory,
-                    disks=disks,
-                    network=network,
-                    mac=mac)
+    if utils.getCaller() not in (0, dom[1]):
+      raise errors.AccessDenied("Domain %s is not owned by UID %d." %
+                                (name, utils.getCaller()))
 
-  dom_xml = hyper_class.domainXMLString(vm_params)
+    virt_dom = virt_con.lookupByName(name)
+    virt_dom.destroy()
 
-  # The new domain is intentionally recorded to the statefile before
-  # starting the VM, because it's much worse to have a running VM we
-  # don't know about than to have state on a VM that doesn't actually
-  # exist (loadDomainState already handles the latter case).
-  doms = domains.loadDomainState()
-  doms.append((name, utils.getCaller(), hypervisor))
-  utils.storeState(doms, 'debmarshal-domains')
-
-  domains._createDomainXML(virt_con, dom_xml)
-
-  return name
-
-@utils.runWithPrivilege('destroy-domain')
-@utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
-def destroyDomain(name, hypervisor="qemu"):
-  """Destroy a debmarshal domain.
-
-  destroyDomain uses the state recorded by createDomain to verify
-  ownership of the domain.
-
-  Domains can be destroyed by the user that created them, or by root.
-
-  Args:
-    name: The name of the domain to destroy.
-    hypervisor: The hypervisor for this domain.
-  """
-  hyper_class = hypervisors.base.hypervisors[hypervisor]
-  virt_con = hyper_class.open()
-
-  doms = domains.loadDomainState()
-  for dom in doms:
-    if dom[0] == name and dom[2] == hypervisor:
-      break
-  else:
-    raise errors.DomainNotFound("Domain %s does not exist." % name)
-
-  if utils.getCaller() not in (0, dom[1]):
-    raise errors.AccessDenied("Domain %s is not owned by UID %d." %
-                              (name, utils.getCaller()))
-
-  virt_dom = virt_con.lookupByName(name)
-  virt_dom.destroy()
-
-  doms.remove(dom)
-  utils.storeState(doms, 'debmarshal-domains')
+    doms.remove(dom)
+    utils.storeState(doms, 'debmarshal-domains')
 
 
 if __name__ == '__main__':  # pragma: no cover
