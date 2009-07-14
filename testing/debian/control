@@ -1,0 +1,22 @@
+Source: debmarshal-testing
+Section: devel
+Priority: extra
+Maintainer: Evan Broder <ebroder@google.com>
+Build-Depends: cdbs (>= 0.4.43), debhelper (>= 5.0.37.2), python-dev
+ (>= 2.3.5-11), python-support (>= 0.3.2), python-setuptools,
+ libdbus-1-dev
+Standards-Version: 3.8.0
+Homepage: http://code.google.com/p/debmarshal/
+
+Package: debmarshal-testing
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends},
+ python-dbus, python-decorator, python-gobject, python-libvirt,
+ python-lxml, python-virtinst, python-yaml
+Provides: ${python:Provides}
+Description: Virtualized, isolated total-system testing
+ The debmarshal testing framework is designed to simplify testing of
+ total systems and multiple systems. To run a debmarshal test suite,
+ the entire environment under test (including necessary dependencies)
+ is created in a series of virtual machines, which can then be safely
+ tested and abused.

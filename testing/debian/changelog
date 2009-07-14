@@ -1,0 +1,5 @@
+debmarshal-testing (0.0.0r179-1) unstable; urgency=low
+
+  * Initial Debianization.
+
+ -- Evan Broder <ebroder@google.com>  Thu, 09 Jul 2009 11:47:13 -0700
