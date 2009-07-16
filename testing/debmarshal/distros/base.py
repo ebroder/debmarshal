@@ -49,26 +49,102 @@ class Distribution(object):
   Attributes:
     base_defaults: A dict with the default configuration options for
       the base image.
-    base_required: A set of option names that must be set by users of
-      the distribution class
     base_configurable: A set of option names that can be set by users
-      of the distribution. This should not include the elements of
-      base_required.
+      of the distribution. Any elements which aren't also defined in
+      base_defaults must be passed in by the user.
     custom_defaults: The default configuration options for the stage
       2 image.
-    custom_required: The set of option names that must be set for
-      stage 2.
     custom_configurable: The set of option names that can be set by
-      users for stage 2. This should not include custom_required.
+      users for stage 2. Any elements which aren't also defined in
+      custom_defaults must be passed in by the user.
   """
   base_defaults = {}
-
-  base_required = set()
 
   base_configurable = set()
 
   custom_defaults = {}
 
-  custom_required = set()
-
   custom_configurable = set()
+
+  def __init__(self, base_config=None, custom_config=None):
+    """Instantiate and configure a distribution.
+
+    Both base_config and custom_config can be None, but if they are
+    not, they will be validated against the appropriate _defaults and
+    _configurable attributes.
+
+    Args:
+      base_config: If not None, a dict with configuration for the
+        distribution base image.
+      custom_config: If not None, a dict with configuration for the
+        customization of the base image.
+    """
+    if base_config is not None:
+      base_keys = set(base_config)
+      base_def_keys = set(self.base_defaults)
+      missing = self.base_configurable - base_def_keys - base_keys
+      if missing:
+        raise errors.InvalidInput(
+            "Missing required base_config settings: %s" % missing)
+      extra = base_keys - self.base_configurable
+      if extra:
+        raise errors.InvalidInput(
+            "Extra base_config settings passed in: %s" % extra)
+
+    self.base_config = base_config
+
+    if custom_config is not None:
+      custom_keys = set(custom_config)
+      custom_def_keys = set(self.custom_defaults)
+      missing = self.custom_configurable - custom_def_keys - custom_keys
+      if missing:
+        raise errors.InvalidInput(
+            "Missing required custom_config settings: %s" % missing)
+      extra = custom_keys - self.custom_configurable
+      if extra:
+        raise errors.InvalidInput(
+            "Extra custom_config settings passed in: %s" % extra)
+
+    self.custom_config = custom_config
+
+  def getBaseConfig(self, key):
+    """Get a base image config value.
+
+    This first checks the instance-level customizations for the base
+    image, falling back on global defaults.
+
+    If the key is not present in either dict, looking up that key in
+    the default dict will raise a KeyError.
+
+    Args:
+      key: The key to lookup
+
+    Returns:
+      The corresponding value for the key, if it is present in either
+        the local customizations or the global defaults.
+    """
+    if key in self.base_config:
+      return self.base_config[key]
+    else:
+      return self.base_defaults[key]
+
+  def getCustomConfig(self, key):
+    """Get a customized image config value.
+
+    This first checks the instance-level customizations for the
+    customized image, falling back on global defaults.
+
+    If the key is not present in either dict, looking up that key in
+    the default dict will raise a KeyError.
+
+    Args:
+      key: The key to lookup
+
+    Returns:
+      The corresponding value for the key, if it is present in either
+        the local customizations or the global defaults.
+    """
+    if key in self.custom_config:
+      return self.custom_config[key]
+    else:
+      return self.custom_defaults[key]
