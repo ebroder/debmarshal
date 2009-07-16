@@ -1,10 +1,18 @@
 This package was debianized by Chuan-kai Lin <cklin@google.com> on
 Tue, 12 Sep 2006 11:04:20 -0700.
 
-This software is packaged for Google internal use only.
-
-Copyright Holder: Google Inc. 2006
-
 License:
 
-All rights reserved.
+Copyright (C) 2006,2009 Google Inc.
+
+Debmarshal is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License version 2 as published by the Free
+Software Foundation.
+
+Debmarshal is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+On Debian GNU/Linux systems, the complete text of the GNU General
+Public License, version 2 can be found in `/usr/share/common-licenses/GPL-2'.

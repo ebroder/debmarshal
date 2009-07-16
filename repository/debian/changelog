@@ -1,3 +1,9 @@
+debmarshal (1.0) unstable; urgency=low
+
+  * License has been GPLv2 since release, update all files.
+
+ -- Drake Diedrich <dld@google.com>  Thu, 16 Jul 2009 13:06:17 -0700
+
 debmarshal (0.9) google; urgency=low
 
   * Catch IOerror when parsing debs, in case they have malformed gzip
