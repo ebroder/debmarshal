@@ -23,13 +23,16 @@ __authors__ = [
 ]
 
 
+import os
 import unittest
+
+import mox
 
 from debmarshal import errors
 from debmarshal import vm
 
 
-class TestVM(unittest.TestCase):
+class TestVM(mox.MoxTestBase):
   """Test the debmarshal.vm.VM class."""
   def testGoodArguments(self):
     """Make sure that debmarshal.vm.VM.__init__ succeeds if memory,
@@ -45,7 +48,8 @@ class TestVM(unittest.TestCase):
           disks=['/home/ebroder/root.img',
                  '/home/ebroder/swap.img'],
           network='debmarshal-0',
-          mac='AA:BB:CC:DD:EE:FF')
+          mac='AA:BB:CC:DD:EE:FF',
+          arch='x86_64')
 
   def testMissingArguments(self):
     """Make sure that vm.VM's __init__ raises an exception if all
@@ -61,7 +65,28 @@ class TestVM(unittest.TestCase):
                       disks=['/home/ebroder/root.img'],
                       network='debmarshal-0',
                       mac='AA:BB:CC:DD:EE:FF',
+                      arch='x86_64',
                       foo='bar')
+
+  def testArchNone(self):
+    """Test creating a vm instance with arch=None."""
+    self.mox.StubOutWithMock(os, 'uname')
+    os.uname().MultipleTimes().AndReturn((
+      'Linux',
+      'hostname',
+      '2.6.24-24-generic',
+      '#1 SMP Wed Apr 15 18:53:17 UTC 2009',
+      'x86_64'))
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(vm.VM(name='debmarshal-12',
+                           memory=524288,
+                           disks=['/home/ebroder/root.img'],
+                           network='debmarshal-0',
+                           mac='AA:BB:CC:DD:EE:FF',
+                           arch=None).arch,
+                     'x86_64')
 
 
 if __name__ == '__main__':
