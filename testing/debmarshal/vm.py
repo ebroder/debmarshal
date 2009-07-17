@@ -23,6 +23,8 @@ __authors__ = [
 ]
 
 
+import os
+
 from debmarshal import errors
 
 
@@ -40,11 +42,18 @@ class VM(object):
       they should be attached to the guest.
     network: Which debmarshal-managed network to attach this VM to.
     mac: The MAC address of the VM's network interface.
+    arch: The CPU architecture of the VM, or None to indicate that the
+      arch should be the same as the host. Depending on the
+      capabilities of the hypervisor, the arch field may be ignored.
   """
-  __slots__ = ['name', 'memory', 'disks', 'network', 'mac']
+  __slots__ = ['name', 'memory', 'disks', 'network', 'mac', 'arch']
 
   def __init__(self, **kwargs):
     """Initialize a VM object.
+
+    This includes some automagic handling for the arch field. If arch
+    is None, then set it to the architecture of the running system
+    instead.
 
     Args:
       kwargs: All public attributes of the VM should be passed in as
@@ -63,3 +72,11 @@ class VM(object):
 
     if kwargs:
       raise errors.InvalidInput('Extra arguments passed to VM.__init__')
+
+    if not self.arch:
+      # `uname -m` returns the architecture of the kernel, which may
+      # not be the same as the architecture of the userspace.
+      #
+      # It's not really clear which architecture is the best default,
+      # so we're just going to use the one that's easiest to get to.
+      self.arch = os.uname()[4]
