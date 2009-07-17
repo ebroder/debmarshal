@@ -64,10 +64,10 @@ class TestCreateNetwork(mox.MoxTestBase):
     everything else"""
     super(TestCreateNetwork, self).setUp()
 
-    self.networks = [('debmarshal-0', 500),
-                     ('debmarshal-3', 500),
-                     ('debmarshal-4', 500),
-                     ('debmarshal-4', 500)]
+    self.networks = {'debmarshal-0': 500,
+                     'debmarshal-3': 500,
+                     'debmarshal-4': 500,
+                     'debmarshal-4': 500}
     self.name = 'debmarshal-1'
     self.gateway = '10.100.3.1'
     self.hosts = ['wiki.company.com', 'login.company.com']
@@ -97,7 +97,7 @@ class TestCreateNetwork(mox.MoxTestBase):
         AndReturn((self.gateway, '255.255.255.0'))
 
     self.mox.StubOutWithMock(networks, 'loadNetworkState')
-    networks.loadNetworkState(self.virt_con).AndReturn(self.networks)
+    networks.loadNetworkState(self.virt_con).AndReturn(dict(self.networks))
 
     self.mox.StubOutWithMock(virtinst.util, 'randomMAC')
     virtinst.util.randomMAC().MultipleTimes().AndReturn('00:00:00:00:00:00')
@@ -113,9 +113,8 @@ class TestCreateNetwork(mox.MoxTestBase):
   def testStoreSuccess(self):
     """Test createNetwork when everything goes right"""
     self.mox.StubOutWithMock(utils, 'storeState')
-    utils.storeState(self.networks +
-                     [(self.name, 1000)],
-                     'debmarshal-networks')
+    self.networks[self.name] = 1000
+    utils.storeState(self.networks, 'debmarshal-networks')
 
     self.mox.ReplayAll()
 
@@ -126,9 +125,8 @@ class TestCreateNetwork(mox.MoxTestBase):
     """Test that the network is destroyed if state about it can't be
     stored"""
     self.mox.StubOutWithMock(utils, 'storeState')
-    utils.storeState(self.networks +
-                     [(self.name, 1000)],
-                     'debmarshal-networks').\
+    self.networks[self.name] = 1000
+    utils.storeState(self.networks, 'debmarshal-networks').\
                      AndRaise(Exception("Error!"))
 
     self.virt_con.networkLookupByName(self.name).MultipleTimes().AndReturn(
@@ -154,10 +152,10 @@ class TestDestroyNetwork(mox.MoxTestBase):
     self.virt_con = self.mox.CreateMock(libvirt.virConnect)
     libvirt.open(mox.IgnoreArg()).AndReturn(self.virt_con)
 
-    self.networks = [('debmarshal-0', 501),
-                     ('debmarshal-1', 500)]
+    self.networks = {'debmarshal-0': 501,
+                     'debmarshal-1': 500}
     self.mox.StubOutWithMock(networks, 'loadNetworkState')
-    networks.loadNetworkState(self.virt_con).AndReturn(self.networks)
+    networks.loadNetworkState(self.virt_con).AndReturn(dict(self.networks))
 
   def testNoNetwork(self):
     """Test that destroyNetwork doesn't try to delete a network it
@@ -191,8 +189,8 @@ class TestDestroyNetwork(mox.MoxTestBase):
     virt_net.undefine()
 
     self.mox.StubOutWithMock(utils, 'storeState')
-    new_networks = self.networks[1:]
-    utils.storeState(new_networks, 'debmarshal-networks')
+    del self.networks['debmarshal-0']
+    utils.storeState(self.networks, 'debmarshal-networks')
 
     self.mox.ReplayAll()
 

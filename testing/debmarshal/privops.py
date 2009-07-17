@@ -174,7 +174,7 @@ class Privops(dbus.service.Object):
 
     try:
       nets = networks.loadNetworkState(virt_con)
-      nets.append((net_name, utils.getCaller()))
+      nets[net_name] = utils.getCaller()
       utils.storeState(nets, 'debmarshal-networks')
     except:
       virt_con.networkLookupByName(net_name).destroy()
@@ -211,19 +211,16 @@ class Privops(dbus.service.Object):
     virt_con = libvirt.open('qemu:///system')
 
     nets = networks.loadNetworkState(virt_con)
-    for net in nets:
-      if net[0] == name:
-        break
-    else:
+    if name not in nets:
       raise errors.NetworkNotFound("Network %s does not exist." % name)
 
-    if utils.getCaller() not in (0, net[1]):
+    if utils.getCaller() not in (0, nets[name]):
       raise errors.AccessDenied("Network %s not owned by UID %d." % (name, utils.getCaller()))
 
     virt_con.networkLookupByName(name).destroy()
     virt_con.networkLookupByName(name).undefine()
 
-    nets.remove(net)
+    del nets[name]
     utils.storeState(nets, 'debmarshal-networks')
 
     utils.caller = None

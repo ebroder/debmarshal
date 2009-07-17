@@ -39,8 +39,8 @@ from debmarshal._privops import utils
 
 class TestValidateNetwork(mox.MoxTestBase):
   """Test debmarshal._privops.domains._validateNetwork."""
-  networks = [('debmarshal-0', 500, '10.100.0.1'),
-              ('debmarshal-1', 501, '10.100.1.1')]
+  networks = {'debmarshal-0': 500,
+              'debmarshal-1': 501}
 
   def setUp(self):
     """Use the same set of networks for all tests."""

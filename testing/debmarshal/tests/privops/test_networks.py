@@ -67,7 +67,7 @@ class TestLoadNetworkState(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(networks.loadNetworkState(), [])
+    self.assertEqual(networks.loadNetworkState(), {})
 
   def testNetworkExistenceTest(self):
     """Make sure that networks get dropped from the list in the state
@@ -77,50 +77,53 @@ class TestLoadNetworkState(mox.MoxTestBase):
 
     self.mox.StubOutWithMock(utils, 'loadState')
     utils.loadState('debmarshal-networks').AndReturn(
-      [('foo', 500),
-       ('bar', 501)])
+      {'foo': 500,
+       'bar': 501})
 
     virt_con = self.mox.CreateMock(libvirt.virConnect)
 
-    virt_con.networkLookupByName('foo')
-    virt_con.networkLookupByName('bar').AndRaise(libvirt.libvirtError(
-        "Network doesn't exist"))
+    virt_con.networkLookupByName('foo').InAnyOrder()
+    virt_con.networkLookupByName('bar').InAnyOrder().AndRaise(
+        libvirt.libvirtError("Network doesn't exist"))
 
     self.mox.ReplayAll()
 
     self.assertEqual(networks.loadNetworkState(virt_con),
-                     [('foo', 500)])
+                     {'foo': 500})
 
   def testTwoBadNetworks(self):
     """Test finding two nonexistent networks when loading state."""
-    nets = [('foo', 500),
-            ('bar', 500),
-            ('baz', 500),
-            ('quux', 500),
-            ('spam', 500),
-            ('eggs', 500)]
+    nets = {'foo': 500,
+            'bar': 500,
+            'baz': 500,
+            'quux': 500,
+            'spam': 500,
+            'eggs': 500}
 
     self.mox.StubOutWithMock(utils, '_clearLibvirtError')
     utils._clearLibvirtError()
 
     self.mox.StubOutWithMock(utils, 'loadState')
-    utils.loadState('debmarshal-networks').AndReturn(nets[:])
+    utils.loadState('debmarshal-networks').AndReturn(dict(nets))
 
     virt_con = self.mox.CreateMock(libvirt.virConnect)
 
-    virt_con.networkLookupByName('foo')
-    virt_con.networkLookupByName('bar')
-    virt_con.networkLookupByName('baz').AndRaise(libvirt.libvirtError(
-        "Network doens't exist"))
-    virt_con.networkLookupByName('quux')
-    virt_con.networkLookupByName('spam').AndRaise(libvirt.libvirtError(
-        "Network doesn't exist"))
-    virt_con.networkLookupByName('eggs')
+    virt_con.networkLookupByName('foo').InAnyOrder()
+    virt_con.networkLookupByName('bar').InAnyOrder()
+    virt_con.networkLookupByName('baz').InAnyOrder().AndRaise(
+        libvirt.libvirtError("Network doens't exist"))
+    virt_con.networkLookupByName('quux').InAnyOrder()
+    virt_con.networkLookupByName('spam').InAnyOrder().AndRaise(
+        libvirt.libvirtError("Network doesn't exist"))
+    virt_con.networkLookupByName('eggs').InAnyOrder()
 
     self.mox.ReplayAll()
 
+    del nets['baz']
+    del nets['spam']
+
     self.assertEqual(networks.loadNetworkState(virt_con),
-                     [nets[0], nets[1], nets[3], nets[5]])
+                     nets)
 
 
 class TestNetworkBounds(mox.MoxTestBase):

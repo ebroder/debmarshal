@@ -82,16 +82,16 @@ def loadNetworkState(virt_con=None):
   """
   networks = utils.loadState('debmarshal-networks')
   if not networks:
-    networks = []
+    networks = {}
 
   if not virt_con:
     virt_con = libvirt.open('qemu:///system')
 
-  for n in networks[:]:
+  for n in networks.keys():
     try:
-      virt_con.networkLookupByName(n[0])
+      virt_con.networkLookupByName(n)
     except libvirt.libvirtError:
-      networks.remove(n)
+      del networks[n]
 
   return networks
 

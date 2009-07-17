@@ -65,13 +65,10 @@ def _validateNetwork(net, virt_con=None):
 
   nets = networks.loadNetworkState(virt_con)
 
-  for n in nets:
-    if n[0] == net:
-      break
-  else:
+  if net not in nets:
     raise errors.NetworkNotFound("Network %s does not exist." % net)
 
-  if n[1] != utils.getCaller():
+  if nets[net] != utils.getCaller():
     raise errors.AccessDenied("Network %s is not owned by UID %s." %
       (net, utils.getCaller()))
 
