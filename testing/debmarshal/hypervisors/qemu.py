@@ -47,29 +47,19 @@ class QEMU(base.Hypervisor):
       An lxml.etree.Element object containing the XML to specify the
         domain
     """
-    # TODO(ebroder): Take advantage of qemu's cross-architecture
-    #   support to let us specify the architecture/bittedness/etc of
-    #   the guest
     xml = super(QEMU, cls).domainXML(vm)
-
-    # `uname -m` returns the architecture of the kernel, which may not
-    # be the same as the architecture of the userspace.
-    #
-    # It's not really clear which architecture is the best default, so
-    # we're just going to use the one that's easiest to get to.
-    host_arch = os.uname()[4]
 
     xml.set('type', 'qemu')
 
     xml_os = etree.SubElement(xml, 'os')
-    etree.SubElement(xml_os, 'type', arch=host_arch).text = 'hvm'
+    etree.SubElement(xml_os, 'type', arch=vm.arch).text = 'hvm'
 
     xml_devices = xml.xpath('/domain/devices')[0]
 
     etree.SubElement(xml_devices, 'graphics', type='vnc')
 
     emulator = etree.SubElement(xml_devices, 'emulator')
-    emulator.text = '/usr/bin/qemu-system-%s' % host_arch
+    emulator.text = '/usr/bin/qemu-system-%s' % vm.arch
 
     return xml
 
