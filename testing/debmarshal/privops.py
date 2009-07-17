@@ -227,10 +227,10 @@ class Privops(dbus.service.Object):
 
   @_resetExitTimer
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
-                       in_signature='sassss', out_signature='s')
+                       in_signature='sasssss', out_signature='s')
   @_coerceDbusArgs
   @utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
-  def createDomain(self, memory, disks, network, mac, hypervisor,
+  def createDomain(self, memory, disks, network, mac, hypervisor, arch,
                    _debmarshal_sender=None):
     """Create a virtual machine domain.
 
@@ -259,6 +259,8 @@ class Privops(dbus.service.Object):
         test suite, it is the caller's responsibility to keep track of
         that when destroyDomain is called later. Currently only qemu
         is supported.
+      arch: The CPU architecture for the VM, or an empty string if the
+        architecture should be the same as that of the host.
 
     Returns:
       The name of the new domain.
@@ -279,7 +281,8 @@ class Privops(dbus.service.Object):
                       memory=memory,
                       disks=disks,
                       network=network,
-                      mac=mac)
+                      mac=mac,
+                      arch=arch)
 
     dom_xml = hyper_class.domainXMLString(vm_params)
 
