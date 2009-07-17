@@ -33,24 +33,15 @@ from debmarshal.hypervisors import qemu
 from debmarshal import vm
 
 
-class TestQEMUDomainXML(mox.MoxTestBase):
+class TestQEMUDomainXML(unittest.TestCase):
   """Test qemu.QEMU's domain XML generation."""
   def test(self):
-    self.mox.StubOutWithMock(os, 'uname')
-    os.uname().MultipleTimes().AndReturn((
-      'Linux',
-      'hostname',
-      '2.6.24-24-generic',
-      '#1 SMP Wed Apr 15 18:53:17 UTC 2009',
-      'x86_64'))
-
-    self.mox.ReplayAll()
-
     test_vm = vm.VM(name='some_name',
                     memory=42,
                     disks=[],
                     network='debmarshal-0',
-                    mac='00:11:22:33:44:55')
+                    mac='00:11:22:33:44:55',
+                    arch='x86_64')
 
     xml = qemu.QEMU.domainXML(test_vm)
 
