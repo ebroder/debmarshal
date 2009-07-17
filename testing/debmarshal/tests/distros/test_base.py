@@ -109,5 +109,18 @@ class TestDistributionGetItems(unittest.TestCase):
     self.assertRaises(KeyError, distro.getCustomConfig, 'spam')
 
 
+class TestDistributionClassId(unittest.TestCase):
+  """Test calculating the classID for a class."""
+  def test(self):
+    self.assertEqual(base.Distribution.classId(),
+                     'debmarshal.distros.base.Distribution')
+
+    class TestDistro(base.Distribution):
+      pass
+
+    self.assertEqual(TestDistro.classId(),
+                     'debmarshal.tests.distros.test_base.TestDistro')
+
+
 if __name__ == '__main__':
   unittest.main()
