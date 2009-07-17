@@ -200,9 +200,9 @@ def loadDomainState():
 
   domains = utils.loadState('debmarshal-domains')
   if not domains:
-    return []
+    return {}
 
-  for dom, uid, hypervisor in domains[:]:
+  for dom, hypervisor in domains.keys():
     if hypervisor not in connections:
       hyper_class = hypervisors.base.hypervisors[hypervisor]
       connections[hypervisor] = hyper_class.open()
@@ -210,6 +210,6 @@ def loadDomainState():
     try:
       connections[hypervisor].lookupByName(dom)
     except libvirt.libvirtError:
-      domains.remove((dom, uid, hypervisor))
+      del domains[(dom, hypervisor)]
 
   return domains

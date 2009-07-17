@@ -289,7 +289,7 @@ class Privops(dbus.service.Object):
     # actually exist (loadDomainState already handles the latter
     # case).
     doms = domains.loadDomainState()
-    doms.append((name, utils.getCaller(), hypervisor))
+    doms[(name, hypervisor)] = utils.getCaller()
     utils.storeState(doms, 'debmarshal-domains')
 
     virt_con.createLinux(dom_xml, 0)
@@ -322,20 +322,17 @@ class Privops(dbus.service.Object):
     virt_con = hyper_class.open()
 
     doms = domains.loadDomainState()
-    for dom in doms:
-      if dom[0] == name and dom[2] == hypervisor:
-        break
-    else:
+    if (name, hypervisor) not in doms:
       raise errors.DomainNotFound("Domain %s does not exist." % name)
 
-    if utils.getCaller() not in (0, dom[1]):
+    if utils.getCaller() not in (0, doms[(name, hypervisor)]):
       raise errors.AccessDenied("Domain %s is not owned by UID %d." %
                                 (name, utils.getCaller()))
 
     virt_dom = virt_con.lookupByName(name)
     virt_dom.destroy()
 
-    doms.remove(dom)
+    del doms[(name, hypervisor)]
     utils.storeState(doms, 'debmarshal-domains')
 
     utils.caller = None

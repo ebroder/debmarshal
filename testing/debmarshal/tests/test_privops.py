@@ -235,13 +235,13 @@ class TestCreateDomain(mox.MoxTestBase):
       '<fake_xml/>')
 
     self.mox.StubOutWithMock(domains, 'loadDomainState')
-    domains.loadDomainState().AndReturn([
-      ('debmarshal-1', 500, 'qemu')])
+    domains.loadDomainState().AndReturn({
+        ('debmarshal-1', 'qemu'): 500})
 
     self.mox.StubOutWithMock(utils, 'storeState')
-    utils.storeState([
-      ('debmarshal-1', 500, 'qemu'),
-      (name, 500, 'qemu')], 'debmarshal-domains')
+    utils.storeState({
+      ('debmarshal-1', 'qemu'): 500,
+      (name, 'qemu'): 500}, 'debmarshal-domains')
 
     qemu_con.createLinux('<fake_xml/>', 0)
 
@@ -255,9 +255,9 @@ class TestDestroyDomain(mox.MoxTestBase):
   def setUp(self):
     super(TestDestroyDomain, self).setUp()
 
-    self.domains = [
-      ('debmarshal-0', 500, 'qemu'),
-      ('debmarshal-1', 501, 'qemu')]
+    self.domains = {
+        ('debmarshal-0', 'qemu'): 500,
+        ('debmarshal-1', 'qemu'): 501}
 
     self.mox.StubOutWithMock(utils, '_acquireLock')
     utils._acquireLock('debmarshal-domlist', fcntl.LOCK_EX)
@@ -267,7 +267,7 @@ class TestDestroyDomain(mox.MoxTestBase):
     hypervisors.qemu.QEMU.open().AndReturn(self.virt_con)
 
     self.mox.StubOutWithMock(domains, 'loadDomainState')
-    domains.loadDomainState().AndReturn(self.domains)
+    domains.loadDomainState().AndReturn(dict(self.domains))
 
   def testNoNetwork(self):
     """Test destroyDomain with a nonexistent domain."""
@@ -296,8 +296,8 @@ class TestDestroyDomain(mox.MoxTestBase):
     virt_dom.destroy()
 
     self.mox.StubOutWithMock(utils, 'storeState')
-    new_domains = self.domains[1:]
-    utils.storeState(new_domains, 'debmarshal-domains')
+    del self.domains[('debmarshal-0', 'qemu')]
+    utils.storeState(self.domains, 'debmarshal-domains')
 
     self.mox.ReplayAll()
 
