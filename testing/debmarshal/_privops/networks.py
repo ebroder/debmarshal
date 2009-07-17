@@ -192,8 +192,9 @@ def _findUnusedNetwork(virt_con, host_count):
   has taken out the debmarshal-netlist lock exclusively.
 
   Currently IP addresses are allocated in /24 blocks from
-  10.100.0.0/16. 100 was chosen both because it is the ASCII code for
-  "d" and to try and avoid people using the lower subnets in 10/8.
+  169.254.0.0/16. Although this is sort of a violation of RFC 3927,
+  these addresses are still link-local, so it's not a misuse of the
+  block.
 
   This does mean that debmarshal currently has an effective limit of
   256 test suites running simultaneously. But that also means that
@@ -220,7 +221,9 @@ def _findUnusedNetwork(virt_con, host_count):
     net_gateways.add(net_xml.xpath('string(/network/ip/@address)'))
 
   for i in xrange(256):
-    net = '10.100.%d.1' % i
+    # TODO(ebroder): Allow for configuring which subnet to allocate IP
+    #   addresses out of
+    net = '169.254.%d.1' % i
     if net not in net_gateways:
       # TODO(ebroder): Adjust the size of the network based on the
       #   number of hosts that need to fit in it

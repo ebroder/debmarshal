@@ -69,12 +69,12 @@ class TestCreateNetwork(mox.MoxTestBase):
                      'debmarshal-4': 500,
                      'debmarshal-4': 500}
     self.name = 'debmarshal-1'
-    self.gateway = '10.100.3.1'
+    self.gateway = '169.254.3.1'
     self.hosts = ['wiki.company.com', 'login.company.com']
     self.host_dict = {'wiki.company.com':
-                      ('10.100.3.2', '00:00:00:00:00:00'),
+                      ('169.254.3.2', '00:00:00:00:00:00'),
                       'login.company.com':
-                      ('10.100.3.3', '00:00:00:00:00:00')}
+                      ('169.254.3.3', '00:00:00:00:00:00')}
 
     self.mox.StubOutWithMock(utils, 'getCaller')
     utils.getCaller().AndReturn(1000)
