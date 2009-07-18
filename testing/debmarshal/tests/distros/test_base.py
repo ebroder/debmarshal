@@ -159,5 +159,20 @@ class TestDistributionHashConfig(unittest.TestCase):
     self.assertNotEqual(dist1.hashConfig(), dist2.hashConfig())
 
 
+class TestDistributionPaths(unittest.TestCase):
+  def test(self):
+    class TestDistro(base.Distribution):
+      def hashBaseConfig(self):
+        return 'abcd'
+
+      def hashConfig(self):
+        return 'efgh'
+
+    self.assertEqual(TestDistro().basePath(),
+                     '/var/cache/debmarshal/images/base/abcd')
+    self.assertEqual(TestDistro().customPath(),
+                     '/var/cache/debmarshal/images/custom/efgh')
+
+
 if __name__ == '__main__':
   unittest.main()

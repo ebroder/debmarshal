@@ -27,6 +27,7 @@ try:
   import hashlib as md5
 except ImportError:  # pragma: no cover
   import md5
+import os
 
 from debmarshal import errors
 
@@ -242,3 +243,30 @@ class Distribution(object):
           (k, self.getCustomConfig(k)) for k in self.custom_configurable)),
       )
     return md5.md5(repr(elements_to_hash)).hexdigest()
+
+  def basePath(self):
+    """Return the path where the base image is cached.
+
+    Subclasses of Distribution can use this path however they want. It
+    can be a tarball, or a filesystem image, or whatever. But it has
+    to go here.
+
+    Returns:
+      The filesystem path where the base image is stored for this
+        distribution with this configuration.
+    """
+    return os.path.join('/var/cache/debmarshal/images/base',
+                        self.hashBaseConfig())
+
+  def customPath(self):
+    """Return the path where the custom image is cached.
+
+    Like the basePath, the cache of a custom image must go here if
+    it's going to be cached.
+
+    Returns:
+      The filesystem path where the customized image is stored for
+        this distribution with this configuration.
+    """
+    return os.path.join('/var/cache/debmarshal/images/custom',
+                        self.hashConfig())
