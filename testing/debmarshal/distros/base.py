@@ -303,3 +303,29 @@ class Distribution(object):
       A bool. True if the image is valid; False if it's not.
     """
     return os.path.exists(self.customPath())
+
+  def createBase(self):
+    """Create a valid base image.
+
+    This method is responsible for creating a base image at
+    self.basePath().
+
+    No arguments are taken and no value is returned, because the
+    location of the resulting base image is already known.
+
+    This method should be overridden in subclasses.
+    """
+    raise errors.NotImplementedError
+
+  def createCustom(self):
+    """Create a valid customized image.
+
+    This method is responsible for creating a customized image at
+    self.customPath().
+
+    No arguments are taken and no value is returned, because the
+    location of the resulting image is already known.
+
+    This method should be overridden in subclasses.
+    """
+    raise errors.NotImplementedError
