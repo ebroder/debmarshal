@@ -270,3 +270,36 @@ class Distribution(object):
     """
     return os.path.join('/var/cache/debmarshal/images/custom',
                         self.hashConfig())
+
+  def verifyBase(self):
+    """Verify that a base image is still valid.
+
+    This method is responsible for verifying that the base image for
+    this configuration still exists, and is still valid.
+
+    In the Distribution class, this means verifying the existence of a
+    base image. Subclasses might want to do checks such as if there
+    are any available package updates.
+
+    Returns:
+      A bool. True if the image is valid; False if it's not.
+    """
+    return os.path.exists(self.basePath())
+
+  def verifyCustom(self):
+    """Verify that a customized image is still valid.
+
+    This method is responsible for verifying that the custom image for
+    this configuration still exists, and is still valid.
+
+    If this method is called, then the base image from which this
+    custom image was generated has already been verified.
+
+    In the Distribution class, the existence of the custom image is
+    verified. Subclasses might want to do checks such as if there are
+    package updates available.
+
+    Returns:
+      A bool. True if the image is valid; False if it's not.
+    """
+    return os.path.exists(self.customPath())

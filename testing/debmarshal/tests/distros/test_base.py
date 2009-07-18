@@ -27,7 +27,10 @@ try:
   import hashlib as md5
 except ImportError:
   import md5
+import os
 import unittest
+
+import mox
 
 from debmarshal.distros import base
 from debmarshal import errors
@@ -172,6 +175,37 @@ class TestDistributionPaths(unittest.TestCase):
                      '/var/cache/debmarshal/images/base/abcd')
     self.assertEqual(TestDistro().customPath(),
                      '/var/cache/debmarshal/images/custom/efgh')
+
+
+class TestDistributionVerify(mox.MoxTestBase):
+  class TestDistro(base.Distribution):
+    def basePath(self):
+      return 'abcd'
+
+    def customPath(self):
+      return 'efgh'
+
+  def testBaseExists(self):
+    self.mox.StubOutWithMock(os.path, 'exists')
+
+    os.path.exists('abcd').AndReturn(True)
+    os.path.exists('efgh').AndReturn(False)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(self.TestDistro().verifyBase(), True)
+    self.assertEqual(self.TestDistro().verifyCustom(), False)
+
+  def testBaseExists(self):
+    self.mox.StubOutWithMock(os.path, 'exists')
+
+    os.path.exists('abcd').AndReturn(False)
+    os.path.exists('efgh').AndReturn(True)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(self.TestDistro().verifyBase(), False)
+    self.assertEqual(self.TestDistro().verifyCustom(), True)
 
 
 if __name__ == '__main__':
