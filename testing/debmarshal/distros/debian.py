@@ -1,0 +1,98 @@
+#!/usr/bin/python
+# -*- python-indent: 2; py-indent-offset: 2 -*-
+# Copyright 2009 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 2.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+"""Debmarshal distribution class for Debian images."""
+
+
+__authors__ = [
+    'Evan Broder <ebroder@google.com>',
+]
+
+
+from debmarshal.distros import base
+
+
+class Debian(base.Distribution):
+  """Debian (and Debian-based) distributions."""
+  base_defaults = {'mirror': 'http://ftp.us.debian.org/debian/',
+                   'security_mirror': 'http://security.debian.org/',
+                   'volatile_mirror':
+                       'http://volatile.debian.org/debian-volatile/',
+                   'enable_security': True,
+                   'enable_volatile': True,
+                   'keyring': '/usr/share/keyrings/debian-archive-keyring.gpg',
+                   'arch': 'amd64',
+                   'suite': 'lenny',
+                   'components': ['main', 'contrib', 'non-free'],
+                   }
+
+  base_configurable = set(['arch', 'suite', 'components',
+                           'enable_security', 'enable_volatile'])
+
+  _custom_defaults = {'add_pkg': [],
+                      'rm_pkg': [],
+                      'ssh_key': '',
+                      'kernel': 'linux-image-amd64',
+                      # Configuration for networking doesn't really
+                      # fit well into this config model. But if dhcp
+                      # is True, then ip, netmask, gateway, and dns
+                      # should have their default values. If dhcp is
+                      # False, then they should all be set.
+                      'dhcp': True,
+                      'ip': None,
+                      'netmask': None,
+                      'gateway': None,
+                      'dns': [],
+                      }
+
+  custom_configurable = set(['add_pkg', 'rm_pkg', 'ssh_key', 'kernel',
+                             'hostname', 'domain',
+                             'dhcp', 'ip', 'netmask', 'gateway', 'dns'])
+
+  _kernels = {
+      'amd64': 'linux-image-amd64',
+      'i386': 'linux-image-i686',
+      'arm': 'linux-image-versatile',
+      'powerpc': 'linux-image-powerpc',
+      'sparc': 'linux-image-sparc64',
+      'mips': 'linux-image-4kc-malta',
+      'mipsel': 'linux-image-4kc-malta',
+      }
+
+  def __init__(self, base_config=None, custom_config=None):
+    """Instantiate and configure a distribution.
+
+    Both base_config and custom_config can be None, but if they are
+    not, they will be validated against the appropriate _defaults and
+    _configurable attributes.
+
+    For Debian installs, the "default" kernel changes based on the
+    architecture of the guest system, so we can't decide which kernel
+    to default to until we know what the architecture is. We make that
+    call in this method.
+
+    Args:
+      base_config: If not None, a dict with configuration for the
+        distribution base image.
+      custom_config: If not None, a dict with configuration for the
+        customization of the base image.
+    """
+    self.custom_defaults = dict(self._custom_defaults)
+    if base_config is not None and 'arch' in base_config:
+      self.custom_defaults['kernel'] = self._kernels[base_config['arch']]
+
+    super(Debian, self).__init__(base_config, custom_config)
