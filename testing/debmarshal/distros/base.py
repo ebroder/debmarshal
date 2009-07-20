@@ -171,7 +171,9 @@ class Distribution(object):
         raise errors.InvalidInput(
             "Extra base_config settings passed in: %s" % extra)
 
-    self.base_config = base_config
+      self.base_config = base_config
+    else:
+      self.base_config = {}
 
     if custom_config is not None:
       custom_keys = set(custom_config)
@@ -185,7 +187,9 @@ class Distribution(object):
         raise errors.InvalidInput(
             "Extra custom_config settings passed in: %s" % extra)
 
-    self.custom_config = custom_config
+      self.custom_config = custom_config
+    else:
+      self.custom_config = {}
 
   def getBaseConfig(self, key):
     """Get a base image config value.
