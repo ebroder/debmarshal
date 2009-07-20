@@ -141,6 +141,10 @@ class Distribution(object):
 
   _version = 1
 
+  _base_hash = None
+
+  _custom_hash = None
+
   @classmethod
   def classId(cls):
     """Identify this class by its full module path."""
@@ -250,13 +254,15 @@ class Distribution(object):
       A hash corresponding to this particular Distribution
         base configuration.
     """
-    elements_to_hash = (
-      self.classId(),
-      self.version,
-      tuple(sorted(
-          (k, self.getBaseConfig(k)) for k in self.base_configurable)),
-      )
-    return md5.md5(repr(elements_to_hash)).hexdigest()
+    if not self._base_hash:
+      elements_to_hash = (
+        self.classId(),
+        self.version,
+        tuple(sorted(
+            (k, self.getBaseConfig(k)) for k in self.base_configurable)),
+        )
+      self._base_hash = md5.md5(repr(elements_to_hash)).hexdigest()
+    return self._base_hash
 
   def hashConfig(self):
     """Return a hashed representation of the Distribution config.
@@ -275,12 +281,14 @@ class Distribution(object):
       A hash corresponding to this particular Distribution
         configuration.
     """
-    elements_to_hash = (
-      self.hashBaseConfig(),
-      tuple(sorted(
-          (k, self.getCustomConfig(k)) for k in self.custom_configurable)),
-      )
-    return md5.md5(repr(elements_to_hash)).hexdigest()
+    if not self._custom_hash:
+      elements_to_hash = (
+        self.hashBaseConfig(),
+        tuple(sorted(
+            (k, self.getCustomConfig(k)) for k in self.custom_configurable)),
+        )
+      self._custom_hash = md5.md5(repr(elements_to_hash)).hexdigest()
+    return self._custom_hash
 
   def basePath(self):
     """Return the path where the base image is cached.
