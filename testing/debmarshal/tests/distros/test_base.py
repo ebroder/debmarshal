@@ -28,12 +28,82 @@ try:
 except ImportError:
   import md5
 import os
+import subprocess
 import unittest
 
 import mox
 
 from debmarshal.distros import base
 from debmarshal import errors
+
+
+class TestCaptureCall(mox.MoxTestBase):
+  def testPassStdin(self):
+    mock_p = self.mox.CreateMock(subprocess.Popen)
+    self.mox.StubOutWithMock(subprocess, 'Popen', use_mock_anything=True)
+
+    subprocess.Popen(['ls'],
+                     stdin='foo',
+                     stdout=subprocess.PIPE,
+                     stderr=subprocess.STDOUT).AndReturn(
+        mock_p)
+    mock_p.communicate().AndReturn(('bar', 'baz'))
+    mock_p.returncode = 0
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(base.captureCall(['ls'], stdin='foo'),
+                     'bar')
+
+  def testPassStdout(self):
+    mock_p = self.mox.CreateMock(subprocess.Popen)
+    self.mox.StubOutWithMock(subprocess, 'Popen', use_mock_anything=True)
+
+    subprocess.Popen(['ls'],
+                     stdin=subprocess.PIPE,
+                     stdout='blah',
+                     stderr=subprocess.STDOUT).AndReturn(
+        mock_p)
+    mock_p.communicate().AndReturn((None, None))
+    mock_p.returncode = 0
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(base.captureCall(['ls'], stdout='blah'),
+                     None)
+
+  def testPassStderr(self):
+    mock_p = self.mox.CreateMock(subprocess.Popen)
+    self.mox.StubOutWithMock(subprocess, 'Popen', use_mock_anything=True)
+
+    subprocess.Popen(['ls'],
+                     stdin=subprocess.PIPE,
+                     stdout=subprocess.PIPE,
+                     stderr='foo').AndReturn(
+        mock_p)
+    mock_p.communicate().AndReturn(('bar', 'baz'))
+    mock_p.returncode = 0
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(base.captureCall(['ls'], stderr='foo'),
+                     'bar')
+
+  def testError(self):
+    mock_p = self.mox.CreateMock(subprocess.Popen)
+    self.mox.StubOutWithMock(subprocess, 'Popen', use_mock_anything=True)
+
+    subprocess.Popen(['ls'],
+                     stdin=subprocess.PIPE,
+                     stdout=subprocess.PIPE,
+                     stderr=subprocess.STDOUT).AndReturn(
+        mock_p)
+    mock_p.communicate().AndReturn((None, None))
+    mock_p.returncode = 255
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(subprocess.CalledProcessError, base.captureCall, ['ls'])
 
 
 class TestDistributionMeta(unittest.TestCase):
