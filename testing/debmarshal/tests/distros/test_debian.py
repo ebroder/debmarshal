@@ -134,12 +134,21 @@ class TestDebianVerifyImage(mox.MoxTestBase):
 
     debian.Debian._mountImage('/home/evan/test.img').AndReturn('/tmp/tmp.ABC')
 
+    debian.Debian._umountImage('/tmp/tmp.ABC')
+
+  def testUpdateError(self):
+    base.captureCall(['chroot', '/tmp/tmp.ABC', 'apt-get', '-qq', 'update']).\
+        AndRaise(subprocess.CalledProcessError(1, []))
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(debian.Debian()._verifyImage('/home/evan/test.img'),
+                     False)
+
+  def testGood(self):
     base.captureCall(['chroot', '/tmp/tmp.ABC', 'apt-get', '-qq', 'update']).\
         AndReturn('')
 
-    debian.Debian._umountImage('/tmp/tmp.ABC')
-
-  def testGood(self):
     base.captureCall(['chroot', '/tmp/tmp.ABC', 'apt-get',
                       '-o', 'Debug::NoLocking=true',
                       '-sqq',
@@ -151,6 +160,9 @@ class TestDebianVerifyImage(mox.MoxTestBase):
                      True)
 
   def testBad(self):
+    base.captureCall(['chroot', '/tmp/tmp.ABC', 'apt-get', '-qq', 'update']).\
+        AndReturn('')
+
     base.captureCall(['chroot', '/tmp/tmp.ABC', 'apt-get',
                       '-o', 'Debug::NoLocking=true',
                       '-sqq',
