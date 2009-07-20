@@ -86,5 +86,96 @@ class TestDebianMountImage(mox.MoxTestBase):
                       deb._mountImage, self.img)
 
 
+class TestDebianVerifyImage(mox.MoxTestBase):
+  def setUp(self):
+    super(TestDebianVerifyImage, self).setUp()
+
+    self.mox.StubOutWithMock(debian.Debian, '_mountImage')
+    self.mox.StubOutWithMock(base, 'captureCall')
+    self.mox.StubOutWithMock(debian.Debian, '_umountImage')
+
+    debian.Debian._mountImage('/home/evan/test.img').AndReturn('/tmp/tmp.ABC')
+
+    base.captureCall(['chroot', '/tmp/tmp.ABC', 'apt-get', '-qq', 'update']).\
+        AndReturn('')
+
+    debian.Debian._umountImage('/tmp/tmp.ABC')
+
+  def testGood(self):
+    base.captureCall(['chroot', '/tmp/tmp.ABC', 'apt-get',
+                      '-o', 'Debug::NoLocking=true',
+                      '-sqq',
+                      'dist-upgrade']).AndReturn('\n')
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(debian.Debian()._verifyImage('/home/evan/test.img'),
+                     True)
+
+  def testBad(self):
+    base.captureCall(['chroot', '/tmp/tmp.ABC', 'apt-get',
+                      '-o', 'Debug::NoLocking=true',
+                      '-sqq',
+                      'dist-upgrade']).AndReturn("""
+Inst libruby1.8 [1.8.6.111-2ubuntu1.2] (1.8.6.111-2ubuntu1.3 Ubuntu:8.04/hardy-security)
+Conf libruby1.8 (1.8.6.111-2ubuntu1.3 Ubuntu:8.04/hardy-security
+""")
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(debian.Debian()._verifyImage('/home/evan/test.img'),
+                     False)
+
+
+class TestDebianVerify(mox.MoxTestBase):
+  def setUp(self):
+    super(TestDebianVerify, self).setUp()
+
+    self.mox.StubOutWithMock(base.Distribution, 'verifyBase')
+    self.mox.StubOutWithMock(base.Distribution, 'verifyCustom')
+    self.mox.StubOutWithMock(debian.Debian, '_verifyImage')
+
+  def testNoExists(self):
+    base.Distribution.verifyBase().AndReturn(False)
+    base.Distribution.verifyCustom().AndReturn(False)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(debian.Debian().verifyBase(), False)
+    self.assertEqual(
+        debian.Debian(
+            None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
+        False)
+
+  def testExists(self):
+    base.Distribution.verifyBase().AndReturn(True)
+    base.Distribution.verifyCustom().AndReturn(True)
+
+    debian.Debian._verifyImage(mox.IgnoreArg()).MultipleTimes().AndReturn(
+        False)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(debian.Debian().verifyBase(), False)
+    self.assertEqual(
+        debian.Debian(
+            None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
+        False)
+
+  def testAllGood(self):
+    base.Distribution.verifyBase().AndReturn(True)
+    base.Distribution.verifyCustom().AndReturn(True)
+
+    debian.Debian._verifyImage(mox.IgnoreArg()).MultipleTimes().AndReturn(True)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(debian.Debian().verifyBase(), True)
+    self.assertEqual(
+        debian.Debian(
+            None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
+        True)
+
+
 if __name__ == '__main__':
   unittest.main()

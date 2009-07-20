@@ -133,3 +133,65 @@ class Debian(base.Distribution):
     base.captureCall(['umount', '-l', root])
 
     os.rmdir(root)
+
+  def _verifyImage(self, image):
+    """Verify that some disk image is still valid.
+
+    For Debian images, this means verifying that there are no pending
+    package updates.
+
+    This method is used for verifying both base and customized images.
+
+    Args:
+      image: The disk image file to verify.
+
+    Returns:
+      A bool. True if the image is valid; False if it's not.
+    """
+    root = self._mountImage(image)
+
+    try:
+      base.captureCall(['chroot', root,
+                        'apt-get',
+                        '-qq',
+                        'update'])
+
+      # apt-get -sqq dist-upgrade will print out a summary of the
+      # steps it would have taken, had this not been a dry run. If
+      # there is nothing to do, it will print nothing.
+      updates = base.captureCall(['chroot', root,
+                                  'apt-get',
+                                  '-o', 'Debug::NoLocking=true',
+                                  '-sqq',
+                                  'dist-upgrade'])
+      return updates.strip() == ''
+    finally:
+      self._umountImage(root)
+
+  def verifyBase(self):
+    """Verify that a base image is still valid.
+
+    For Debian images, this means verifying that there are no pending
+    package updates.
+
+    Returns:
+      A bool. True if the image is valid; False if it's not.
+    """
+    if not super(Debian, self).verifyBase():
+      return False
+    else:
+      return self._verifyImage(self.basePath())
+
+  def verifyCustom(self):
+    """Verify that a customized image is still valid.
+
+    For Debian images, this means verifying that there are no pending
+    package updates.
+
+    Returns:
+      A bool. True if the image is valid; False if it's not.
+    """
+    if not super(Debian, self).verifyCustom():
+      return False
+    else:
+      return self._verifyImage(self.customPath())
