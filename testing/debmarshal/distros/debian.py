@@ -26,7 +26,66 @@ __authors__ = [
 import os
 import tempfile
 
+import decorator
+
 from debmarshal.distros import base
+
+
+def _stopInitScripts(target):
+  """Stop init scripts from running.
+
+  This function, along with _startInitScripts, primarily exists to
+  allow for more easily mocking out the withoutInitScripts decorator
+  in testing.
+
+  Args:
+    target: The root of the filesystem where we're stopping init
+      scripts.
+  """
+  policy_path = os.path.join(target, 'usr/sbin/policy-rc.d')
+  policy = open(policy_path, 'w')
+  policy.write("#!/bin/sh\n"
+               "exit 101\n")
+  policy.close()
+
+  os.chmod(policy_path, 0755)
+
+
+def _startInitScripts(target):
+  """Allow init scripts to write.
+
+  This function, along with _stopInitScripts, primarily exists to
+  allow for more easily mocking out the withoutInitScripts decorator
+  in testing.
+
+  Args:
+    target: The root of the filesystem where we're allowing init
+      scripts.
+  """
+  policy_path = os.path.join(target, 'usr/sbin/policy-rc.d')
+  if os.path.exists(policy_path):
+    os.remove(policy_path)
+
+
+@decorator.decorator
+def withoutInitScripts(f, *args, **kwargs):
+  """Decorator to disable init scripts in a chroot.
+
+  Functions decorated with withoutInitScripts have a policy.rc-d file
+  created in order to prevent any Debian Policy-compliant init scripts
+  from running.
+
+  This decorator is designed for use with class methods, and assumes
+  that the object being operated on has a target attribute with the
+  root of the disk image.
+  """
+  self = args[0]
+  _stopInitScripts(self.target)
+
+  try:
+    f(*args, **kwargs)
+  finally:
+    _startInitScripts(self.target)
 
 
 class Debian(base.Distribution):

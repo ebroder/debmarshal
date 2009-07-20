@@ -34,6 +34,44 @@ from debmarshal.distros import base
 from debmarshal.distros import debian
 
 
+class TestWithoutInitScripts(mox.MoxTestBase):
+  def setUp(self):
+    super(TestWithoutInitScripts, self).setUp()
+
+    debian.open = self.mox.CreateMockAnything()
+
+  def tearDown(self):
+    super(TestWithoutInitScripts, self).tearDown()
+
+    del debian.open
+
+  def test(self):
+    f = self.mox.CreateMock(file)
+    debian.open('foo/usr/sbin/policy-rc.d', 'w').AndReturn(f)
+
+    f.write("#!/bin/sh\nexit 101\n")
+    f.close()
+
+    self.mox.StubOutWithMock(os, 'chmod')
+    os.chmod('foo/usr/sbin/policy-rc.d', 0755)
+
+    self.mox.StubOutWithMock(os.path, 'exists')
+    os.path.exists('foo/usr/sbin/policy-rc.d').AndReturn(True)
+
+    self.mox.StubOutWithMock(os, 'remove')
+    os.remove('foo/usr/sbin/policy-rc.d')
+
+    @debian.withoutInitScripts
+    def test(self):
+      return True
+
+    self.mox.ReplayAll()
+
+    self.target = 'foo'
+
+    test(self)
+
+
 class TestDebianInit(unittest.TestCase):
   def test(self):
     self.assertEqual(debian.Debian().custom_defaults['kernel'],
