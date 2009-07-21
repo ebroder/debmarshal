@@ -23,6 +23,7 @@ __authors__ = [
 ]
 
 
+import ConfigParser
 try:
   import hashlib as md5
 except ImportError:
@@ -35,6 +36,15 @@ import mox
 
 from debmarshal.distros import base
 from debmarshal import errors
+
+
+class NoDefaultsDistribution(base.Distribution):
+  """A test distribution class.
+
+  This class doesn't hit the filesystem for defaults, so any testing
+  against a Distribution subclass should use this."""
+  def _updateDefaults(self):
+    pass
 
 
 class TestCaptureCall(mox.MoxTestBase):
@@ -120,6 +130,51 @@ class TestDistributionMeta(unittest.TestCase):
     self.assertEqual(TestDist3.version, (3, (2, (1,))))
 
 
+class TestDistributionUpdateDefaults(mox.MoxTestBase):
+  class TestDistribution(base.Distribution):
+    base_defaults = {'a': '1', 'c': 2}
+
+    custom_defaults = {'b': '3', 'd': 4}
+
+  def setUp(self):
+    super(TestDistributionUpdateDefaults, self).setUp()
+
+    self.mock_config = self.mox.CreateMock(ConfigParser.SafeConfigParser)
+    self.mox.StubOutWithMock(ConfigParser,
+                             'SafeConfigParser',
+                             use_mock_anything=True)
+    ConfigParser.SafeConfigParser().AndReturn(self.mock_config)
+
+    self.mock_config.read(['/etc/debmarshal/distros.conf'])
+
+  def testBase(self):
+    self.mock_config.has_section(self.TestDistribution.classId() + '.base').\
+        AndReturn(True)
+    self.mock_config.items(self.TestDistribution.classId() + '.base').\
+        AndReturn((('a', '5'), ('b', '6'), ('c', '7')))
+
+    self.mock_config.has_section(self.TestDistribution.classId() + '.custom').\
+        AndReturn(False)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(self.TestDistribution().base_defaults, {'a': '5', 'c': 2})
+
+  def testCustom(self):
+    self.mock_config.has_section(self.TestDistribution.classId() + '.base').\
+        AndReturn(False)
+
+    self.mock_config.has_section(self.TestDistribution.classId() + '.custom').\
+        AndReturn(True)
+    self.mock_config.items(self.TestDistribution.classId() + '.custom').\
+        AndReturn((('a', '5'), ('b', '6'), ('c', '7')))
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(self.TestDistribution().custom_defaults,
+                     {'b': '6', 'd': 4})
+
+
 class TestDistributionInit(unittest.TestCase):
   """Test base.Distribution.__init__."""
   def testNoArguments(self):
@@ -127,14 +182,14 @@ class TestDistributionInit(unittest.TestCase):
 
     This should work, but be totally uninteresting.
     """
-    distro = base.Distribution()
+    distro = NoDefaultsDistribution()
 
     self.assertEqual(distro.base_config, {})
     self.assertEqual(distro.custom_config, {})
 
   def testBaseConfig(self):
     """Test missing and extra options to the Distribution base_config."""
-    class TestDistro(base.Distribution):
+    class TestDistro(NoDefaultsDistribution):
       base_defaults = {'bar': 'baz'}
 
       base_configurable = set(['foo', 'bar'])
@@ -147,7 +202,7 @@ class TestDistributionInit(unittest.TestCase):
 
   def testCustomConfig(self):
     """Test missing and extra options to the Distribution custom_config."""
-    class TestDistro(base.Distribution):
+    class TestDistro(NoDefaultsDistribution):
       custom_defaults = {'bar': 'baz'}
 
       custom_configurable = set(['foo', 'bar'])
@@ -162,7 +217,7 @@ class TestDistributionInit(unittest.TestCase):
 class TestDistributionGetItems(unittest.TestCase):
   """Test retrieving image settings from a distribution."""
   def testBaseConfig(self):
-    class TestDistro(base.Distribution):
+    class TestDistro(NoDefaultsDistribution):
       base_configurable = set(['foo'])
 
       base_defaults = {'bar': 'baz'}
@@ -174,7 +229,7 @@ class TestDistributionGetItems(unittest.TestCase):
     self.assertRaises(KeyError, distro.getBaseConfig, 'spam')
 
   def testCustomConfig(self):
-    class TestDistro(base.Distribution):
+    class TestDistro(NoDefaultsDistribution):
       custom_configurable = set(['foo'])
 
       custom_defaults = {'bar': 'baz'}
@@ -186,7 +241,7 @@ class TestDistributionGetItems(unittest.TestCase):
     self.assertRaises(KeyError, distro.getCustomConfig, 'spam')
 
   def testJustDefaults(self):
-    class TestDistro(base.Distribution):
+    class TestDistro(NoDefaultsDistribution):
       base_defaults = {'bar': 'baz'}
 
       base_configurable = set(['bar'])
@@ -213,7 +268,7 @@ class TestDistributionClassId(unittest.TestCase):
 
 
 class TestDistributionHashConfig(unittest.TestCase):
-  class TestDistro(base.Distribution):
+  class TestDistro(NoDefaultsDistribution):
     _version = 2
 
     base_defaults = {'a': '1', 'b': '2'}
@@ -251,7 +306,7 @@ class TestDistributionHashConfig(unittest.TestCase):
 
 class TestDistributionPaths(unittest.TestCase):
   def test(self):
-    class TestDistro(base.Distribution):
+    class TestDistro(NoDefaultsDistribution):
       def hashBaseConfig(self):
         return 'abcd'
 
@@ -265,7 +320,7 @@ class TestDistributionPaths(unittest.TestCase):
 
 
 class TestDistributionVerify(mox.MoxTestBase):
-  class TestDistro(base.Distribution):
+  class TestDistro(NoDefaultsDistribution):
     def basePath(self):
       return 'abcd'
 
@@ -298,9 +353,9 @@ class TestDistributionVerify(mox.MoxTestBase):
 class TestDistributionCreate(unittest.TestCase):
   def test(self):
     self.assertRaises(errors.NotImplementedError,
-                      base.Distribution().createBase)
+                      NoDefaultsDistribution().createBase)
     self.assertRaises(errors.NotImplementedError,
-                      base.Distribution().createCustom)
+                      NoDefaultsDistribution().createCustom)
 
 
 if __name__ == '__main__':

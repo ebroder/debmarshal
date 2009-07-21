@@ -32,6 +32,11 @@ import mox
 
 from debmarshal.distros import base
 from debmarshal.distros import debian
+from debmarshal.tests.distros import test_base
+
+
+class TestDebian(test_base.NoDefaultsDistribution, debian.Debian):
+  """Debian distribution for testing."""
 
 
 class TestWithoutInitScripts(mox.MoxTestBase):
@@ -74,9 +79,9 @@ class TestWithoutInitScripts(mox.MoxTestBase):
 
 class TestDebianInit(unittest.TestCase):
   def test(self):
-    self.assertEqual(debian.Debian().custom_defaults['kernel'],
+    self.assertEqual(TestDebian().custom_defaults['kernel'],
                      'linux-image-amd64')
-    self.assertEqual(debian.Debian({'arch': 'arm'}).custom_defaults['kernel'],
+    self.assertEqual(TestDebian({'arch': 'arm'}).custom_defaults['kernel'],
                      'linux-image-versatile')
 
 
@@ -101,7 +106,7 @@ class TestDebianMountImage(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    deb = debian.Debian()
+    deb = TestDebian()
 
     self.assertEqual(deb._mountImage(self.img), self.root)
     deb._umountImage(self.root)
@@ -118,7 +123,7 @@ class TestDebianMountImage(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    deb = debian.Debian()
+    deb = TestDebian()
 
     self.assertRaises(subprocess.CalledProcessError,
                       deb._mountImage, self.img)
@@ -142,7 +147,7 @@ class TestDebianVerifyImage(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(debian.Debian()._verifyImage('/home/evan/test.img'),
+    self.assertEqual(TestDebian()._verifyImage('/home/evan/test.img'),
                      False)
 
   def testGood(self):
@@ -156,7 +161,7 @@ class TestDebianVerifyImage(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(debian.Debian()._verifyImage('/home/evan/test.img'),
+    self.assertEqual(TestDebian()._verifyImage('/home/evan/test.img'),
                      True)
 
   def testBad(self):
@@ -173,7 +178,7 @@ Conf libruby1.8 (1.8.6.111-2ubuntu1.3 Ubuntu:8.04/hardy-security
 
     self.mox.ReplayAll()
 
-    self.assertEqual(debian.Debian()._verifyImage('/home/evan/test.img'),
+    self.assertEqual(TestDebian()._verifyImage('/home/evan/test.img'),
                      False)
 
 
@@ -191,9 +196,9 @@ class TestDebianVerify(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(debian.Debian().verifyBase(), False)
+    self.assertEqual(TestDebian().verifyBase(), False)
     self.assertEqual(
-        debian.Debian(
+        TestDebian(
             None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
         False)
 
@@ -206,9 +211,9 @@ class TestDebianVerify(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(debian.Debian().verifyBase(), False)
+    self.assertEqual(TestDebian().verifyBase(), False)
     self.assertEqual(
-        debian.Debian(
+        TestDebian(
             None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
         False)
 
@@ -220,9 +225,9 @@ class TestDebianVerify(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(debian.Debian().verifyBase(), True)
+    self.assertEqual(TestDebian().verifyBase(), True)
     self.assertEqual(
-        debian.Debian(
+        TestDebian(
             None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
         True)
 
