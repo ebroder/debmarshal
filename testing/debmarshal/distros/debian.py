@@ -258,3 +258,21 @@ class Debian(base.Distribution):
       return False
     else:
       return self._verifyImage(self.customPath())
+
+  def _createSparseFile(self, path, len):
+    """Create a sparse file.
+
+    Create a sparse file with a given length, say for use as a disk
+    image.
+
+    It is the caller's responsibility to ensure that the passed in
+    path doesn't exist, or can be overwritten.
+
+    Args:
+      path: Path to the file to be created.
+      len: Length of the sparse file in bytes.
+    """
+    dir = os.path.dirname(path)
+    if not os.path.exists(dir):
+      os.makedirs(dir)
+    open(path, 'w').truncate(len)

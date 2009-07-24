@@ -24,6 +24,7 @@ __authors__ = [
 
 
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -230,6 +231,39 @@ class TestDebianVerify(mox.MoxTestBase):
         TestDebian(
             None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
         True)
+
+
+class TestDebianCreateSparseFile(unittest.TestCase):
+  """Test creating sparse files.
+
+  For once, this has well enough defined behavior that we can actually
+  test ends instead of means.
+  """
+  def testCreateFile(self):
+    fd, name = tempfile.mkstemp()
+    os.close(fd)
+    size = 1024 ** 2
+
+    TestDebian()._createSparseFile(name, size)
+
+    try:
+      self.assertEqual(os.stat(name).st_size, size)
+      self.assertEqual(os.stat(name).st_blocks, 0)
+    finally:
+      os.remove(name)
+
+  def testCreateDirectoriesAndFile(self):
+    dir = tempfile.mkdtemp()
+
+    name = os.path.join(dir, 'foo/file')
+    size = 1024 ** 2
+    TestDebian()._createSparseFile(name, size)
+
+    try:
+      self.assertEqual(os.stat(name).st_size, size)
+      self.assertEqual(os.stat(name).st_blocks, 0)
+    finally:
+      shutil.rmtree(dir)
 
 
 if __name__ == '__main__':
