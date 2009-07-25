@@ -352,3 +352,27 @@ class Debian(base.Distribution):
                 "ff02::2 ip6-allrouters\n"
                 "ff02::3 ip6-allhosts\n")
     hosts.close()
+
+  def _installSources(self):
+    """Install the sources.list file."""
+    sources = open(os.path.join(self.target, 'etc/apt/sources.list'), 'w')
+
+    try:
+      sources_conf = [
+          self.getBaseConfig('mirror'),
+          self.getBaseConfig('suite'),
+          ' '.join(self.getBaseConfig('components'))]
+      sources.write('deb %s %s %s\n' % tuple(sources_conf))
+      sources.write('deb-src %s %s %s\n' % tuple(sources_conf))
+
+      if self.getBaseConfig('enable_security'):
+        sources_conf[0] = self.getBaseConfig('security_mirror')
+        sources.write('deb %s %s/updates %s\n' % tuple(sources_conf))
+        sources.write('deb-src %s %s/updates %s\n' % tuple(sources_conf))
+
+      if self.getBaseConfig('enable_volatile'):
+        sources_conf[0] = self.getBaseConfig('volatile_mirror')
+        sources.write('deb %s %s/volatile %s\n' % tuple(sources_conf))
+        sources.write('deb-src %s %s/volatile %s\n' % tuple(sources_conf))
+    finally:
+      sources.close()

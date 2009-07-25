@@ -390,5 +390,67 @@ class TestDebianInstallHosts(unittest.TestCase):
       shutil.rmtree(target)
 
 
+class TestDebianInstallSources(unittest.TestCase):
+  def testNoComponents(self):
+    target = tempfile.mkdtemp()
+    sources_dir = os.path.join(target, 'etc/apt')
+    os.makedirs(sources_dir)
+
+    try:
+      deb = TestDebian({'enable_security': False,
+                        'enable_volatile': False})
+      deb.target = target
+
+      deb._installSources()
+
+      sources_path = os.path.join(sources_dir, 'sources.list')
+      sources = open(sources_path).read()
+
+      self.assert_(re.search(
+          '^deb http://ftp\.us\.debian\.org/debian/',
+          sources,
+          re.M))
+      self.assert_(not re.search(
+          '^deb http://security\.debian\.org/',
+          sources,
+          re.M))
+      self.assert_(not re.search(
+          '^deb http://volatile\.debian\.org/debian-volatile/',
+          sources,
+          re.M))
+    finally:
+      shutil.rmtree(target)
+
+  def testAllComponents(self):
+    target = tempfile.mkdtemp()
+    sources_dir = os.path.join(target, 'etc/apt')
+    os.makedirs(sources_dir)
+
+    try:
+      deb = TestDebian({'enable_security': True,
+                        'enable_volatile': True})
+      deb.target = target
+
+      deb._installSources()
+
+      sources_path = os.path.join(sources_dir, 'sources.list')
+      sources = open(sources_path).read()
+
+      self.assert_(re.search(
+          '^deb http://ftp\.us\.debian\.org/debian/',
+          sources,
+          re.M))
+      self.assert_(re.search(
+          '^deb http://security\.debian\.org/',
+          sources,
+          re.M))
+      self.assert_(re.search(
+          '^deb http://volatile\.debian\.org/debian-volatile/',
+          sources,
+          re.M))
+    finally:
+      shutil.rmtree(target)
+
+
 if __name__ == '__main__':
   unittest.main()
