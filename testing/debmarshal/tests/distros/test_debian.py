@@ -303,5 +303,33 @@ class TestDebianInstallFilesystem(mox.MoxTestBase):
       os.remove(name)
 
 
+class TestMethodsWithoutInitScripts(mox.MoxTestBase):
+  """Superclass for testing methods wrapped in withoutInitScripts."""
+  def setUp(self):
+    super(TestMethodsWithoutInitScripts, self).setUp()
+
+    self.mox.StubOutWithMock(debian, '_stopInitScripts')
+    self.mox.StubOutWithMock(debian, '_startInitScripts')
+
+    debian._stopInitScripts(mox.IgnoreArg())
+    debian._startInitScripts(mox.IgnoreArg())
+
+
+class TestDebianInstallPackage(TestMethodsWithoutInitScripts):
+  def test(self):
+    self.mox.StubOutWithMock(debian.Debian, '_runInTarget')
+
+    env = dict(os.environ)
+    env['DEBIAN_FRONTEND'] = 'noninteractive'
+    debian.Debian._runInTarget(['apt-get', '-y', 'install', 'foo', 'bar'],
+                               env=env)
+
+    self.mox.ReplayAll()
+
+    deb = TestDebian()
+    deb.target = 'blah'
+    deb._installPackages('foo', 'bar')
+
+
 if __name__ == '__main__':
   unittest.main()
