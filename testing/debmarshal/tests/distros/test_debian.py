@@ -266,5 +266,18 @@ class TestDebianCreateSparseFile(unittest.TestCase):
       shutil.rmtree(dir)
 
 
+class TestDebianRunInTarget(mox.MoxTestBase):
+  def test(self):
+    self.mox.StubOutWithMock(base, 'captureCall')
+
+    base.captureCall(['chroot', 'foo', 'some', 'command'])
+
+    self.mox.ReplayAll()
+
+    deb = TestDebian()
+    deb.target = 'foo'
+    deb._runInTarget(['some', 'command'])
+
+
 if __name__ == '__main__':
   unittest.main()

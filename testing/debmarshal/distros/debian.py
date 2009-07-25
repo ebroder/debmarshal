@@ -276,3 +276,17 @@ class Debian(base.Distribution):
     if not os.path.exists(dir):
       os.makedirs(dir)
     open(path, 'w').truncate(len)
+
+  def _runInTarget(self, command_args, *args, **kwargs):
+    """Run a command in the install target.
+
+    All extra positional and keyword arguments are passed on to
+    captureCall.
+
+    Args:
+      command_args: The command and arguments to run within the
+        target.
+    """
+    chroot_args = ['chroot', self.target]
+    chroot_args.extend(command_args)
+    return base.captureCall(chroot_args, *args, **kwargs)
