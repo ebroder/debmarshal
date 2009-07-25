@@ -347,5 +347,26 @@ class TestDebianInstallReconfigure(TestMethodsWithoutInitScripts):
     deb._installReconfigure('foo')
 
 
+class TestDebianInstallDebootstrap(mox.MoxTestBase):
+  def test(self):
+    self.mox.StubOutWithMock(base, 'captureCall')
+
+    deb = TestDebian()
+    deb.target = 'blah'
+
+    base.captureCall([
+        'debootstrap',
+        '--keyring=/usr/share/keyrings/debian-archive-keyring.gpg',
+        '--arch=amd64',
+        '--components=main,contrib,non-free',
+        'lenny',
+        'blah',
+        'http://ftp.us.debian.org/debian/'])
+
+    self.mox.ReplayAll()
+
+    deb._installDebootstrap()
+
+
 if __name__ == '__main__':
   unittest.main()
