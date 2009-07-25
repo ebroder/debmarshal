@@ -338,3 +338,17 @@ class Debian(base.Distribution):
                       self.getBaseConfig('suite'),
                       self.target,
                       self.getBaseConfig('mirror')])
+
+  def _installHosts(self):
+    """Install the /etc/hosts file."""
+    hosts = open(os.path.join(self.target, 'etc/hosts'), 'w')
+    hosts.write("127.0.0.1 localhost\n"
+                "\n"
+                "# The following lines are desirable for IPv6 capable hosts\n"
+                "::1 ip6-localhost ip6-loopback\n"
+                "fe00::0 ip6-localnet\n"
+                "ff00::0 ip6-mcastprefix\n"
+                "ff02::1 ip6-allnodes\n"
+                "ff02::2 ip6-allrouters\n"
+                "ff02::3 ip6-allhosts\n")
+    hosts.close()
