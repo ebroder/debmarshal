@@ -498,5 +498,27 @@ class TestDebianInstallLocale(TestMethodsWithoutInitScripts):
       shutil.rmtree(target)
 
 
+class TestDebianInstallTimezone(TestMethodsWithoutInitScripts):
+  def test(self):
+    target = tempfile.mkdtemp()
+    etc_dir = os.path.join(target, 'etc')
+    os.makedirs(etc_dir)
+
+    try:
+      self.mox.StubOutWithMock(debian.Debian, '_installReconfigure')
+      debian.Debian._installReconfigure('tzdata')
+
+      self.mox.ReplayAll()
+
+      deb = TestDebian()
+      deb.target = target
+      deb._installTimezone()
+
+      self.assertEqual(open(os.path.join(etc_dir, 'timezone')).read().strip(),
+                       'America/Los_Angeles')
+    finally:
+      shutil.rmtree(target)
+
+
 if __name__ == '__main__':
   unittest.main()
