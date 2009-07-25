@@ -452,5 +452,19 @@ class TestDebianInstallSources(unittest.TestCase):
       shutil.rmtree(target)
 
 
+class TestDebianInstallUpdates(TestMethodsWithoutInitScripts):
+  def test(self):
+    self.mox.StubOutWithMock(debian.Debian, '_runInTarget')
+
+    debian.Debian._runInTarget(['apt-get', 'update'])
+    debian.Debian._runInTarget(['apt-get', '-y', 'dist-upgrade'])
+
+    self.mox.ReplayAll()
+
+    deb = TestDebian()
+    deb.target = 'foo'
+    deb._installUpdates()
+
+
 if __name__ == '__main__':
   unittest.main()
