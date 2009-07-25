@@ -331,5 +331,21 @@ class TestDebianInstallPackage(TestMethodsWithoutInitScripts):
     deb._installPackages('foo', 'bar')
 
 
+class TestDebianInstallReconfigure(TestMethodsWithoutInitScripts):
+  def test(self):
+    self.mox.StubOutWithMock(debian.Debian, '_runInTarget')
+
+    debian.Debian._runInTarget(['dpkg-reconfigure',
+                                '-fnoninteractive',
+                                '-pcritical',
+                                'foo'])
+
+    self.mox.ReplayAll()
+
+    deb = TestDebian()
+    deb.target = 'blah'
+    deb._installReconfigure('foo')
+
+
 if __name__ == '__main__':
   unittest.main()
