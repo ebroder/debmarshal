@@ -290,3 +290,14 @@ class Debian(base.Distribution):
     chroot_args = ['chroot', self.target]
     chroot_args.extend(command_args)
     return base.captureCall(chroot_args, *args, **kwargs)
+
+  def _installFilesystem(self, path):
+    """Create an ext3 filesystem in the device at path.
+
+    path may be a file or a block device.
+
+    Args:
+      path: Path to the block device where a filesystem should be
+        created.
+    """
+    base.captureCall(['mkfs', '-t', 'ext3', '-F', path])
