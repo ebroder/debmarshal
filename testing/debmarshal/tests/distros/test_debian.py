@@ -520,5 +520,54 @@ class TestDebianInstallTimezone(TestMethodsWithoutInitScripts):
       shutil.rmtree(target)
 
 
+class TestDebianCreateBase(mox.MoxTestBase):
+  def test(self):
+    self.mox.StubOutWithMock(debian.Debian, 'verifyBase')
+    self.mox.StubOutWithMock(debian.Debian, 'basePath')
+    self.mox.StubOutWithMock(os.path, 'exists')
+    self.mox.StubOutWithMock(os, 'remove')
+    self.mox.StubOutWithMock(debian.Debian, '_createSparseFile')
+    self.mox.StubOutWithMock(debian.Debian, '_installFilesystem')
+    self.mox.StubOutWithMock(debian.Debian, '_mountImage')
+    self.mox.StubOutWithMock(debian.Debian, '_installDebootstrap')
+    self.mox.StubOutWithMock(debian.Debian, '_installHosts')
+    self.mox.StubOutWithMock(debian.Debian, '_installSources')
+    self.mox.StubOutWithMock(debian.Debian, '_installUpdates')
+    self.mox.StubOutWithMock(debian.Debian, '_installLocale')
+    self.mox.StubOutWithMock(debian.Debian, '_installTimezone')
+    self.mox.StubOutWithMock(debian.Debian, '_umountImage')
+
+    debian.Debian.verifyBase().AndReturn(True)
+
+    debian.Debian.verifyBase().AndReturn(False)
+    debian.Debian.basePath().MultipleTimes().AndReturn('abcd')
+    os.path.exists('abcd').AndReturn(True)
+    os.remove('abcd')
+
+    debian.Debian._createSparseFile('abcd', 1024 ** 3)
+    debian.Debian._installFilesystem('abcd')
+    debian.Debian._mountImage('abcd').AndReturn('dcba')
+
+    # The order these get called in does actually
+    # matter. Unfortunately, we can't test that across multiple
+    # MockMethods.
+    debian.Debian._installDebootstrap()
+    debian.Debian._installHosts()
+    debian.Debian._installSources()
+    debian.Debian._installUpdates()
+    debian.Debian._installLocale()
+    debian.Debian._installTimezone()
+    debian.Debian._umountImage('dcba')
+
+    self.mox.ReplayAll()
+
+    # The first time we try, verifyBase returns True. Since the rest
+    # of the method has only been stubbed out once, if returning True
+    # doesn't cause us to return, then we'll throw errors about
+    # methods being called too many times.
+    TestDebian().createBase()
+    TestDebian().createBase()
+
+
 if __name__ == '__main__':
   unittest.main()
