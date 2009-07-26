@@ -520,6 +520,45 @@ class TestDebianInstallTimezone(TestMethodsWithoutInitScripts):
       shutil.rmtree(target)
 
 
+class TestDebianInstallPartitions(unittest.TestCase):
+  def test(self):
+    fd, name = tempfile.mkstemp()
+    os.close(fd)
+    size = 10 * (1024 ** 3)
+    TestDebian()._createSparseFile(name, size)
+
+    try:
+      TestDebian()._installPartitions(name)
+
+      fd = open(name)
+      fd.seek(0x01BE)
+      self.assertEqual(fd.read(1), '\x80',
+                       'First partition is not bootable.')
+      fd.seek(0x01BE + 0x4)
+      self.assertEqual(fd.read(1), '\x83',
+                       'First partition is not of type Linux.')
+
+      fd.seek(0x01BE + 0x10 + 0x4)
+      self.assertEqual(fd.read(1), '\x82',
+                       'Second partition is not of type swap.')
+      fd.seek(0x01BE + 0x10 + 0xC)
+      swap_bytes = struct.unpack('<L', fd.read(4))[0] * 512
+      desired_swap = 1024 ** 3
+      variance = 128 * (1024 ** 2)
+      self.assert_(abs(swap_bytes - desired_swap) < variance,
+                   'Swap partition is too far off from 1G.')
+
+      fd.seek(0x01BE + 0x20 + 0x4)
+      self.assertEqual(fd.read(1), '\x00',
+                       'Third partition exists.')
+
+      fd.seek(0x01BE + 0x30 + 0x4)
+      self.assertEqual(fd.read(1), '\x00',
+                       'Fourth partition exists.')
+    finally:
+      os.remove(name)
+
+
 class TestDebianCreateBase(mox.MoxTestBase):
   def test(self):
     self.mox.StubOutWithMock(debian.Debian, 'verifyBase')
