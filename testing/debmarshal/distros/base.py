@@ -34,7 +34,7 @@ import subprocess
 from debmarshal import errors
 
 
-def captureCall(*args, **kwargs):
+def captureCall(popen_args, stdin_str=None, *args, **kwargs):
   """Capture stdout from a command.
 
   This method will proxy the arguments to subprocess.Popen. It returns
@@ -45,7 +45,11 @@ def captureCall(*args, **kwargs):
   function that also allows you access to the output from the command.
 
   Args:
-    All arguments are the same as the arguments to subprocess.Popen
+    popen_args: A string or sequence of program arguments. (The first
+      argument to subprocess.Popen)
+    stdin_str: A string to pass in on stdin. This requires the stdin
+      kwarg to either be unset or subprocess.PIPE.
+    All other arguments are the same as the arguments to subprocess.Popen
 
   Returns:
     Anything printed on stdout by the process.
@@ -60,10 +64,10 @@ def captureCall(*args, **kwargs):
     kwargs['stdout'] = subprocess.PIPE
   if 'stderr' not in kwargs:
     kwargs['stderr'] = subprocess.STDOUT
-  p = subprocess.Popen(*args, **kwargs)
-  out, _ = p.communicate()
+  p = subprocess.Popen(popen_args, *args, **kwargs)
+  out, _ = p.communicate(stdin_str)
   if p.returncode:
-    raise subprocess.CalledProcessError(p.returncode, args[0])
+    raise subprocess.CalledProcessError(p.returncode, popen_args)
   return out
 
 
