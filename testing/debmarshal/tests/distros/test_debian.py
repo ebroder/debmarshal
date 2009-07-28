@@ -36,6 +36,7 @@ import mox
 from debmarshal.distros import base
 from debmarshal.distros import debian
 from debmarshal.tests.distros import test_base
+from debmarshal import utils
 
 
 class TestDebian(test_base.NoDefaultsDistribution, debian.Debian):
@@ -99,8 +100,22 @@ class TestDebianMountImage(mox.MoxTestBase):
     tempfile.mkdtemp().AndReturn(self.root)
 
     self.mox.StubOutWithMock(base, 'captureCall')
+    self.mox.StubOutWithMock(utils, 'diskIsBlockDevice')
+
+  def testBlock(self):
+    utils.diskIsBlockDevice(self.img).AndReturn(True)
+
+    base.captureCall(['mount', self.img, self.root])
+
+    self.mox.ReplayAll()
+
+    deb = TestDebian()
+
+    self.assertEqual(deb._mountImage(self.img), self.root)
 
   def testSuccess(self):
+    utils.diskIsBlockDevice(self.img).AndReturn(False)
+
     base.captureCall(['mount', '-o', 'loop', self.img, self.root])
     base.captureCall(['umount', '-l', self.root])
 
@@ -115,6 +130,8 @@ class TestDebianMountImage(mox.MoxTestBase):
     deb._umountImage(self.root)
 
   def testFailure(self):
+    utils.diskIsBlockDevice(self.img).AndReturn(False)
+
     base.captureCall(
         ['mount', '-o', 'loop', self.img, self.root]).AndRaise(
         subprocess.CalledProcessError(

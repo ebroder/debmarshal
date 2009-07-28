@@ -32,6 +32,7 @@ import tempfile
 import decorator
 
 from debmarshal.distros import base
+from debmarshal import utils
 
 
 def _stopInitScripts(target):
@@ -177,7 +178,11 @@ class Debian(base.Distribution):
     """
     root = tempfile.mkdtemp()
     try:
-      base.captureCall(['mount', '-o', 'loop', img, root])
+      args = ['mount']
+      if not utils.diskIsBlockDevice(img):
+        args.extend(('-o', 'loop'))
+      args.extend((img, root))
+      base.captureCall(args)
     except:
       os.rmdir(root)
       raise
