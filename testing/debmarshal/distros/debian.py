@@ -309,6 +309,16 @@ class Debian(base.Distribution):
     """
     base.captureCall(['mkfs', '-t', 'ext3', '-F', path])
 
+  def _installSwap(self, path):
+    """Create a swap area at path.
+
+    path may be a file or a block device.
+
+    Args:
+      path: Path to the device where the swap area should be created
+    """
+    base.captureCall(['mkswap', path])
+
   @withoutInitScripts
   def _installPackages(self, *pkgs):
     """Install a series of packages in a chroot.
