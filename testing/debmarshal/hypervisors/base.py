@@ -23,28 +23,13 @@ __authors__ = [
 ]
 
 
-import os
-import stat
-
 from lxml import etree
 
 from debmarshal import errors
+from debmarshal import utils
 
 
 hypervisors = {}
-
-
-def _diskIsBlockDevice(disk):
-  """Identify whether a particular disk is an image file or block
-  device
-
-  Args:
-    disk: Path to the disk image being tested
-
-  Returns:
-    True if the disk is a block device; False if it's a file
-  """
-  return stat.S_ISBLK(os.stat(disk).st_mode)
 
 
 class HypervisorMeta(type):
@@ -96,7 +81,7 @@ class Hypervisor(object):
     for disk_num, disk in enumerate(vm.disks):
       xml_disk = etree.SubElement(devices, 'disk')
 
-      if _diskIsBlockDevice(disk):
+      if utils.diskIsBlockDevice(disk):
         xml_disk.set('type', 'block')
         etree.SubElement(xml_disk, 'source', dev=disk)
       else:
