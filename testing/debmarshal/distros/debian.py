@@ -537,15 +537,19 @@ class Debian(base.Distribution):
       os.remove(self.basePath())
 
     self._createSparseFile(self.basePath(), 1024 ** 3)
-    self._installFilesystem(self.basePath())
-    self.target = self._mountImage(self.basePath())
-
     try:
-      self._installDebootstrap()
-      self._installHosts()
-      self._installSources()
-      self._installUpdates()
-      self._installLocale()
-      self._installTimezone()
-    finally:
-      self._umountImage(self.target)
+      self._installFilesystem(self.basePath())
+      self.target = self._mountImage(self.basePath())
+
+      try:
+        self._installDebootstrap()
+        self._installHosts()
+        self._installSources()
+        self._installUpdates()
+        self._installLocale()
+        self._installTimezone()
+      finally:
+        self._umountImage(self.target)
+    except:
+      os.remove(self.basePath())
+      raise

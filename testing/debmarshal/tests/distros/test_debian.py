@@ -722,7 +722,9 @@ class TestDebianCopyFilesystem(unittest.TestCase):
 
 
 class TestDebianCreateBase(mox.MoxTestBase):
-  def test(self):
+  def setUp(self):
+    super(TestDebianCreateBase, self).setUp()
+
     self.mox.StubOutWithMock(debian.Debian, 'verifyBase')
     self.mox.StubOutWithMock(debian.Debian, 'basePath')
     self.mox.StubOutWithMock(os.path, 'exists')
@@ -738,9 +740,8 @@ class TestDebianCreateBase(mox.MoxTestBase):
     self.mox.StubOutWithMock(debian.Debian, '_installTimezone')
     self.mox.StubOutWithMock(debian.Debian, '_umountImage')
 
-    debian.Debian.verifyBase().AndReturn(True)
-
     debian.Debian.verifyBase().AndReturn(False)
+
     debian.Debian.basePath().MultipleTimes().AndReturn('abcd')
     os.path.exists('abcd').AndReturn(True)
     os.remove('abcd')
@@ -757,17 +758,33 @@ class TestDebianCreateBase(mox.MoxTestBase):
     debian.Debian._installSources()
     debian.Debian._installUpdates()
     debian.Debian._installLocale()
-    debian.Debian._installTimezone()
     debian.Debian._umountImage('dcba')
+
+  def testSuccess(self):
+    debian.Debian._installTimezone()
+
+    debian.Debian.verifyBase().AndReturn(True)
 
     self.mox.ReplayAll()
 
-    # The first time we try, verifyBase returns True. Since the rest
+    # The first time we try, verifyBase returns False. Since the rest
     # of the method has only been stubbed out once, if returning True
     # doesn't cause us to return, then we'll throw errors about
     # methods being called too many times.
     TestDebian().createBase()
     TestDebian().createBase()
+
+  def testFailure(self):
+    # We want to be sure that /all/ of the cleanup still runs, even if
+    # there's an exception
+    debian.Debian._installTimezone().AndRaise(
+        subprocess.CalledProcessError(1, []))
+
+    os.remove('abcd')
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(Exception, TestDebian().createBase)
 
 
 if __name__ == '__main__':
