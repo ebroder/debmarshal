@@ -489,6 +489,27 @@ class Debian(base.Distribution):
     """
     base.captureCall(['kpartx', '-p', '', '-d', blk])
 
+  def _copyFilesystem(self, src, dst):
+    """Copy a filesystem.
+
+    This copies all files in src into dst. Both src and dst should
+    exist and be directories.
+
+    All files will be copied, all properties preserved, etc.
+
+    Args:
+      src: Source of the copy.
+      dst: Destination of the copy.
+    """
+    # I've said it before, I'll say it again. I /hate/ that rsync
+    # changes its behavior based on a trailing slash.
+    if not src.endswith('/'):
+      src += '/'
+    if not dst.endswith('/'):
+      dst += '/'
+
+    base.captureCall(['rsync', '--archive', src, dst])
+
   def createBase(self):
     """Create a valid base image.
 
