@@ -32,6 +32,7 @@ import tempfile
 import decorator
 
 from debmarshal.distros import base
+from debmarshal import errors
 from debmarshal import utils
 
 
@@ -520,6 +521,61 @@ class Debian(base.Distribution):
       dst += '/'
 
     base.captureCall(['rsync', '--archive', src, dst])
+
+  def _installFstab(self, filesystems):
+    """Write an fstab into the target filesystem.
+
+    The fstab is written using filesystem UUIDs, so block devices
+    should be accessible to the installer, and not necessarily the
+    path on which they will be exposed to the guest.
+
+    Args:
+      filesystems: A dict mapping paths in the target filesystem to
+        block devices. "swap" is a special key indicating swap.
+
+    Raises:
+      debmarshal.errors.NotFound if any of the block devices in
+        filesystems don't exist.
+    """
+    for block in filesystems.values():
+      if not os.path.exists(block):
+        raise errors.NotFound(
+            "Block device '%s' does not exist.")
+
+    fstab = open(os.path.join(self.target, 'etc/fstab'), 'w')
+    fstab.write(
+        '# /etc/fstab: static file system information.\n'
+        '#\n'
+        '# <file system>                           <mount point> '
+        '<type>  <options>       <dump>  <pass>\n')
+    fs_tmpl = '%-41s %-13s %-7s %-15s %d       %d\n'
+
+    fstab.write(fs_tmpl % ('proc', '/proc', 'proc', 'defaults', 0, 0))
+
+    for mount, block in filesystems.iteritems():
+      uuid = base.captureCall(['blkid', '-o', 'value', '-s', 'UUID', block])
+
+      if mount == 'swap':
+        fs_file = 'none'
+        fs_type = 'swap'
+        fs_passno = 0
+      else:
+        fs_file = mount
+        fs_type = 'ext3'
+        if mount == '/':
+          fs_passno = 1
+        else:
+          fs_passno = 2
+
+      fstab.write(fs_tmpl % (
+          'UUID=%s' % uuid.strip(),
+          fs_file,
+          fs_type,
+          'defaults',
+          0,
+          fs_passno))
+
+    fstab.close()
 
   def createBase(self):
     """Create a valid base image.
