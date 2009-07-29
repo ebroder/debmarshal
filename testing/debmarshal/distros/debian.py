@@ -264,7 +264,18 @@ class Debian(base.Distribution):
     if not super(Debian, self).verifyCustom():
       return False
     else:
-      return self._verifyImage(self.customPath())
+      try:
+        try:
+          loop = self._setupLoop(self.customPath())
+          try:
+            devs = self._setupDevices(loop)
+            return self._verifyImage(devs + '1')
+          finally:
+            self._cleanupDevices(loop)
+        finally:
+          self._cleanupLoop(loop)
+      except:
+        return False
 
   def _createSparseFile(self, path, len):
     """Create a sparse file.

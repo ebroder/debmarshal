@@ -203,54 +203,104 @@ Conf libruby1.8 (1.8.6.111-2ubuntu1.3 Ubuntu:8.04/hardy-security
                      False)
 
 
-class TestDebianVerify(mox.MoxTestBase):
+class TestDebianVerifyBase(mox.MoxTestBase):
   def setUp(self):
-    super(TestDebianVerify, self).setUp()
+    super(TestDebianVerifyBase, self).setUp()
 
     self.mox.StubOutWithMock(base.Distribution, 'verifyBase')
-    self.mox.StubOutWithMock(base.Distribution, 'verifyCustom')
     self.mox.StubOutWithMock(debian.Debian, '_verifyImage')
 
   def testNoExists(self):
     base.Distribution.verifyBase().AndReturn(False)
-    base.Distribution.verifyCustom().AndReturn(False)
 
     self.mox.ReplayAll()
 
     self.assertEqual(TestDebian().verifyBase(), False)
+
+  def testExists(self):
+    base.Distribution.verifyBase().AndReturn(True)
+
+    debian.Debian._verifyImage(mox.IgnoreArg()).AndReturn(False)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(TestDebian().verifyBase(), False)
+
+  def testAllGood(self):
+    base.Distribution.verifyBase().AndReturn(True)
+
+    debian.Debian._verifyImage(mox.IgnoreArg()).AndReturn(True)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(TestDebian().verifyBase(), True)
+
+
+class TestDebianVerifyCustom(mox.MoxTestBase):
+  def test(self):
+    self.mox.StubOutWithMock(base.Distribution, 'verifyCustom')
+
+    base.Distribution.verifyCustom().AndReturn(False)
+
+    self.mox.ReplayAll()
+
     self.assertEqual(
         TestDebian(
             None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
         False)
 
-  def testExists(self):
-    base.Distribution.verifyBase().AndReturn(True)
+class TestDebianVerifyCustomExists(mox.MoxTestBase):
+  def setUp(self):
+    super(TestDebianVerifyCustomExists, self).setUp()
+
+    self.mox.StubOutWithMock(base.Distribution, 'verifyCustom')
+    self.mox.StubOutWithMock(debian.Debian, '_verifyImage')
     base.Distribution.verifyCustom().AndReturn(True)
 
-    debian.Debian._verifyImage(mox.IgnoreArg()).MultipleTimes().AndReturn(
-        False)
+    self.mox.StubOutWithMock(debian.Debian, '_setupLoop')
+    debian.Debian._setupLoop(mox.IgnoreArg()).AndReturn('/dev/loop0')
+
+    self.mox.StubOutWithMock(debian.Debian, '_cleanupDevices')
+    self.mox.StubOutWithMock(debian.Debian, '_cleanupLoop')
+
+    debian.Debian._cleanupDevices('/dev/loop0')
+    debian.Debian._cleanupLoop('/dev/loop0')
+
+    self.mox.StubOutWithMock(debian.Debian, '_setupDevices')
+
+  def testExists(self):
+    debian.Debian._setupDevices('/dev/loop0').AndReturn('/dev/mapper/loop0')
+    debian.Debian._verifyImage('/dev/mapper/loop01').AndReturn(False)
 
     self.mox.ReplayAll()
 
-    self.assertEqual(TestDebian().verifyBase(), False)
     self.assertEqual(
         TestDebian(
             None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
         False)
 
   def testAllGood(self):
-    base.Distribution.verifyBase().AndReturn(True)
-    base.Distribution.verifyCustom().AndReturn(True)
+    debian.Debian._setupDevices('/dev/loop0').AndReturn('/dev/mapper/loop0')
 
-    debian.Debian._verifyImage(mox.IgnoreArg()).MultipleTimes().AndReturn(True)
+    debian.Debian._verifyImage('/dev/mapper/loop01').AndReturn(True)
 
     self.mox.ReplayAll()
 
-    self.assertEqual(TestDebian().verifyBase(), True)
     self.assertEqual(
         TestDebian(
             None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
         True)
+
+  def testError(self):
+    debian.Debian._setupDevices('/dev/loop0').AndRaise(
+        Exception("Test exception"))
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(
+        TestDebian(
+            None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
+        False)
 
 
 class TestDebianCreateSparseFile(unittest.TestCase):
