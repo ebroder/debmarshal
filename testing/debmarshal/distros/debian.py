@@ -619,6 +619,20 @@ class Debian(base.Distribution):
 
     interfaces.close()
 
+  def _installKernelConfig(self):
+    """Configure kernel images."""
+    kernel_img = open(os.path.join(self.target, 'etc/kernel-img.conf'), 'w')
+    kernel_img.write(
+        "# Kernel image management overrides\n"
+        "# See kernel-img.conf(5) for details\n"
+        "do_symlinks = yes\n"
+        "relative_links = yes\n"
+        "do_bootloader = no\n"
+        "do_bootfloppy = no\n"
+        "do_initrd = yes\n"
+        "link_in_boot = no\n")
+    kernel_img.close()
+
   def createBase(self):
     """Create a valid base image.
 
