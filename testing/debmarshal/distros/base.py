@@ -614,3 +614,21 @@ class Distribution(object):
     This method should be overridden in subclasses.
     """
     raise errors.NotImplementedError
+
+  def baseCow(self, size):
+    """Create a memory-backed snapshot of the base image.
+
+    Args:
+      size: Size of the snapshot volume, in bytes.
+    """
+    loop = setupLoop(self.basePath())
+    return createCow(loop, size)
+
+  def customCow(self, size):
+    """Create a memory-backed snapshot of the custom image.
+
+    Args:
+      size: Size of the snapshot volume, in bytes.
+    """
+    loop = setupLoop(self.customPath())
+    return createCow(loop, size)

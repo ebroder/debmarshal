@@ -48,6 +48,8 @@ class NoDefaultsDistribution(base.Distribution):
 
   This class doesn't hit the filesystem for defaults, so any testing
   against a Distribution subclass should use this."""
+  _name = 'test_dist'
+
   def _updateDefaults(self):
     pass
 
@@ -586,6 +588,33 @@ class TestDistributionCreate(unittest.TestCase):
                       NoDefaultsDistribution().createBase)
     self.assertRaises(errors.NotImplementedError,
                       NoDefaultsDistribution().createCustom)
+
+
+class TestDistributionCow(mox.MoxTestBase):
+  def setUp(self):
+    super(TestDistributionCow, self).setUp()
+
+    self.mox.StubOutWithMock(base, 'setupLoop')
+    self.mox.StubOutWithMock(base, 'createCow')
+
+  def testBase(self):
+    base.setupLoop(NoDefaultsDistribution().basePath()).AndReturn('/dev/loop0')
+    base.createCow('/dev/loop0', 1024 ** 2).AndReturn('/dev/mapper/something')
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(NoDefaultsDistribution().baseCow(1024 ** 2),
+                     '/dev/mapper/something')
+
+  def testCustom(self):
+    base.setupLoop(NoDefaultsDistribution().customPath()).AndReturn(
+      '/dev/loop0')
+    base.createCow('/dev/loop0', 1024 ** 2).AndReturn('/dev/mapper/something')
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(NoDefaultsDistribution().customCow(1024 ** 2),
+                     '/dev/mapper/something')
 
 
 if __name__ == '__main__':
