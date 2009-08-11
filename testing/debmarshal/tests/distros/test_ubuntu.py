@@ -295,5 +295,33 @@ class TestUbuntuInstallFilesystem(mox.MoxTestBase):
       os.remove(name)
 
 
+class TestMethodsWithoutInitScripts(mox.MoxTestBase):
+  """Superclass for testing methods wrapped in withoutInitScripts."""
+  def setUp(self):
+    super(TestMethodsWithoutInitScripts, self).setUp()
+
+    self.mox.StubOutWithMock(ubuntu, '_stopInitScripts')
+    self.mox.StubOutWithMock(ubuntu, '_startInitScripts')
+
+    ubuntu._stopInitScripts(mox.IgnoreArg())
+    ubuntu._startInitScripts(mox.IgnoreArg())
+
+
+class TestUbuntuInstallPackage(TestMethodsWithoutInitScripts):
+  def test(self):
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_runInTarget')
+
+    env = dict(os.environ)
+    env['DEBIAN_FRONTEND'] = 'noninteractive'
+    ubuntu.Ubuntu._runInTarget(['apt-get', '-y', 'install', 'foo', 'bar'],
+                               env=env)
+
+    self.mox.ReplayAll()
+
+    deb = TestUbuntu()
+    deb.target = 'blah'
+    deb._installPackages('foo', 'bar')
+
+
 if __name__ == '__main__':
   unittest.main()

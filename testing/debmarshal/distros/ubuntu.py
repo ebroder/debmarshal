@@ -24,6 +24,7 @@ __authors__ = [
 
 
 import os
+import shutil
 import subprocess
 import tempfile
 
@@ -271,3 +272,16 @@ class Ubuntu(base.Distribution):
         created.
     """
     base.captureCall(['mkfs', '-t', 'ext3', '-F', path])
+
+  @withoutInitScripts
+  def _installPackages(self, *pkgs):
+    """Install a series of packages in a chroot.
+
+    Args:
+      pkgs: The list of packages to install.
+    """
+    env = dict(os.environ)
+    env['DEBIAN_FRONTEND'] = 'noninteractive'
+    args = ['apt-get', '-y', 'install']
+    args.extend(pkgs)
+    self._runInTarget(args, env=env)
