@@ -792,6 +792,75 @@ class TestUbuntuCopyFilesystem(unittest.TestCase):
       shutil.rmtree(dst)
 
 
+class TestUbuntuInstallFstab(mox.MoxTestBase):
+  def testSuccess(self):
+    target = tempfile.mkdtemp()
+
+    try:
+      os.makedirs(os.path.join(target, 'etc'))
+
+      self.mox.StubOutWithMock(os.path, 'exists')
+      os.path.exists('/dev/vg/root').InAnyOrder().AndReturn(True)
+      os.path.exists('/dev/vg/var').InAnyOrder().AndReturn(True)
+      os.path.exists('/dev/vg/swap').InAnyOrder().AndReturn(True)
+
+      self.mox.StubOutWithMock(base, 'captureCall')
+      base.captureCall(['blkid', '-o', 'value', '-s', 'UUID', '/dev/vg/root']).\
+          InAnyOrder().\
+          AndReturn('00000000-0000-0000-0000-000000000000\n')
+      base.captureCall(['blkid', '-o', 'value', '-s', 'UUID', '/dev/vg/var']).\
+          InAnyOrder().\
+          AndReturn('11111111-1111-1111-1111-111111111111\n')
+      base.captureCall(['blkid', '-o', 'value', '-s', 'UUID', '/dev/vg/swap']).\
+          InAnyOrder().\
+          AndReturn('22222222-2222-2222-2222-222222222222\n')
+
+      self.mox.ReplayAll()
+
+      deb = TestUbuntu()
+      deb.target = target
+
+      deb._installFstab({'/': '/dev/vg/root',
+                         '/var': '/dev/vg/var',
+                         'swap': '/dev/vg/swap'})
+
+      fstab = open(os.path.join(target, 'etc/fstab')).read()
+
+      self.assert_(re.search(
+          '^UUID=[-0]{36}\s+/\s+ext3\s+defaults\s+0\s+1',
+          fstab,
+          re.M))
+      self.assert_(re.search(
+          '^UUID=[-1]{36}\s+/var\s+ext3\s+defaults\s+0\s+2',
+          fstab,
+          re.M))
+      self.assert_(re.search(
+          '^UUID=[-2]{36}\s+none\s+swap\s+defaults\s+0\s+0',
+          fstab,
+          re.M))
+    finally:
+      shutil.rmtree(target)
+
+  def testValidationError(self):
+    target = tempfile.mkdtemp()
+
+    try:
+      os.makedirs(os.path.join(target, 'etc'))
+
+      self.mox.StubOutWithMock(os.path, 'exists')
+      os.path.exists('/dev/vg/root').AndReturn(False)
+
+      self.mox.ReplayAll()
+
+      deb = TestUbuntu()
+      deb.target = target
+
+      self.assertRaises(errors.NotFound, deb._installFstab,
+                        {'/': '/dev/vg/root'})
+    finally:
+      shutil.rmtree(target)
+
+
 class TestUbuntuCreateBase(mox.MoxTestBase):
   def setUp(self):
     super(TestUbuntuCreateBase, self).setUp()
