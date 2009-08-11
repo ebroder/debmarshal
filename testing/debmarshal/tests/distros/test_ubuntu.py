@@ -377,7 +377,7 @@ class TestUbuntuRunInTarget(mox.MoxTestBase):
     deb._runInTarget(['some', 'command'])
 
 
-class TestUbuntuInstallFilesystem(mox.MoxTestBase):
+class TestUbuntuInstallFilesystem(unittest.TestCase):
   def test(self):
     fd, name = tempfile.mkstemp()
     os.close(fd)
@@ -398,6 +398,7 @@ class TestUbuntuInstallFilesystem(mox.MoxTestBase):
                        0xEF53)
     finally:
       os.remove(name)
+  test.slow = 1
 
 
 class TestUbuntuInstallSwap(unittest.TestCase):
@@ -416,6 +417,7 @@ class TestUbuntuInstallSwap(unittest.TestCase):
       self.assertEqual(fd.read(10), 'SWAPSPACE2')
     finally:
       os.remove(name)
+  test.slow = 1
 
 
 class TestMethodsWithoutInitScripts(mox.MoxTestBase):
@@ -710,6 +712,7 @@ class TestUbuntuInstallPartitions(unittest.TestCase):
                        'Fourth partition exists.')
     finally:
       os.remove(name)
+  test.slow = 1
 
 
 class TestUbuntuLoop(mox.MoxTestBase):
