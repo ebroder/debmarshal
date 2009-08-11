@@ -606,6 +606,48 @@ class Ubuntu(base.Distribution):
 
     fstab.close()
 
+  def _installNetwork(self):
+    """Configure networking."""
+    hostname = open(os.path.join(self.target, 'etc/hostname'), 'w')
+    hostname.write(self.getCustomConfig('hostname'))
+    hostname.close()
+
+    hosts = open(os.path.join(self.target, 'etc/hosts'), 'a')
+    hosts.write('\n127.0.1.1 %(hostname)s.%(domain)s %(hostname)s\n' %
+                {'hostname': self.getCustomConfig('hostname'),
+                 'domain': self.getCustomConfig('domain')})
+    hosts.close()
+
+    interfaces = open(os.path.join(self.target, 'etc/network/interfaces'), 'w')
+    interfaces.write(
+        '# This file describes the network interfaces available on your\n'
+        '# system and how to activate them. For more information, see\n'
+        '# interfaces(5).\n'
+        '\n'
+        '# The loopback network interface\n'
+        'auto lo\n'
+        'iface lo inet loopback\n'
+        '\n'
+        '# The primary network interface\n'
+        'auto eth0\n')
+    if self.getCustomConfig('dhcp'):
+      interfaces.write('iface eth0 inet dhcp\n')
+    else:
+      ip = self.getCustomConfig('ip')
+      netmask = self.getCustomConfig('netmask')
+      gateway = self.getCustomConfig('gateway')
+      dns = self.getCustomConfig('dns')
+      domain = self.getCustomConfig('domain')
+
+      interfaces.write('iface eth0 inet static\n')
+      interfaces.write('\taddress %s\n' % ip)
+      interfaces.write('\tnetmask %s\n' % netmask)
+      interfaces.write('\tgateway %s\n' % gateway)
+      interfaces.write('\tdns-nameservers %s\n' % ' '.join(dns))
+      interfaces.write('\tdns-search %s\n' % domain)
+
+    interfaces.close()
+
   def createBase(self):
     """Create a valid base image.
 

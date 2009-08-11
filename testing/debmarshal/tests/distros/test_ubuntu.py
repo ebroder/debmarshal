@@ -861,6 +861,67 @@ class TestUbuntuInstallFstab(mox.MoxTestBase):
       shutil.rmtree(target)
 
 
+class TestUbuntuInstallNetwork(unittest.TestCase):
+  def testDhcp(self):
+    target = tempfile.mkdtemp()
+
+    try:
+      os.makedirs(os.path.join(target, 'etc/network'))
+
+      deb = TestUbuntu(None, {'hostname': 'web',
+                              'domain': 'example.com',
+                              'dhcp': True})
+      deb.target = target
+
+      deb._installNetwork()
+
+      hosts = open(os.path.join(target, 'etc/hosts')).read()
+      self.assert_(re.search(
+          '^127\.0\.1\.1\s+web\.example\.com\s+web',
+          hosts,
+          re.M))
+
+      hostname = open(os.path.join(target, 'etc/hostname')).read()
+      self.assertEqual(hostname.strip(), 'web')
+
+      interfaces = open(os.path.join(target, 'etc/network/interfaces')).read()
+      self.assert_(re.search(
+          'auto\s+lo\niface\s+lo\s+inet\s+loopback',
+          interfaces))
+      self.assert_(re.search(
+          'auto\s+eth0\niface\s+eth0\s+inet\s+dhcp',
+          interfaces))
+    finally:
+      shutil.rmtree(target)
+
+  def testStatic(self):
+    target = tempfile.mkdtemp()
+
+    try:
+      os.makedirs(os.path.join(target, 'etc/network'))
+
+      deb = TestUbuntu(None, {'hostname': 'web',
+                              'domain': 'example.com',
+                              'dhcp': False,
+                              'ip': '192.168.1.2',
+                              'netmask': '255.255.255.0',
+                              'gateway': '192.168.1.1',
+                              'dns': ['192.168.1.1', '4.2.2.2']})
+      deb.target = target
+
+      deb._installNetwork()
+
+      interfaces = open(os.path.join(target, 'etc/network/interfaces')).read()
+      for r in ['^\s+address 192\.168\.1\.2$',
+                '^\s+netmask 255\.255\.255\.0$',
+                '^\s+gateway 192\.168\.1\.1$',
+                '^\s+dns-nameservers 192\.168\.1\.1 4\.2\.2\.2$',
+                '^\s+dns-search example\.com$']:
+        self.assert_(re.search(r, interfaces, re.M))
+    finally:
+      shutil.rmtree(target)
+
+
 class TestUbuntuCreateBase(mox.MoxTestBase):
   def setUp(self):
     super(TestUbuntuCreateBase, self).setUp()
