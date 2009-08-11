@@ -78,5 +78,96 @@ class TestUbuntuMountImage(mox.MoxTestBase):
                       deb._mountImage, self.img)
 
 
+class TestUbuntuVerifyImage(mox.MoxTestBase):
+  def setUp(self):
+    super(TestUbuntuVerifyImage, self).setUp()
+
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_mountImage')
+    self.mox.StubOutWithMock(base, 'captureCall')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_umountImage')
+
+    ubuntu.Ubuntu._mountImage('/home/evan/test.img').AndReturn('/tmp/tmp.ABC')
+
+    base.captureCall(['chroot', '/tmp/tmp.ABC', 'apt-get', '-qq', 'update']).\
+        AndReturn('')
+
+    ubuntu.Ubuntu._umountImage('/tmp/tmp.ABC')
+
+  def testGood(self):
+    base.captureCall(['chroot', '/tmp/tmp.ABC', 'apt-get',
+                      '-o', 'Debug::NoLocking=true',
+                      '-sqq',
+                      'dist-upgrade']).AndReturn('\n')
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(ubuntu.Ubuntu()._verifyImage('/home/evan/test.img'),
+                     True)
+
+  def testBad(self):
+    base.captureCall(['chroot', '/tmp/tmp.ABC', 'apt-get',
+                      '-o', 'Debug::NoLocking=true',
+                      '-sqq',
+                      'dist-upgrade']).AndReturn("""
+Inst libruby1.8 [1.8.6.111-2ubuntu1.2] (1.8.6.111-2ubuntu1.3 Ubuntu:8.04/hardy-security)
+Conf libruby1.8 (1.8.6.111-2ubuntu1.3 Ubuntu:8.04/hardy-security
+""")
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(ubuntu.Ubuntu()._verifyImage('/home/evan/test.img'),
+                     False)
+
+
+class TestUbuntuVerify(mox.MoxTestBase):
+  def setUp(self):
+    super(TestUbuntuVerify, self).setUp()
+
+    self.mox.StubOutWithMock(base.Distribution, 'verifyBase')
+    self.mox.StubOutWithMock(base.Distribution, 'verifyCustom')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_verifyImage')
+
+  def testNoExists(self):
+    base.Distribution.verifyBase().AndReturn(False)
+    base.Distribution.verifyCustom().AndReturn(False)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(ubuntu.Ubuntu().verifyBase(), False)
+    self.assertEqual(
+        ubuntu.Ubuntu(
+            None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
+        False)
+
+  def testExists(self):
+    base.Distribution.verifyBase().AndReturn(True)
+    base.Distribution.verifyCustom().AndReturn(True)
+
+    ubuntu.Ubuntu._verifyImage(mox.IgnoreArg()).MultipleTimes().AndReturn(
+        False)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(ubuntu.Ubuntu().verifyBase(), False)
+    self.assertEqual(
+        ubuntu.Ubuntu(
+            None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
+        False)
+
+  def testAllGood(self):
+    base.Distribution.verifyBase().AndReturn(True)
+    base.Distribution.verifyCustom().AndReturn(True)
+
+    ubuntu.Ubuntu._verifyImage(mox.IgnoreArg()).MultipleTimes().AndReturn(True)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(ubuntu.Ubuntu().verifyBase(), True)
+    self.assertEqual(
+        ubuntu.Ubuntu(
+            None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
+        True)
+
+
 if __name__ == '__main__':
   unittest.main()
