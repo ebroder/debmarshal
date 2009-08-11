@@ -189,7 +189,7 @@ class Ubuntu(base.Distribution):
     """
     root = tempfile.mkdtemp()
     try:
-      args = ['mount']
+      args = ['mount', '-o', 'noatime']
       if not utils.diskIsBlockDevice(img):
         args.extend(('-o', 'loop'))
       args.extend((img, root))

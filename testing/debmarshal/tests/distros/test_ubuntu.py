@@ -117,7 +117,7 @@ class TestUbuntuMountImage(mox.MoxTestBase):
   def testBlock(self):
     utils.diskIsBlockDevice(self.img).AndReturn(True)
 
-    base.captureCall(['mount', self.img, self.root])
+    base.captureCall(['mount', '-o', 'noatime', self.img, self.root])
 
     self.mox.ReplayAll()
 
@@ -128,7 +128,10 @@ class TestUbuntuMountImage(mox.MoxTestBase):
   def testSuccess(self):
     utils.diskIsBlockDevice(self.img).AndReturn(False)
 
-    base.captureCall(['mount', '-o', 'loop', self.img, self.root])
+    base.captureCall(['mount',
+                      '-o', 'noatime',
+                      '-o', 'loop',
+                      self.img, self.root])
     base.captureCall(['umount', '-l', self.root])
 
     self.mox.StubOutWithMock(os, 'rmdir')
@@ -145,7 +148,10 @@ class TestUbuntuMountImage(mox.MoxTestBase):
     utils.diskIsBlockDevice(self.img).AndReturn(False)
 
     base.captureCall(
-        ['mount', '-o', 'loop', self.img, self.root]).AndRaise(
+        ['mount',
+         '-o', 'noatime',
+         '-o', 'loop',
+         self.img, self.root]).AndRaise(
         subprocess.CalledProcessError(
             2,
             ['mount', '-o', 'loop', self.img, self.root]))
