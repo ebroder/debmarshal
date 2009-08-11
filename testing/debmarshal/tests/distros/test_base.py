@@ -131,10 +131,12 @@ class TestDistributionMeta(unittest.TestCase):
 
 
 class TestDistributionUpdateDefaults(mox.MoxTestBase):
-  class TestDistribution(base.Distribution):
-    base_defaults = {'a': '1', 'c': 2}
+  class TestDistro(base.Distribution):
+    def _initDefaults(self):
+      super(TestDistributionUpdateDefaults.TestDistro, self)._initDefaults()
 
-    custom_defaults = {'b': '3', 'd': 4}
+      self.base_defaults.update({'a': '1', 'c': 2})
+      self.custom_defaults.update({'b': '3', 'd': 4})
 
   def setUp(self):
     super(TestDistributionUpdateDefaults, self).setUp()
@@ -148,30 +150,30 @@ class TestDistributionUpdateDefaults(mox.MoxTestBase):
     self.mock_config.read(['/etc/debmarshal/distros.conf'])
 
   def testBase(self):
-    self.mock_config.has_section(self.TestDistribution.classId() + '.base').\
+    self.mock_config.has_section(self.TestDistro.classId() + '.base').\
         AndReturn(True)
-    self.mock_config.items(self.TestDistribution.classId() + '.base').\
+    self.mock_config.items(self.TestDistro.classId() + '.base').\
         AndReturn((('a', '5'), ('b', '6'), ('c', '7')))
 
-    self.mock_config.has_section(self.TestDistribution.classId() + '.custom').\
+    self.mock_config.has_section(self.TestDistro.classId() + '.custom').\
         AndReturn(False)
 
     self.mox.ReplayAll()
 
-    self.assertEqual(self.TestDistribution().base_defaults, {'a': '5', 'c': 2})
+    self.assertEqual(self.TestDistro().base_defaults, {'a': '5', 'c': 2})
 
   def testCustom(self):
-    self.mock_config.has_section(self.TestDistribution.classId() + '.base').\
+    self.mock_config.has_section(self.TestDistro.classId() + '.base').\
         AndReturn(False)
 
-    self.mock_config.has_section(self.TestDistribution.classId() + '.custom').\
+    self.mock_config.has_section(self.TestDistro.classId() + '.custom').\
         AndReturn(True)
-    self.mock_config.items(self.TestDistribution.classId() + '.custom').\
+    self.mock_config.items(self.TestDistro.classId() + '.custom').\
         AndReturn((('a', '5'), ('b', '6'), ('c', '7')))
 
     self.mox.ReplayAll()
 
-    self.assertEqual(self.TestDistribution().custom_defaults,
+    self.assertEqual(self.TestDistro().custom_defaults,
                      {'b': '6', 'd': 4})
 
 
@@ -190,9 +192,11 @@ class TestDistributionInit(unittest.TestCase):
   def testBaseConfig(self):
     """Test missing and extra options to the Distribution base_config."""
     class TestDistro(NoDefaultsDistribution):
-      base_defaults = {'bar': 'baz'}
+      def _initDefaults(self):
+        super(TestDistro, self)._initDefaults()
 
-      base_configurable = set(['foo', 'bar'])
+        self.base_defaults.update({'bar': 'baz'})
+        self.base_configurable.update(['foo', 'bar'])
 
     self.assertRaises(errors.InvalidInput, TestDistro,
                       {})
@@ -203,9 +207,11 @@ class TestDistributionInit(unittest.TestCase):
   def testCustomConfig(self):
     """Test missing and extra options to the Distribution custom_config."""
     class TestDistro(NoDefaultsDistribution):
-      custom_defaults = {'bar': 'baz'}
+      def _initDefaults(self):
+        super(TestDistro, self)._initDefaults()
 
-      custom_configurable = set(['foo', 'bar'])
+        self.custom_defaults.update({'bar': 'baz'})
+        self.custom_configurable.update(['foo', 'bar'])
 
     self.assertRaises(errors.InvalidInput, TestDistro,
                       None, {})
@@ -218,9 +224,11 @@ class TestDistributionGetItems(unittest.TestCase):
   """Test retrieving image settings from a distribution."""
   def testBaseConfig(self):
     class TestDistro(NoDefaultsDistribution):
-      base_configurable = set(['foo'])
+      def _initDefaults(self):
+        super(TestDistro, self)._initDefaults()
 
-      base_defaults = {'bar': 'baz'}
+        self.base_configurable.update(['foo'])
+        self.base_defaults.update({'bar': 'baz'})
 
     distro = TestDistro({'foo': 'quux'})
 
@@ -230,9 +238,11 @@ class TestDistributionGetItems(unittest.TestCase):
 
   def testCustomConfig(self):
     class TestDistro(NoDefaultsDistribution):
-      custom_configurable = set(['foo'])
+      def _initDefaults(self):
+        super(TestDistro, self)._initDefaults()
 
-      custom_defaults = {'bar': 'baz'}
+        self.custom_configurable.update(['foo'])
+        self.custom_defaults.update({'bar': 'baz'})
 
     distro = TestDistro(None, {'foo': 'quux'})
 
@@ -242,13 +252,13 @@ class TestDistributionGetItems(unittest.TestCase):
 
   def testJustDefaults(self):
     class TestDistro(NoDefaultsDistribution):
-      base_defaults = {'bar': 'baz'}
+      def _initDefaults(self):
+        super(TestDistro, self)._initDefaults()
 
-      base_configurable = set(['bar'])
-
-      custom_defaults = {'bar': 'baz'}
-
-      custom_configurable = set(['bar'])
+        self.base_defaults.update({'bar': 'baz'})
+        self.base_configurable.update(['bar'])
+        self.custom_defaults.update({'bar': 'baz'})
+        self.custom_configurable.update(['bar'])
 
     self.assertEqual(TestDistro().getBaseConfig('bar'), 'baz')
     self.assertEqual(TestDistro().getCustomConfig('bar'), 'baz')
@@ -271,13 +281,13 @@ class TestDistributionHashConfig(unittest.TestCase):
   class TestDistro(NoDefaultsDistribution):
     _version = 2
 
-    base_defaults = {'a': '1', 'b': '2'}
+    def _initDefaults(self):
+      super(TestDistributionHashConfig.TestDistro, self)._initDefaults()
 
-    base_configurable = set('abc')
-
-    custom_defaults = {'d': '1', 'e': '2'}
-
-    custom_configurable = set('def')
+      self.base_defaults.update({'a': '1', 'b': '2'})
+      self.base_configurable.update('abc')
+      self.custom_defaults.update({'d': '1', 'e': '2'})
+      self.custom_configurable.update('def')
 
   def testConsistentHashing(self):
     dist = self.TestDistro({'c': '3'}, {'f': '3'})
@@ -289,7 +299,6 @@ class TestDistributionHashConfig(unittest.TestCase):
     dist2 = self.TestDistro({'c': '3'}, {'f': '3'})
     self.assertEqual(dist1.hashBaseConfig(), dist2.hashBaseConfig())
     self.assertEqual(dist1.hashConfig(), dist2.hashConfig())
-
 
   def testHashSameBaseConfig(self):
     dist1 = self.TestDistro({'c': '3'}, {'f': '3'})

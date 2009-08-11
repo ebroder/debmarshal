@@ -96,44 +96,51 @@ def withoutInitScripts(f, *args, **kwargs):
 
 class Ubuntu(base.Distribution):
   """Ubuntu (and Ubuntu-based) distributions."""
-  base_defaults = {'mirror': 'http://us.archive.ubuntu.com/ubuntu/',
-                   'security_mirror': 'http://security.ubuntu.com/ubuntu/',
-                   'updates_mirror': 'http://us.archive.ubuntu.com/ubuntu/',
-                   'backports_mirror': 'http://us.archive.ubuntu.com/ubuntu/',
-                   'proposed_mirror': 'http://us.archive.ubuntu.com/ubuntu/',
-                   'enable_security': True,
-                   'enable_updates': True,
-                   'enable_backports': False,
-                   'enable_proposed': False,
-                   'keyring': '/usr/share/keyrings/ubuntu-archive-keyring.gpg',
-                   'arch': 'amd64',
-                   'suite': 'jaunty',
-                   'components': ['main', 'restricted', 'universe', 'multiverse']
-                   }
+  def _initDefaults(self):
+    """Configure the settings defaults for Ubuntu distributions."""
+    super(Ubuntu, self)._initDefaults()
 
-  base_configurable = set(['arch', 'suite', 'components', 'enable_security',
-                           'enable_updates', 'enable_backports',
-                           'enable_proposed'])
+    self.base_defaults.update({
+        'mirror': 'http://us.archive.ubuntu.com/ubuntu/',
+        'security_mirror': 'http://security.ubuntu.com/ubuntu/',
+        'updates_mirror': 'http://us.archive.ubuntu.com/ubuntu/',
+        'backports_mirror': 'http://us.archive.ubuntu.com/ubuntu/',
+        'proposed_mirror': 'http://us.archive.ubuntu.com/ubuntu/',
+        'enable_security': True,
+        'enable_updates': True,
+        'enable_backports': False,
+        'enable_proposed': False,
+        'keyring': '/usr/share/keyrings/ubuntu-archive-keyring.gpg',
+        'arch': 'amd64',
+        'suite': 'jaunty',
+        'components': ['main', 'restricted', 'universe', 'multiverse']
+        })
 
-  custom_defaults = {'add_pkg': [],
-                     'rm_pkg': [],
-                     'ssh_key': '',
-                     'kernel': 'linux-image-generic',
-                     # Configuration for networking doesn't really
-                     # fit well into this config model. But if dhcp
-                     # is True, then ip, netmask, gateway, and dns
-                     # should have their default values. If dhcp is
-                     # False, then they should all be set.
-                     'dhcp': True,
-                     'ip': None,
-                     'netmask': None,
-                     'gateway': None,
-                     'dns': [],
-                     }
+    self.base_configurable.update([
+        'arch', 'suite', 'components', 'enable_security',
+        'enable_updates', 'enable_backports',
+        'enable_proposed'])
 
-  custom_configurable = set(['add_pkg', 'rm_pkg', 'ssh_key', 'kernel',
-                             'hostname', 'domain',
-                             'dhcp', 'ip', 'netmask', 'gateway', 'dns'])
+    self.custom_defaults.update({
+        'add_pkg': [],
+        'rm_pkg': [],
+        'ssh_key': '',
+        'kernel': 'linux-image-generic',
+        # Configuration for networking doesn't really fit well into
+        # this config model. But if dhcp is True, then ip, netmask,
+        # gateway, and dns should have their default values. If dhcp
+        # is False, then they should all be set.
+        'dhcp': True,
+        'ip': None,
+        'netmask': None,
+        'gateway': None,
+        'dns': [],
+        })
+
+    self.custom_configurable.update([
+        'add_pkg', 'rm_pkg', 'ssh_key', 'kernel',
+        'hostname', 'domain',
+        'dhcp', 'ip', 'netmask', 'gateway', 'dns'])
 
   def _mountImage(self, img):
     """Mount a filesystem image in a temporary directory.

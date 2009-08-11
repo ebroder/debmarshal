@@ -139,14 +139,6 @@ class Distribution(object):
   """
   __metaclass__ = DistributionMeta
 
-  base_defaults = {}
-
-  base_configurable = set()
-
-  custom_defaults = {}
-
-  custom_configurable = set()
-
   _version = 1
 
   _base_hash = None
@@ -157,6 +149,16 @@ class Distribution(object):
   def classId(cls):
     """Identify this class by its full module path."""
     return '.'.join([cls.__module__, cls.__name__])
+
+  def _initDefaults(self):
+    """Initialize the defaults and configurable options."""
+    self.base_defaults = {}
+
+    self.base_configurable = set()
+
+    self.custom_defaults = {}
+
+    self.custom_configurable = set()
 
   def _updateDefaults(self):
     parser = ConfigParser.SafeConfigParser()
@@ -188,6 +190,7 @@ class Distribution(object):
       custom_config: If not None, a dict with configuration for the
         customization of the base image.
     """
+    self._initDefaults()
     self._updateDefaults()
 
     if base_config is not None:
