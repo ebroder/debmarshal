@@ -24,6 +24,7 @@ __authors__ = [
 
 
 import os
+import subprocess
 import tempfile
 
 import decorator
@@ -180,20 +181,23 @@ class Ubuntu(base.Distribution):
     root = self._mountImage(image)
 
     try:
-      base.captureCall(['chroot', root,
-                        'apt-get',
-                        '-qq',
-                        'update'])
+      try:
+        base.captureCall(['chroot', root,
+                          'apt-get',
+                          '-qq',
+                          'update'])
 
-      # apt-get -sqq dist-upgrade will print out a summary of the
-      # steps it would have taken, had this not been a dry run. If
-      # there is nothing to do, it will print nothing.
-      updates = base.captureCall(['chroot', root,
-                                  'apt-get',
-                                  '-o', 'Debug::NoLocking=true',
-                                  '-sqq',
-                                  'dist-upgrade'])
-      return updates.strip() == ''
+        # apt-get -sqq dist-upgrade will print out a summary of the
+        # steps it would have taken, had this not been a dry run. If
+        # there is nothing to do, it will print nothing.
+        updates = base.captureCall(['chroot', root,
+                                    'apt-get',
+                                    '-o', 'Debug::NoLocking=true',
+                                    '-sqq',
+                                    'dist-upgrade'])
+        return updates.strip() == ''
+      except subprocess.CalledProcessError:
+        return False
     finally:
       self._umountImage(root)
 

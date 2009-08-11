@@ -126,12 +126,21 @@ class TestUbuntuVerifyImage(mox.MoxTestBase):
 
     ubuntu.Ubuntu._mountImage('/home/evan/test.img').AndReturn('/tmp/tmp.ABC')
 
+    ubuntu.Ubuntu._umountImage('/tmp/tmp.ABC')
+
+  def testUpdateError(self):
+    base.captureCall(['chroot', '/tmp/tmp.ABC', 'apt-get', '-qq', 'update']).\
+        AndRaise(subprocess.CalledProcessError(1, []))
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(ubuntu.Ubuntu()._verifyImage('/home/evan/test.img'),
+                     False)
+
+  def testGood(self):
     base.captureCall(['chroot', '/tmp/tmp.ABC', 'apt-get', '-qq', 'update']).\
         AndReturn('')
 
-    ubuntu.Ubuntu._umountImage('/tmp/tmp.ABC')
-
-  def testGood(self):
     base.captureCall(['chroot', '/tmp/tmp.ABC', 'apt-get',
                       '-o', 'Debug::NoLocking=true',
                       '-sqq',
@@ -143,6 +152,9 @@ class TestUbuntuVerifyImage(mox.MoxTestBase):
                      True)
 
   def testBad(self):
+    base.captureCall(['chroot', '/tmp/tmp.ABC', 'apt-get', '-qq', 'update']).\
+        AndReturn('')
+
     base.captureCall(['chroot', '/tmp/tmp.ABC', 'apt-get',
                       '-o', 'Debug::NoLocking=true',
                       '-sqq',
