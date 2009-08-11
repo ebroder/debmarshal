@@ -23,6 +23,10 @@ __authors__ = [
 ]
 
 
+try:
+  import hashlib as md5
+except ImportError:
+  import md5
 import unittest
 
 from debmarshal.distros import base
@@ -120,6 +124,39 @@ class TestDistributionClassId(unittest.TestCase):
 
     self.assertEqual(TestDistro.classId(),
                      'debmarshal.tests.distros.test_base.TestDistro')
+
+
+class TestDistributionHashConfig(unittest.TestCase):
+  class TestDistro(base.Distribution):
+    _version = 2
+
+    base_defaults = {'a': '1', 'b': '2'}
+
+    base_configurable = set('abc')
+
+    custom_defaults = {'d': '1', 'e': '2'}
+
+    custom_configurable = set('def')
+
+
+  def testHashSameConfig(self):
+    dist1 = self.TestDistro({'c': '3'}, {'f': '3'})
+    dist2 = self.TestDistro({'c': '3'}, {'f': '3'})
+    self.assertEqual(dist1.hashBaseConfig(), dist2.hashBaseConfig())
+    self.assertEqual(dist1.hashConfig(), dist2.hashConfig())
+
+
+  def testHashSameBaseConfig(self):
+    dist1 = self.TestDistro({'c': '3'}, {'f': '3'})
+    dist2 = self.TestDistro({'c': '3'}, {'f': '4'})
+    self.assertEqual(dist1.hashBaseConfig(), dist2.hashBaseConfig())
+    self.assertNotEqual(dist1.hashConfig(), dist2.hashConfig())
+
+  def testHashDifferentConfigs(self):
+    dist1 = self.TestDistro({'c': '3'}, {'f': '3'})
+    dist2 = self.TestDistro({'c': '4'}, {'f': '4'})
+    self.assertNotEqual(dist1.hashBaseConfig(), dist2.hashBaseConfig())
+    self.assertNotEqual(dist1.hashConfig(), dist2.hashConfig())
 
 
 if __name__ == '__main__':

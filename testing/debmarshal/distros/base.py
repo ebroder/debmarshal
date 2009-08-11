@@ -23,6 +23,11 @@ __authors__ = [
 ]
 
 
+try:
+  import hashlib as md5
+except ImportError:  # pragma: no cover
+  import md5
+
 from debmarshal import errors
 
 
@@ -188,3 +193,52 @@ class Distribution(object):
       return self.custom_config[key]
     else:
       return self.custom_defaults[key]
+
+  def hashBaseConfig(self):
+    """Return a hashed representation of the Distribution base config.
+
+    This function returns a string hash for this Distribution
+    instance. For any two Distribution objects that would generate the
+    same base image, the base config hash should be the same; for any
+    two that would generate a different base image, the hash should be
+    different (modulo hash collisions).
+
+    Settings in base_defaults that can't be overridden by the user
+    shouldn't affect the resulting image, so they're ignored for
+    purposes of calculating the hash.
+
+    Returns:
+      A hash corresponding to this particular Distribution
+        base configuration.
+    """
+    elements_to_hash = (
+      self.classId(),
+      self.version,
+      tuple(sorted(
+          (k, self.getBaseConfig(k)) for k in self.base_configurable)),
+      )
+    return md5.md5(repr(elements_to_hash)).hexdigest()
+
+  def hashConfig(self):
+    """Return a hashed representation of the Distribution config.
+
+    This function returns a string hash for this Distribution
+    instance. For any two Distribution objects that would generate the
+    same customized image, the config hash should be the same; for any
+    two that would generate a different customized image, the hash
+    should be different (modulo hash collisions).
+
+    Settings in base_defaults and custom_defaults that can't be
+    overridden by the user shouldn't affect the resulting image, so
+    they're ignored for purposes of calculating the hash.
+
+    Returns:
+      A hash corresponding to this particular Distribution
+        configuration.
+    """
+    elements_to_hash = (
+      self.hashBaseConfig(),
+      tuple(sorted(
+          (k, self.getCustomConfig(k)) for k in self.custom_configurable)),
+      )
+    return md5.md5(repr(elements_to_hash)).hexdigest()
