@@ -557,8 +557,11 @@ class TestUbuntuInstallUpdates(TestMethodsWithoutInitScripts):
   def test(self):
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_runInTarget')
 
-    ubuntu.Ubuntu._runInTarget(['apt-get', 'update'])
-    ubuntu.Ubuntu._runInTarget(['apt-get', '-y', 'dist-upgrade'])
+    env = dict(os.environ)
+    env['DEBIAN_FRONTEND'] = 'noninteractive'
+
+    ubuntu.Ubuntu._runInTarget(['apt-get', 'update'], env=env)
+    ubuntu.Ubuntu._runInTarget(['apt-get', '-y', 'dist-upgrade'], env=env)
 
     self.mox.ReplayAll()
 

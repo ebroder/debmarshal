@@ -396,11 +396,15 @@ class Ubuntu(base.Distribution):
   @withoutInitScripts
   def _installUpdates(self):
     """Take all pending updates."""
+    env = dict(os.environ)
+    env['DEBIAN_FRONTEND'] = 'noninteractive'
     self._runInTarget(['apt-get',
-                       'update'])
+                       'update'],
+                      env=env)
     self._runInTarget(['apt-get',
                        '-y',
-                       'dist-upgrade'])
+                       'dist-upgrade'],
+                      env=env)
 
   @withoutInitScripts
   def _installLocale(self):
