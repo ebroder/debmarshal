@@ -27,6 +27,7 @@ import os
 import posix
 import re
 import shutil
+import stat
 import string
 import struct
 import subprocess
@@ -705,6 +706,40 @@ class TestUbuntuMapper(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     TestUbuntu()._cleanupMapper('/dev/mapper/sdc')
+
+
+class TestUbuntuCopyFilesystem(unittest.TestCase):
+  def test(self):
+    src = tempfile.mkdtemp()
+    dst = tempfile.mkdtemp()
+
+    try:
+      if src.endswith('/'):
+        src = src[:-1]
+      if dst.endswith('/'):
+        dst = src[:-1]
+
+      open(os.path.join(src, 'test_file'), 'w').write('Hello world\n')
+      open(os.path.join(src, 'test_executable'), 'w').write(
+          "#!/bin/sh\necho Hello world\n")
+      os.chmod(os.path.join(src, 'test_executable'), 0755)
+      os.symlink('blah', os.path.join(src, 'test_symlink'))
+
+      TestUbuntu()._copyFilesystem(src, dst)
+
+      self.assertEqual(open(os.path.join(dst, 'test_file')).read(),
+                       'Hello world\n')
+      self.assertEqual(
+          stat.S_IMODE(
+              os.stat(os.path.join(dst, 'test_executable')).st_mode),
+          0755)
+      self.assert_(
+          stat.S_ISLNK(os.lstat(os.path.join(dst, 'test_symlink')).st_mode))
+      self.assertEqual(os.readlink(os.path.join(dst, 'test_symlink')),
+                       'blah')
+    finally:
+      shutil.rmtree(src)
+      shutil.rmtree(dst)
 
 
 class TestUbuntuCreateBase(mox.MoxTestBase):
