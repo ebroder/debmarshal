@@ -696,6 +696,16 @@ class Ubuntu(base.Distribution):
     # Run update-grub one more time to take the new defaults
     self._runInTarget(['update-grub', '-y'])
 
+  def _installExtraPackages(self):
+    """Install and remove packages as configured.
+
+    Part of the custom_config for Ubuntu images includes adding and
+    removing certain packages. We do that here.
+    """
+    self._installPackages(*self.getCustomConfig('add_pkg'))
+    self._installPackages(*('%s-' % pkg for pkg in
+                            self.getCustomConfig('rm_pkg')))
+
   def createBase(self):
     """Create a valid base image.
 

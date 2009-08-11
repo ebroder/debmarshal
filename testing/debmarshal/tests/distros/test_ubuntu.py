@@ -985,6 +985,22 @@ class TestUbuntuInstallBootloader(mox.MoxTestBase):
       shutil.rmtree(target)
 
 
+class TestUbuntuInstallExtraPackages(mox.MoxTestBase):
+  def test(self):
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installPackages')
+
+    ubuntu.Ubuntu._installPackages('barnowl', 'config-package-dev')
+    ubuntu.Ubuntu._installPackages('ubufox-', 'branding-ubuntu-')
+
+    self.mox.ReplayAll()
+
+    deb = TestUbuntu(None, {'add_pkg': ['barnowl', 'config-package-dev'],
+                            'rm_pkg': ['ubufox', 'branding-ubuntu'],
+                            'hostname': 'www',
+                            'domain': 'example.com'})
+    deb._installExtraPackages()
+
+
 class TestUbuntuCreateBase(mox.MoxTestBase):
   def setUp(self):
     super(TestUbuntuCreateBase, self).setUp()
