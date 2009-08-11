@@ -24,6 +24,7 @@ __authors__ = [
 
 
 import os
+import re
 import shutil
 import struct
 import subprocess
@@ -358,6 +359,27 @@ class TestUbuntuInstallDebootstrap(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     deb._installDebootstrap()
+
+
+class TestUbuntuInstallHosts(unittest.TestCase):
+  def test(self):
+    target = tempfile.mkdtemp()
+    hosts_dir = os.path.join(target, 'etc')
+    os.mkdir(hosts_dir)
+
+    try:
+      deb = TestUbuntu()
+      deb.target = target
+
+      deb._installHosts()
+
+      hosts = os.path.join(hosts_dir, 'hosts')
+      self.assert_(os.path.exists(hosts))
+      self.assert_(re.search('^127\.0\.0\.1\s+localhost',
+                             open(hosts).read(),
+                             re.M))
+    finally:
+      shutil.rmtree(target)
 
 
 if __name__ == '__main__':
