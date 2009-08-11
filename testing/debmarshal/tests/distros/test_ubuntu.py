@@ -23,9 +23,59 @@ __authors__ = [
 ]
 
 
+import os
+import subprocess
+import tempfile
 import unittest
 
+import mox
+
+from debmarshal.distros import base
 from debmarshal.distros import ubuntu
+
+
+class TestUbuntuMountImage(mox.MoxTestBase):
+  def setUp(self):
+    super(TestUbuntuMountImage, self).setUp()
+
+    self.img = '/home/ebroder/test.img'
+    self.root = '/tmp/tmpABCDEF'
+
+    self.mox.StubOutWithMock(tempfile, 'mkdtemp')
+    tempfile.mkdtemp().AndReturn(self.root)
+
+    self.mox.StubOutWithMock(base, 'captureCall')
+
+  def testSuccess(self):
+    base.captureCall(['mount', '-o', 'loop', self.img, self.root])
+    base.captureCall(['umount', '-l', self.root])
+
+    self.mox.StubOutWithMock(os, 'rmdir')
+    os.rmdir(self.root)
+
+    self.mox.ReplayAll()
+
+    deb = ubuntu.Ubuntu()
+
+    self.assertEqual(deb._mountImage(self.img), self.root)
+    deb._umountImage(self.root)
+
+  def testFailure(self):
+    base.captureCall(
+        ['mount', '-o', 'loop', self.img, self.root]).AndRaise(
+        subprocess.CalledProcessError(
+            2,
+            ['mount', '-o', 'loop', self.img, self.root]))
+
+    self.mox.StubOutWithMock(os, 'rmdir')
+    os.rmdir(self.root)
+
+    self.mox.ReplayAll()
+
+    deb = ubuntu.Ubuntu()
+
+    self.assertRaises(subprocess.CalledProcessError,
+                      deb._mountImage, self.img)
 
 
 if __name__ == '__main__':
