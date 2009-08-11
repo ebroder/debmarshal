@@ -316,6 +316,24 @@ class TestUbuntuInstallFilesystem(mox.MoxTestBase):
       os.remove(name)
 
 
+class TestUbuntuInstallSwap(unittest.TestCase):
+  def test(self):
+    fd, name = tempfile.mkstemp()
+    os.close(fd)
+
+    try:
+      deb = TestUbuntu()
+      deb._createSparseFile(name, 1024**3)
+      deb._installSwap(name)
+
+      # Test that what we ended up with is actually swapspace.
+      fd = open(name)
+      fd.seek(4086)
+      self.assertEqual(fd.read(10), 'SWAPSPACE2')
+    finally:
+      os.remove(name)
+
+
 class TestMethodsWithoutInitScripts(mox.MoxTestBase):
   """Superclass for testing methods wrapped in withoutInitScripts."""
   def setUp(self):
