@@ -39,6 +39,7 @@ from debmarshal.distros import base
 from debmarshal.distros import ubuntu
 from debmarshal import errors
 from debmarshal.tests.distros import test_base
+from debmarshal import utils
 
 
 class TestUbuntu(test_base.NoDefaultsDistribution, ubuntu.Ubuntu):
@@ -94,8 +95,22 @@ class TestUbuntuMountImage(mox.MoxTestBase):
     tempfile.mkdtemp().AndReturn(self.root)
 
     self.mox.StubOutWithMock(base, 'captureCall')
+    self.mox.StubOutWithMock(utils, 'diskIsBlockDevice')
+
+  def testBlock(self):
+    utils.diskIsBlockDevice(self.img).AndReturn(True)
+
+    base.captureCall(['mount', self.img, self.root])
+
+    self.mox.ReplayAll()
+
+    deb = TestUbuntu()
+
+    self.assertEqual(deb._mountImage(self.img), self.root)
 
   def testSuccess(self):
+    utils.diskIsBlockDevice(self.img).AndReturn(False)
+
     base.captureCall(['mount', '-o', 'loop', self.img, self.root])
     base.captureCall(['umount', '-l', self.root])
 
@@ -110,6 +125,8 @@ class TestUbuntuMountImage(mox.MoxTestBase):
     deb._umountImage(self.root)
 
   def testFailure(self):
+    utils.diskIsBlockDevice(self.img).AndReturn(False)
+
     base.captureCall(
         ['mount', '-o', 'loop', self.img, self.root]).AndRaise(
         subprocess.CalledProcessError(
