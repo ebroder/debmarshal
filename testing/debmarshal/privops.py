@@ -51,6 +51,7 @@ import virtinst
 from debmarshal import errors
 from debmarshal import hypervisors
 from debmarshal import ip
+import debmarshal.utils
 from debmarshal import vm
 from debmarshal._privops import domains
 from debmarshal._privops import networks
@@ -110,7 +111,7 @@ class Privops(dbus.service.Object):
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='as', out_signature='(sssa{s(ss)})')
   @_coerceDbusArgs
-  @utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
+  @debmarshal.utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
   def createNetwork(self, hosts, _debmarshal_sender=None):
     """All of the networking config you need for a debmarshal test rig.
 
@@ -189,7 +190,7 @@ class Privops(dbus.service.Object):
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='s', out_signature='')
   @_coerceDbusArgs
-  @utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
+  @debmarshal.utils.withLockfile('debmarshal-netlist', fcntl.LOCK_EX)
   def destroyNetwork(self, name, _debmarshal_sender=None):
     """Destroy a debmarshal network.
 
@@ -229,7 +230,7 @@ class Privops(dbus.service.Object):
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='sasssss', out_signature='s')
   @_coerceDbusArgs
-  @utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
+  @debmarshal.utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
   def createDomain(self, memory, disks, network, mac, hypervisor, arch,
                    _debmarshal_sender=None):
     """Create a virtual machine domain.
@@ -305,7 +306,7 @@ class Privops(dbus.service.Object):
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='ss', out_signature='')
   @_coerceDbusArgs
-  @utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
+  @debmarshal.utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
   def destroyDomain(self, name, hypervisor, _debmarshal_sender=None):
     """Destroy a debmarshal domain.
 

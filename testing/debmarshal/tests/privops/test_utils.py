@@ -41,6 +41,7 @@ import libvirt
 import mox
 
 from debmarshal import errors
+import debmarshal.utils
 from debmarshal._privops import utils
 
 
@@ -131,52 +132,6 @@ class TestGetCaller(mox.MoxTestBase):
     utils.caller = None
 
 
-class TestAcquireLock(mox.MoxTestBase):
-  """Test privops.utils._acquireLock."""
-  def test(self):
-    """Test acquiring a lockfile.
-
-    Since acquiring a lock is purely procedural with no branching,
-    this is a bit of a dumb test.
-    """
-    # When run from within a test setUp method, mox.StubOutWithMock
-    # doesn't seem to be able to stub out __builtins__, so we'll hack
-    # around it ourselves
-    self.open = self.mox.CreateMockAnything()
-    utils.open = self.open
-    self.mox.StubOutWithMock(fcntl, 'lockf')
-
-    lock_file = self.mox.CreateMock(file)
-    self.open('/var/lock/debmarshal-networks', 'w+').AndReturn(lock_file)
-    fcntl.lockf(lock_file, fcntl.LOCK_SH)
-
-    self.mox.ReplayAll()
-
-    self.assertEqual(utils._acquireLock('debmarshal-networks', fcntl.LOCK_SH),
-                     lock_file)
-
-    self.mox.VerifyAll()
-
-    del utils.open
-
-
-class TestWithLockfile(mox.MoxTestBase):
-  """Test the privops.utils.withLockfile decorator."""
-  def test(self):
-    """Test wrapping a function in a file-based lock."""
-    lock_file = self.mox.CreateMock(file)
-    self.mox.StubOutWithMock(utils, '_acquireLock')
-    utils._acquireLock('debmarshal', fcntl.LOCK_EX).AndReturn(lock_file)
-
-    self.mox.ReplayAll()
-
-    @utils.withLockfile('debmarshal', fcntl.LOCK_EX)
-    def hasALock():
-      return True
-
-    self.assertEqual(hasALock(), True)
-
-
 class TestLoadState(mox.MoxTestBase):
   """Test loading state from /var/run."""
   def setUp(self):
@@ -184,8 +139,8 @@ class TestLoadState(mox.MoxTestBase):
     super(TestLoadState, self).setUp()
 
     lock_file = self.mox.CreateMock(file)
-    self.mox.StubOutWithMock(utils, '_acquireLock')
-    utils._acquireLock('debmarshal-networks', fcntl.LOCK_SH).\
+    self.mox.StubOutWithMock(debmarshal.utils, 'acquireLock')
+    debmarshal.utils.acquireLock('debmarshal-networks', fcntl.LOCK_SH).\
         AndReturn(lock_file)
 
     self.open = self.mox.CreateMockAnything()
@@ -238,8 +193,8 @@ class TestStoreState(mox.MoxTestBase):
     self.networks = [('debmarshal-0', 500, '10.100.1.1')]
 
     lock_file = self.mox.CreateMock(file)
-    self.mox.StubOutWithMock(utils, '_acquireLock')
-    utils._acquireLock('debmarshal-networks', fcntl.LOCK_EX).\
+    self.mox.StubOutWithMock(debmarshal.utils, 'acquireLock')
+    debmarshal.utils.acquireLock('debmarshal-networks', fcntl.LOCK_EX).\
         AndReturn(lock_file)
 
     self.open = self.mox.CreateMockAnything()

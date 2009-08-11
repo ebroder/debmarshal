@@ -23,6 +23,7 @@ __authors__ = [
 ]
 
 
+import fcntl
 import os
 import posix
 
@@ -53,3 +54,49 @@ class TestDiskIsBlockDevice(mox.MoxTestBase):
 
     self.assertEqual(utils.diskIsBlockDevice('/home/ebroder/root.img'),
                      False)
+
+
+class TestAcquireLock(mox.MoxTestBase):
+  """Test privops.utils.acquireLock."""
+  def test(self):
+    """Test acquiring a lockfile.
+
+    Since acquiring a lock is purely procedural with no branching,
+    this is a bit of a dumb test.
+    """
+    # When run from within a test setUp method, mox.StubOutWithMock
+    # doesn't seem to be able to stub out __builtins__, so we'll hack
+    # around it ourselves
+    self.open = self.mox.CreateMockAnything()
+    utils.open = self.open
+    self.mox.StubOutWithMock(fcntl, 'lockf')
+
+    lock_file = self.mox.CreateMock(file)
+    self.open('/var/lock/debmarshal-networks', 'w+').AndReturn(lock_file)
+    fcntl.lockf(lock_file, fcntl.LOCK_SH)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(utils.acquireLock('debmarshal-networks', fcntl.LOCK_SH),
+                     lock_file)
+
+    self.mox.VerifyAll()
+
+    del utils.open
+
+
+class TestWithLockfile(mox.MoxTestBase):
+  """Test the privops.utils.withLockfile decorator."""
+  def test(self):
+    """Test wrapping a function in a file-based lock."""
+    lock_file = self.mox.CreateMock(file)
+    self.mox.StubOutWithMock(utils, 'acquireLock')
+    utils.acquireLock('debmarshal', fcntl.LOCK_EX).AndReturn(lock_file)
+
+    self.mox.ReplayAll()
+
+    @utils.withLockfile('debmarshal', fcntl.LOCK_EX)
+    def hasALock():
+      return True
+
+    self.assertEqual(hasALock(), True)

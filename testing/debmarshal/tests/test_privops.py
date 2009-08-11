@@ -39,9 +39,10 @@ import virtinst
 from debmarshal import errors
 from debmarshal import hypervisors
 from debmarshal import privops
-from debmarshal.privops import domains
-from debmarshal.privops import networks
-from debmarshal.privops import utils
+import debmarshal.utils
+from debmarshal._privops import domains
+from debmarshal._privops import networks
+from debmarshal._privops import utils
 
 
 class TestCoerceDbusArgs(unittest.TestCase):
@@ -79,8 +80,8 @@ class TestCreateNetwork(mox.MoxTestBase):
     self.mox.StubOutWithMock(utils, 'getCaller')
     utils.getCaller().AndReturn(1000)
 
-    self.mox.StubOutWithMock(utils, '_acquireLock')
-    utils._acquireLock('debmarshal-netlist', fcntl.LOCK_EX)
+    self.mox.StubOutWithMock(debmarshal.utils, 'acquireLock')
+    debmarshal.utils.acquireLock('debmarshal-netlist', fcntl.LOCK_EX)
 
     self.mox.StubOutWithMock(networks, '_validateHostname')
     networks._validateHostname(mox.IgnoreArg()).MultipleTimes()
@@ -145,8 +146,8 @@ class TestDestroyNetwork(mox.MoxTestBase):
     """Setup some mocks common to all tests of destroyNetwork"""
     super(TestDestroyNetwork, self).setUp()
 
-    self.mox.StubOutWithMock(utils, '_acquireLock')
-    utils._acquireLock('debmarshal-netlist', fcntl.LOCK_EX)
+    self.mox.StubOutWithMock(debmarshal.utils, 'acquireLock')
+    debmarshal.utils.acquireLock('debmarshal-netlist', fcntl.LOCK_EX)
 
     self.mox.StubOutWithMock(libvirt, 'open')
     self.virt_con = self.mox.CreateMock(libvirt.virConnect)
@@ -213,8 +214,8 @@ class TestCreateDomain(mox.MoxTestBase):
 
     self.mox.StubOutWithMock(utils, 'getCaller')
     utils.getCaller().MultipleTimes().AndReturn(500)
-    self.mox.StubOutWithMock(utils, '_acquireLock')
-    utils._acquireLock('debmarshal-domlist', fcntl.LOCK_EX)
+    self.mox.StubOutWithMock(debmarshal.utils, 'acquireLock')
+    debmarshal.utils.acquireLock('debmarshal-domlist', fcntl.LOCK_EX)
 
     self.mox.StubOutWithMock(hypervisors.qemu.QEMU, 'open')
     qemu_con = self.mox.CreateMock(libvirt.virConnect)
@@ -259,8 +260,8 @@ class TestDestroyDomain(mox.MoxTestBase):
         ('debmarshal-0', 'qemu'): 500,
         ('debmarshal-1', 'qemu'): 501}
 
-    self.mox.StubOutWithMock(utils, '_acquireLock')
-    utils._acquireLock('debmarshal-domlist', fcntl.LOCK_EX)
+    self.mox.StubOutWithMock(debmarshal.utils, 'acquireLock')
+    debmarshal.utils.acquireLock('debmarshal-domlist', fcntl.LOCK_EX)
 
     self.mox.StubOutWithMock(hypervisors.qemu.QEMU, 'open')
     self.virt_con = self.mox.CreateMock(libvirt.virConnect)
