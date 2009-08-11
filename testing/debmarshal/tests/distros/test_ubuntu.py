@@ -23,6 +23,7 @@ __authors__ = [
 ]
 
 
+import fcntl
 import os
 import posix
 import re
@@ -217,6 +218,11 @@ class TestUbuntuVerifyBase(mox.MoxTestBase):
   def setUp(self):
     super(TestUbuntuVerifyBase, self).setUp()
 
+    self.mox.StubOutWithMock(utils, 'acquireLock')
+    utils.acquireLock(
+        'debmarshal-base-dist-%s' % TestUbuntu().hashBaseConfig(),
+        fcntl.LOCK_EX)
+
     self.mox.StubOutWithMock(base.Distribution, 'verifyBase')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_verifyImage')
 
@@ -248,6 +254,12 @@ class TestUbuntuVerifyBase(mox.MoxTestBase):
 
 class TestUbuntuVerifyCustom(mox.MoxTestBase):
   def test(self):
+    self.mox.StubOutWithMock(utils, 'acquireLock')
+    utils.acquireLock(
+        'debmarshal-custom-dist-%s' % TestUbuntu(
+            None, {'hostname': 'www', 'domain': 'example.com'}).hashConfig(),
+        fcntl.LOCK_EX)
+
     self.mox.StubOutWithMock(base.Distribution, 'verifyCustom')
 
     base.Distribution.verifyCustom().AndReturn(False)
@@ -262,6 +274,12 @@ class TestUbuntuVerifyCustom(mox.MoxTestBase):
 class TestUbuntuVerifyCustomExists(mox.MoxTestBase):
   def setUp(self):
     super(TestUbuntuVerifyCustomExists, self).setUp()
+
+    self.mox.StubOutWithMock(utils, 'acquireLock')
+    utils.acquireLock(
+        'debmarshal-custom-dist-%s' % TestUbuntu(
+            None, {'hostname': 'www', 'domain': 'example.com'}).hashConfig(),
+        fcntl.LOCK_EX)
 
     self.mox.StubOutWithMock(base.Distribution, 'verifyCustom')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_verifyImage')
@@ -1060,6 +1078,11 @@ class TestUbuntuCreateBase(mox.MoxTestBase):
   def setUp(self):
     super(TestUbuntuCreateBase, self).setUp()
 
+    self.mox.StubOutWithMock(utils, 'acquireLock')
+    utils.acquireLock(
+        'debmarshal-base-dist-%s' % TestUbuntu().hashBaseConfig(),
+        fcntl.LOCK_EX)
+
     self.mox.StubOutWithMock(ubuntu.Ubuntu, 'verifyBase')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, 'basePath')
     self.mox.StubOutWithMock(os.path, 'exists')
@@ -1126,6 +1149,14 @@ class TestUbuntuInstallCustom(mox.MoxTestBase):
   def setUp(self):
     super(TestUbuntuInstallCustom, self).setUp()
 
+    self.mox.StubOutWithMock(utils, 'acquireLock')
+    utils.acquireLock(
+        'debmarshal-custom-dist-%s' % TestUbuntu(None,
+                                                 {'hostname': 'www',
+                                                  'domain': 'example.com'}
+                                                 ).hashConfig(),
+        fcntl.LOCK_EX)
+
     self.mox.StubOutWithMock(ubuntu.Ubuntu, 'verifyCustom')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, 'createBase')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, 'basePath')
@@ -1172,6 +1203,12 @@ class TestUbuntuInstallCustom(mox.MoxTestBase):
     ubuntu.Ubuntu._installSwap('/dev/mapper/sda2')
 
     ubuntu.Ubuntu._mountImage('/dev/mapper/sda1').AndReturn('/tmp/tmpnew')
+    utils.acquireLock(
+        'debmarshal-base-dist-%s' % TestUbuntu(None,
+                                                 {'hostname': 'www',
+                                                  'domain': 'example.com'}
+                                                 ).hashBaseConfig(),
+        fcntl.LOCK_SH)
     ubuntu.Ubuntu._mountImage('/base').AndReturn('/tmp/tmpold')
 
     ubuntu.Ubuntu._copyFilesystem('/tmp/tmpold', '/tmp/tmpnew')

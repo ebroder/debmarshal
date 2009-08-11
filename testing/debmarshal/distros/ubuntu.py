@@ -23,6 +23,7 @@ __authors__ = [
 ]
 
 
+import fcntl
 import os
 import shutil
 import stat
@@ -257,6 +258,9 @@ class Ubuntu(base.Distribution):
     Returns:
       A bool. True if the image is valid; False if it's not.
     """
+    lock = utils.acquireLock('debmarshal-base-dist-%s' % self.hashBaseConfig(),
+                             fcntl.LOCK_EX)
+
     if not super(Ubuntu, self).verifyBase():
       return False
     else:
@@ -271,6 +275,9 @@ class Ubuntu(base.Distribution):
     Returns:
       A bool. True if the image is valid; False if it's not.
     """
+    lock = utils.acquireLock('debmarshal-custom-dist-%s' % self.hashConfig(),
+                             fcntl.LOCK_EX)
+
     if not super(Ubuntu, self).verifyCustom():
       return False
     else:
@@ -774,6 +781,9 @@ class Ubuntu(base.Distribution):
     if self.verifyBase():
       return
 
+    lock = utils.acquireLock('debmarshal-base-dist-%s' % self.hashBaseConfig(),
+                             fcntl.LOCK_EX)
+
     if os.path.exists(self.basePath()):
       os.remove(self.basePath())
 
@@ -808,6 +818,10 @@ class Ubuntu(base.Distribution):
 
     self.createBase()
 
+    custom_lock = utils.acquireLock(
+        'debmarshal-custom-dist-%s' % self.hashConfig(),
+        fcntl.LOCK_EX)
+
     if os.path.exists(self.customPath()):
       os.remove(self.customPath())
 
@@ -829,12 +843,16 @@ class Ubuntu(base.Distribution):
 
             self.target = self._mountImage(root)
             try:
+              base_lock = utils.acquireLock(
+                  'debmarshal-base-dist-%s' % self.hashBaseConfig(),
+                  fcntl.LOCK_SH)
               base = self._mountImage(self.basePath())
 
               try:
                 self._copyFilesystem(base, self.target)
               finally:
                 self._umountImage(base)
+                del base_lock
 
               self._installFstab({'/': root, 'swap': swap})
               self._installNetwork()
