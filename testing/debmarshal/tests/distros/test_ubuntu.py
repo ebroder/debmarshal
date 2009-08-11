@@ -25,6 +25,7 @@ __authors__ = [
 
 import os
 import shutil
+import struct
 import subprocess
 import tempfile
 import unittest
@@ -269,6 +270,29 @@ class TestUbuntuRunInTarget(mox.MoxTestBase):
     deb = TestUbuntu()
     deb.target = 'foo'
     deb._runInTarget(['some', 'command'])
+
+
+class TestUbuntuInstallFilesystem(mox.MoxTestBase):
+  def test(self):
+    fd, name = tempfile.mkstemp()
+    os.close(fd)
+
+    try:
+      deb = TestUbuntu()
+      deb._createSparseFile(name, 1024**3)
+      deb._installFilesystem(name)
+
+      # Let's simulate libmagic to test if name contains an ext3
+      # filesystem (really, just any version of ext >=2, but that's
+      # good enough)
+      fd = open(name)
+      fd.seek(0x438)
+      leshort = 'H'
+      size = struct.calcsize(leshort)
+      self.assertEqual(struct.unpack(leshort, fd.read(size))[0],
+                       0xEF53)
+    finally:
+      os.remove(name)
 
 
 if __name__ == '__main__':
