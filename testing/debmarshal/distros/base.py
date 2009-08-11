@@ -55,8 +55,8 @@ def captureCall(popen_args, stdin_str=None, *args, **kwargs):
     Anything printed on stdout by the process.
 
   Raises:
-    subprocess.CalledProcessError: Raised if the command returns
-      non-0.
+    debmarshal.errors.CalledProcessError: Raised if the command
+      returns non-0.
   """
   if 'stdin' not in kwargs:
     kwargs['stdin'] = subprocess.PIPE
@@ -67,7 +67,7 @@ def captureCall(popen_args, stdin_str=None, *args, **kwargs):
   p = subprocess.Popen(popen_args, *args, **kwargs)
   out, _ = p.communicate(stdin_str)
   if p.returncode:
-    raise subprocess.CalledProcessError(p.returncode, popen_args)
+    raise errors.CalledProcessError(p.returncode, popen_args, out)
   return out
 
 

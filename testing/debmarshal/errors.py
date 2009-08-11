@@ -22,6 +22,9 @@ __authors__ = [
 ]
 
 
+import subprocess
+
+
 class Error(Exception):
   """Base exception for debmarshal."""
 
@@ -56,3 +59,10 @@ class NoAvailableIPs(Error):
 
 class NoAvailableDevs(Error):
   """Could not find an available device node."""
+
+
+class CalledProcessError(subprocess.CalledProcessError, Error):
+  """This exception is raised when a process returns a non-0 exit status."""
+  def __init__(self, returncode, cmd, output):
+    self.output = output
+    super(CalledProcessError, self).__init__(returncode, cmd)
