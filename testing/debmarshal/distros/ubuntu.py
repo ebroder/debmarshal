@@ -26,12 +26,14 @@ __authors__ = [
 import os
 import shutil
 import stat
+import string
 import subprocess
 import tempfile
 
 import decorator
 
 from debmarshal.distros import base
+from debmarshal import errors
 
 
 def _stopInitScripts(target):
@@ -453,6 +455,54 @@ class Ubuntu(base.Distribution):
       blk: The block device
     """
     base.captureCall(['kpartx', '-p', '', '-d', blk])
+
+  def _setupMapper(self, dev):
+    """Create a device-mapper node mapping over a device.
+
+    This creates a node named like a traditional hard drive, which
+    will satisfy grub-install sufficiently to get it to install onto a
+    disk image instead of an actual drive.
+
+    Args:
+      dev: The block device to create a mapping for. Usually a loop
+        device.
+
+    Returns:
+      The new device mapper node
+    """
+    loop_stat = os.stat(dev)
+
+    # The device-mapper takes sizes in units of 512-byte sectors,
+    # which blockdev --getsz conveniently returns
+    size = base.captureCall(['blockdev', '--getsz', dev]).strip()
+    device = '%s:%s' % (os.major(loop_stat.st_rdev),
+                        os.minor(loop_stat.st_rdev))
+    # dm tables are "logical_start length linear device_to_map
+    # device_start"
+    table = '0 %s linear %s 0' % (size, device)
+
+    # We don't really care what the node is actually called, just that
+    # grub-install thinks it's a hard drive, so we'll try everything
+    # it thinks is a hard drive
+    for disk_type in ('sd', 'hd', 'vd'):
+      for disk_id in string.ascii_lowercase:
+        disk = disk_type + disk_id
+        try:
+          base.captureCall(['dmsetup', 'create', disk], stdin_str=table)
+          return os.path.join('/dev/mapper', disk)
+        except subprocess.CalledProcessError:
+          continue
+    else:
+      raise errors.NoAvailableDevs(
+        "Could not find an unused device-mapper name for '%s'" % dev)
+
+  def _cleanupMapper(self, mapper_dev):
+    """Cleanup a device-mapper node.
+
+    Args:
+      mapper_dev: The device-mapper node to cleanup.
+    """
+    base.captureCall(['dmsetup', 'remove', os.path.basename(mapper_dev)])
 
   def createBase(self):
     """Create a valid base image.

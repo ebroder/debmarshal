@@ -24,8 +24,10 @@ __authors__ = [
 
 
 import os
+import posix
 import re
 import shutil
+import string
 import struct
 import subprocess
 import tempfile
@@ -35,6 +37,7 @@ import mox
 
 from debmarshal.distros import base
 from debmarshal.distros import ubuntu
+from debmarshal import errors
 from debmarshal.tests.distros import test_base
 
 
@@ -611,6 +614,62 @@ class TestUbuntuDevices(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     TestUbuntu()._cleanupDevices('/dev/loop0')
+
+
+class TestUbuntuMapper(mox.MoxTestBase):
+  def testSetupSuccess(self):
+    self.mox.StubOutWithMock(os, 'stat')
+    self.mox.StubOutWithMock(base, 'captureCall')
+
+    base.captureCall(['blockdev', '--getsz', '/dev/loop1']).AndReturn(
+        '1024\n')
+    os.stat('/dev/loop1').AndReturn(posix.stat_result([
+          # st_rdev is the 16th argument
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, os.makedev(7, 1)]))
+
+    for disk_id in 'abcdefg':
+      base.captureCall(['dmsetup', 'create', 'sd%s' % disk_id],
+                       stdin_str=mox.IgnoreArg()).AndRaise(
+          subprocess.CalledProcessError(1, 'Some error'))
+
+    base.captureCall(['dmsetup', 'create', 'sdh'],
+                     stdin_str='0 1024 linear 7:1 0')
+
+    self.mox.ReplayAll()
+
+    TestUbuntu()._setupMapper('/dev/loop1')
+
+  def testSetupFailure(self):
+    self.mox.StubOutWithMock(os, 'stat')
+    self.mox.StubOutWithMock(base, 'captureCall')
+
+    base.captureCall(['blockdev', '--getsz', '/dev/loop1']).AndReturn(
+        '1024\n')
+    os.stat('/dev/loop1').AndReturn(posix.stat_result([
+          # st_rdev is the 16th argument
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, os.makedev(7, 1)]))
+
+    for disk_type in ('sd', 'hd', 'vd'):
+      for disk_id in string.ascii_lowercase:
+        base.captureCall(['dmsetup', 'create', disk_type + disk_id],
+                         stdin_str=mox.IgnoreArg()).AndRaise(
+            subprocess.CalledProcessError(1, 'Some error'))
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(errors.NoAvailableDevs, TestUbuntu()._setupMapper,
+                      '/dev/loop1')
+
+  def testCleanup(self):
+    self.mox.StubOutWithMock(base, 'captureCall')
+
+    base.captureCall(['dmsetup', 'remove', 'sdc'])
+
+    self.mox.ReplayAll()
+
+    TestUbuntu()._cleanupMapper('/dev/mapper/sdc')
 
 
 class TestUbuntuCreateBase(mox.MoxTestBase):

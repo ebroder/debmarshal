@@ -52,3 +52,7 @@ class NotImplementedError(Error):
 
 class NoAvailableIPs(Error):
   """No available subnet could be found."""
+
+
+class NoAvailableDevs(Error):
+  """Could not find an available device node."""
