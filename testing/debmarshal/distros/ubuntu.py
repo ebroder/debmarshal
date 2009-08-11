@@ -391,6 +391,28 @@ class Ubuntu(base.Distribution):
 
     self._installReconfigure('tzdata')
 
+  def _installPartitions(self, img):
+    """Partition a disk image.
+
+    Right now, the disk is broken into a Linux partition, followed by
+    a 1G swap partition. All remaining space past that 1G is allocated
+    to the Linux partition.
+
+    Args:
+      img: Path to the image file to partition.
+    """
+    # TODO(ebroder): Allow for more arbitrary partitioning
+
+    # This is slightly braindead math, but I don't really care about
+    # the swap partition being /exactly/ 1G.
+    disk_blocks = os.stat(img).st_size / (1024 ** 2)
+    swap_blocks = 1024
+    root_blocks = disk_blocks - swap_blocks
+
+    base.captureCall(
+        ['sfdisk', '-uM', img],
+        stdin_str=',%d,L,*\n,,S\n;\n;\n' % root_blocks)
+
   def createBase(self):
     """Create a valid base image.
 
