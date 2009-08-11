@@ -57,7 +57,7 @@ class TestCaptureCall(mox.MoxTestBase):
                      stdout=subprocess.PIPE,
                      stderr=subprocess.STDOUT).AndReturn(
         mock_p)
-    mock_p.communicate().AndReturn(('bar', 'baz'))
+    mock_p.communicate(None).AndReturn(('bar', 'baz'))
     mock_p.returncode = 0
 
     self.mox.ReplayAll()
@@ -74,7 +74,7 @@ class TestCaptureCall(mox.MoxTestBase):
                      stdout='blah',
                      stderr=subprocess.STDOUT).AndReturn(
         mock_p)
-    mock_p.communicate().AndReturn((None, None))
+    mock_p.communicate(None).AndReturn((None, None))
     mock_p.returncode = 0
 
     self.mox.ReplayAll()
@@ -91,7 +91,7 @@ class TestCaptureCall(mox.MoxTestBase):
                      stdout=subprocess.PIPE,
                      stderr='foo').AndReturn(
         mock_p)
-    mock_p.communicate().AndReturn(('bar', 'baz'))
+    mock_p.communicate(None).AndReturn(('bar', 'baz'))
     mock_p.returncode = 0
 
     self.mox.ReplayAll()
@@ -108,7 +108,7 @@ class TestCaptureCall(mox.MoxTestBase):
                      stdout=subprocess.PIPE,
                      stderr=subprocess.STDOUT).AndReturn(
         mock_p)
-    mock_p.communicate().AndReturn((None, None))
+    mock_p.communicate(None).AndReturn((None, None))
     mock_p.returncode = 255
 
     self.mox.ReplayAll()
