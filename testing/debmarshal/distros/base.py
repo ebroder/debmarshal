@@ -25,6 +25,7 @@ __authors__ = [
 
 import ConfigParser
 import errno
+import fcntl
 import glob
 import itertools
 try:
@@ -42,6 +43,7 @@ import tempfile
 import pkg_resources
 
 from debmarshal import errors
+from debmarshal import utils
 
 
 def _randomString():
@@ -621,6 +623,9 @@ class Distribution(object):
     Args:
       size: Size of the snapshot volume, in bytes.
     """
+    lock = utils.acquireLock('debmarshal-base-dist-%s' % self.hashBaseConfig(),
+                             fcntl.LOCK_SH)
+
     loop = setupLoop(self.basePath())
     return createCow(loop, size)
 
@@ -630,5 +635,8 @@ class Distribution(object):
     Args:
       size: Size of the snapshot volume, in bytes.
     """
+    lock = utils.acquireLock('debmarshal-custom-dist-%s' % self.hashConfig(),
+                             fcntl.LOCK_SH)
+
     loop = setupLoop(self.customPath())
     return createCow(loop, size)

@@ -24,6 +24,7 @@ __authors__ = [
 
 
 import ConfigParser
+import fcntl
 import glob
 try:
   import hashlib as md5
@@ -41,6 +42,7 @@ import pkg_resources
 
 from debmarshal.distros import base
 from debmarshal import errors
+from debmarshal import utils
 
 
 class NoDefaultsDistribution(base.Distribution):
@@ -596,8 +598,12 @@ class TestDistributionCow(mox.MoxTestBase):
 
     self.mox.StubOutWithMock(base, 'setupLoop')
     self.mox.StubOutWithMock(base, 'createCow')
+    self.mox.StubOutWithMock(utils, 'acquireLock')
 
   def testBase(self):
+    utils.acquireLock(
+        'debmarshal-base-dist-%s' % NoDefaultsDistribution().hashBaseConfig(),
+        fcntl.LOCK_SH)
     base.setupLoop(NoDefaultsDistribution().basePath()).AndReturn('/dev/loop0')
     base.createCow('/dev/loop0', 1024 ** 2).AndReturn('/dev/mapper/something')
 
@@ -607,6 +613,9 @@ class TestDistributionCow(mox.MoxTestBase):
                      '/dev/mapper/something')
 
   def testCustom(self):
+    utils.acquireLock(
+        'debmarshal-custom-dist-%s' % NoDefaultsDistribution().hashConfig(),
+        fcntl.LOCK_SH)
     base.setupLoop(NoDefaultsDistribution().customPath()).AndReturn(
       '/dev/loop0')
     base.createCow('/dev/loop0', 1024 ** 2).AndReturn('/dev/mapper/something')
