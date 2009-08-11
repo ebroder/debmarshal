@@ -555,6 +555,11 @@ def main():
   DBUS_OBJECT_PATH, connecting it to a service with DBUS_BUS_NAME on
   the system bus.
   """
+  # If the daemon is started through a DBus service file, the value of
+  # PATH is empty enough to cause problems, so we'll just set it to a
+  # new value.
+  os.environ['PATH'] = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
   glib.DBusGMainLoop(set_as_default=True)
   name = dbus.service.BusName(DBUS_BUS_NAME, dbus.SystemBus())
   dbus_obj = Privops(name, DBUS_OBJECT_PATH)
