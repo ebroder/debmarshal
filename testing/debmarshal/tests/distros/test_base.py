@@ -129,8 +129,8 @@ class TestDistributionInit(unittest.TestCase):
     """
     distro = base.Distribution()
 
-    self.assertEqual(distro.base_config, None)
-    self.assertEqual(distro.custom_config, None)
+    self.assertEqual(distro.base_config, {})
+    self.assertEqual(distro.custom_config, {})
 
   def testBaseConfig(self):
     """Test missing and extra options to the Distribution base_config."""
@@ -184,6 +184,19 @@ class TestDistributionGetItems(unittest.TestCase):
     self.assertEqual(distro.getCustomConfig('foo'), 'quux')
     self.assertEqual(distro.getCustomConfig('bar'), 'baz')
     self.assertRaises(KeyError, distro.getCustomConfig, 'spam')
+
+  def testJustDefaults(self):
+    class TestDistro(base.Distribution):
+      base_defaults = {'bar': 'baz'}
+
+      base_configurable = set(['bar'])
+
+      custom_defaults = {'bar': 'baz'}
+
+      custom_configurable = set(['bar'])
+
+    self.assertEqual(TestDistro().getBaseConfig('bar'), 'baz')
+    self.assertEqual(TestDistro().getCustomConfig('bar'), 'baz')
 
 
 class TestDistributionClassId(unittest.TestCase):
