@@ -382,5 +382,87 @@ class TestUbuntuInstallHosts(unittest.TestCase):
       shutil.rmtree(target)
 
 
+class TestUbuntuInstallSources(unittest.TestCase):
+  def testNoComponents(self):
+    target = tempfile.mkdtemp()
+    sources_dir = os.path.join(target, 'etc/apt')
+    os.makedirs(sources_dir)
+
+    try:
+      deb = TestUbuntu({'enable_security': False,
+                        'enable_updates': False,
+                        'enable_backports': False,
+                        'enable_proposed': False})
+      deb.target = target
+
+      deb._installSources()
+
+      sources_path = os.path.join(sources_dir, 'sources.list')
+      sources = open(sources_path).read()
+
+      self.assert_(re.search(
+          '^deb http://us\.archive\.ubuntu\.com/ubuntu/',
+          sources,
+          re.M))
+      self.assert_(not re.search(
+          '^deb http://security\.ubuntu\.com/ubuntu/ jaunty-security',
+          sources,
+          re.M))
+      self.assert_(not re.search(
+          '^deb http://us\.archive\.ubuntu\.com/ubuntu/ jaunty-updates',
+          sources,
+          re.M))
+      self.assert_(not re.search(
+          '^deb http://us\.archive\.ubuntu\.com/ubuntu/ jaunty-backports',
+          sources,
+          re.M))
+      self.assert_(not re.search(
+          '^deb http://us\.archive\.ubuntu\.com/ubuntu/ jaunty-proposed',
+          sources,
+          re.M))
+    finally:
+      shutil.rmtree(target)
+
+  def testAllComponents(self):
+    target = tempfile.mkdtemp()
+    sources_dir = os.path.join(target, 'etc/apt')
+    os.makedirs(sources_dir)
+
+    try:
+      deb = TestUbuntu({'enable_security': True,
+                        'enable_updates': True,
+                        'enable_backports': True,
+                        'enable_proposed': True})
+      deb.target = target
+
+      deb._installSources()
+
+      sources_path = os.path.join(sources_dir, 'sources.list')
+      sources = open(sources_path).read()
+
+      self.assert_(re.search(
+          '^deb http://us\.archive\.ubuntu\.com/ubuntu/ jaunty',
+          sources,
+          re.M))
+      self.assert_(re.search(
+          '^deb http://security\.ubuntu\.com/ubuntu/ jaunty-security',
+          sources,
+          re.M))
+      self.assert_(re.search(
+          '^deb http://us\.archive\.ubuntu\.com/ubuntu/ jaunty-updates',
+          sources,
+          re.M))
+      self.assert_(re.search(
+          '^deb http://us\.archive\.ubuntu\.com/ubuntu/ jaunty-backports',
+          sources,
+          re.M))
+      self.assert_(re.search(
+          '^deb http://us\.archive\.ubuntu\.com/ubuntu/ jaunty-proposed',
+          sources,
+          re.M))
+    finally:
+      shutil.rmtree(target)
+
+
 if __name__ == '__main__':
   unittest.main()

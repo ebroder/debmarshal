@@ -322,3 +322,37 @@ class Ubuntu(base.Distribution):
                 "ff02::2 ip6-allrouters\n"
                 "ff02::3 ip6-allhosts\n")
     hosts.close()
+
+  def _installSources(self):
+    """Install the sources.list file."""
+    sources = open(os.path.join(self.target, 'etc/apt/sources.list'), 'w')
+
+    try:
+      sources_conf = [
+          self.getBaseConfig('mirror'),
+          self.getBaseConfig('suite'),
+          ' '.join(self.getBaseConfig('components'))]
+      sources.write('deb %s %s %s\n' % tuple(sources_conf))
+      sources.write('deb-src %s %s %s\n' % tuple(sources_conf))
+
+      if self.getBaseConfig('enable_security'):
+        sources_conf[0] = self.getBaseConfig('security_mirror')
+        sources.write('deb %s %s-security %s\n' % tuple(sources_conf))
+        sources.write('deb-src %s %s-security %s\n' % tuple(sources_conf))
+
+      if self.getBaseConfig('enable_updates'):
+        sources_conf[0] = self.getBaseConfig('updates_mirror')
+        sources.write('deb %s %s-updates %s\n' % tuple(sources_conf))
+        sources.write('deb-src %s %s-updates %s\n' % tuple(sources_conf))
+
+      if self.getBaseConfig('enable_backports'):
+        sources_conf[0] = self.getBaseConfig('backports_mirror')
+        sources.write('deb %s %s-backports %s\n' % tuple(sources_conf))
+        sources.write('deb-src %s %s-backports %s\n' % tuple(sources_conf))
+
+      if self.getBaseConfig('enable_proposed'):
+        sources_conf[0] = self.getBaseConfig('proposed_mirror')
+        sources.write('deb %s %s-proposed %s\n' % tuple(sources_conf))
+        sources.write('deb-src %s %s-proposed %s\n' % tuple(sources_conf))
+    finally:
+      sources.close()
