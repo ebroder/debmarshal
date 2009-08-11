@@ -447,6 +447,83 @@ class Privops(dbus.service.Object):
 
     utils.caller = None
 
+  @_resetExitTimer
+  @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
+                       in_signature='sa{sv}a{sv}t', out_signature='s')
+  @_coerceDbusArgs
+  def createSnapshot(self, distribution, base_config, custom_config, size,
+                     _debmarshal_sender=None):
+    """Generate a snapshot of a customized disk image.
+
+    This will generate a memory-backed snapshot of a customized disk
+    image, ideal for throwaway use with VMs.
+
+    The resulting device node will be owned by the caller.
+
+    Args:
+      distribution: The name of the distribution to snapshot.
+      base_config: The config options for the base image.
+      custom_config: The config options for the custom image.
+      size: The size of the snapshot volume in bytes. This does not
+        need to be the same size as the original disk image, and is
+        frequently much smaller.
+
+    Returns:
+      The path to the newly created snapshot image.
+
+    Raises:
+      debmarshal.errors.NotFound: Beacuse this is not an asynchronous
+        call, and is assumed to return quickly, this exception is
+        raised if the customized disk image does not already exist.
+    """
+    utils.caller = _debmarshal_sender
+
+    dist_class = base.findDistribution(distribution)
+
+    dist = dist_class(base_config, custom_config)
+
+    if not os.path.exists(dist.customPath()):
+      raise errors.NotFound(
+        "The customized disk image for this configuration does not exist")
+
+    snapshot = dist.customCow(size)
+    os.chown(snapshot, utils.getCaller(), -1)
+
+    utils.caller = None
+
+    return snapshot
+
+  @_resetExitTimer
+  @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
+                       in_signature='s', out_signature='')
+  @_coerceDbusArgs
+  def cleanupSnapshot(self, snapshot, _debmarshal_sender=None):
+    """Cleanup a snapshot image.
+
+    The snapshot must be owned by the calling user.
+
+    Args:
+      snapshot: Path to the snapshot image.
+
+    Raises:
+      debmarshal.errors.AccessDenied: Raised if the caller does not
+        own the passed in snapshot
+    """
+    utils.caller = _debmarshal_sender
+
+    if os.stat(snapshot).st_uid not in (0, utils.getCaller()):
+      raise errors.AccessDenied("The caller does not own snapshot '%s'" %
+                                snapshot)
+
+    table = base.captureCall(['dmsetup', 'table', snapshot])
+    origin_dev = table.split()[3]
+    assert origin_dev.split(':')[0] == '7'
+
+    base.cleanupCow(snapshot)
+    base.cleanupLoop('/dev/loop%s' % origin_dev.split(':')[1])
+
+    utils.caller = None
+
 
 _callback = None
 

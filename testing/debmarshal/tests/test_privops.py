@@ -25,6 +25,7 @@ __authors__ = [
 
 import fcntl
 import os
+import posix
 import traceback
 import unittest
 
@@ -450,6 +451,88 @@ class TestGenerateImage(mox.MoxTestBase):
       {'a': 'b'},
       {'c': 'd'},
       ':1.13')
+
+
+class TestCreateSnapshot(mox.MoxTestBase):
+  def setUp(self):
+    super(TestCreateSnapshot, self).setUp()
+
+    self.mock_ubuntu = self.mox.CreateMock(ubuntu.Ubuntu)
+    self.mox.StubOutWithMock(ubuntu, 'Ubuntu', use_mock_anything=True)
+
+    self.mox.StubOutWithMock(base, 'findDistribution')
+    base.findDistribution('ubuntu').AndReturn(ubuntu.Ubuntu)
+
+    ubuntu.Ubuntu({'a': 'b'}, {'c': 'd'}).AndReturn(self.mock_ubuntu)
+
+    self.mock_ubuntu.customPath().AndReturn('/custom')
+
+    self.mox.StubOutWithMock(os.path, 'exists')
+
+  def testInvalid(self):
+    os.path.exists('/custom').AndReturn(False)
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(errors.NotFound, privops.Privops().createSnapshot,
+                      'ubuntu', {'a': 'b'}, {'c': 'd'}, 1024 ** 2)
+
+  def testSuccess(self):
+    os.path.exists('/custom').AndReturn(True)
+
+    self.mock_ubuntu.customCow(1024 ** 2).AndReturn('/dev/mapper/snapshot')
+
+    self.mox.StubOutWithMock(utils, 'getCaller')
+    utils.getCaller().MultipleTimes().AndReturn(500)
+
+    self.mox.StubOutWithMock(os, 'chown')
+    os.chown('/dev/mapper/snapshot', 500, -1)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(
+      privops.Privops().createSnapshot(
+        'ubuntu', {'a': 'b'}, {'c': 'd'}, 1024 ** 2),
+      '/dev/mapper/snapshot')
+
+
+class TestCleanupSnapshot(mox.MoxTestBase):
+  def testInvalid(self):
+    self.mox.StubOutWithMock(os, 'stat')
+    self.mox.StubOutWithMock(utils, 'getCaller')
+
+    os.stat('/dev/mapper/snapshot').AndReturn(posix.stat_result([
+        060660, 0, 0, 0, 501, 0, 0, 0, 0, 0]))
+
+    utils.getCaller().MultipleTimes().AndReturn(500)
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(errors.AccessDenied,
+                      privops.Privops().cleanupSnapshot,
+                      '/dev/mapper/snapshot')
+
+  def testSuccess(self):
+    self.mox.StubOutWithMock(os, 'stat')
+    self.mox.StubOutWithMock(utils, 'getCaller')
+    self.mox.StubOutWithMock(base, 'captureCall')
+    self.mox.StubOutWithMock(base, 'cleanupCow')
+    self.mox.StubOutWithMock(base, 'cleanupLoop')
+
+    os.stat('/dev/mapper/snapshot').AndReturn(posix.stat_result([
+        060660, 0, 0, 0, 500, 0, 0, 0, 0, 0]))
+
+    utils.getCaller().MultipleTimes().AndReturn(500)
+
+    base.captureCall(['dmsetup', 'table', '/dev/mapper/snapshot']).AndReturn(
+      '0 1024 snapshot 7:0 7:1 128')
+
+    base.cleanupCow('/dev/mapper/snapshot')
+    base.cleanupLoop('/dev/loop0')
+
+    self.mox.ReplayAll()
+
+    privops.Privops().cleanupSnapshot('/dev/mapper/snapshot')
 
 
 class TestCallback(mox.MoxTestBase):
