@@ -464,5 +464,19 @@ class TestUbuntuInstallSources(unittest.TestCase):
       shutil.rmtree(target)
 
 
+class TestUbuntuInstallUpdates(TestMethodsWithoutInitScripts):
+  def test(self):
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_runInTarget')
+
+    ubuntu.Ubuntu._runInTarget(['apt-get', 'update'])
+    ubuntu.Ubuntu._runInTarget(['apt-get', '-y', 'dist-upgrade'])
+
+    self.mox.ReplayAll()
+
+    deb = TestUbuntu()
+    deb.target = 'foo'
+    deb._installUpdates()
+
+
 if __name__ == '__main__':
   unittest.main()

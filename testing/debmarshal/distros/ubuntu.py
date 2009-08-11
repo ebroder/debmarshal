@@ -356,3 +356,12 @@ class Ubuntu(base.Distribution):
         sources.write('deb-src %s %s-proposed %s\n' % tuple(sources_conf))
     finally:
       sources.close()
+
+  @withoutInitScripts
+  def _installUpdates(self):
+    """Take all pending updates."""
+    self._runInTarget(['apt-get',
+                       'update'])
+    self._runInTarget(['apt-get',
+                       '-y',
+                       'dist-upgrade'])
