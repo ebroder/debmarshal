@@ -285,3 +285,15 @@ class Ubuntu(base.Distribution):
     args = ['apt-get', '-y', 'install']
     args.extend(pkgs)
     self._runInTarget(args, env=env)
+
+  @withoutInitScripts
+  def _installReconfigure(self, pkg):
+    """Reconfigure a package within a chroot.
+
+    Args:
+      pkg: The package to reconfigure.
+    """
+    self._runInTarget(['dpkg-reconfigure',
+                       '-fnoninteractive',
+                       '-pcritical',
+                       pkg])

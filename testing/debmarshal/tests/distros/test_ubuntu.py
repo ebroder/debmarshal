@@ -323,5 +323,21 @@ class TestUbuntuInstallPackage(TestMethodsWithoutInitScripts):
     deb._installPackages('foo', 'bar')
 
 
+class TestUbuntuInstallReconfigure(TestMethodsWithoutInitScripts):
+  def test(self):
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_runInTarget')
+
+    ubuntu.Ubuntu._runInTarget(['dpkg-reconfigure',
+                                '-fnoninteractive',
+                                '-pcritical',
+                                'foo'])
+
+    self.mox.ReplayAll()
+
+    deb = TestUbuntu()
+    deb.target = 'blah'
+    deb._installReconfigure('foo')
+
+
 if __name__ == '__main__':
   unittest.main()
