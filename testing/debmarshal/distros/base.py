@@ -28,8 +28,42 @@ try:
 except ImportError:  # pragma: no cover
   import md5
 import os
+import subprocess
 
 from debmarshal import errors
+
+
+def captureCall(*args, **kwargs):
+  """Capture stdout from a command.
+
+  This method will proxy the arguments to subprocess.Popen. It returns
+  the output from the command if the call succeeded and raises an
+  exception if the process returns a non-0 value.
+
+  This is intended to be a variant on the subprocess.check_call
+  function that also allows you access to the output from the command.
+
+  Args:
+    All arguments are the same as the arguments to subprocess.Popen
+
+  Returns:
+    Anything printed on stdout by the process.
+
+  Raises:
+    subprocess.CalledProcessError: Raised if the command returns
+      non-0.
+  """
+  if 'stdin' not in kwargs:
+    kwargs['stdin'] = subprocess.PIPE
+  if 'stdout' not in kwargs:
+    kwargs['stdout'] = subprocess.PIPE
+  if 'stderr' not in kwargs:
+    kwargs['stderr'] = subprocess.STDOUT
+  p = subprocess.Popen(*args, **kwargs)
+  out, _ = p.communicate()
+  if p.returncode:
+    raise subprocess.CalledProcessError(p.returncode, args[0])
+  return out
 
 
 class DistributionMeta(type):
