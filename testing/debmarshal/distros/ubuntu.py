@@ -381,3 +381,12 @@ class Ubuntu(base.Distribution):
 
     self._runInTarget(['locale-gen'])
     self._installReconfigure('locales')
+
+  @withoutInitScripts
+  def _installTimezone(self):
+    """Configure timezone settings."""
+    timezone = open(os.path.join(self.target, 'etc/timezone'), 'w')
+    timezone.write('America/Los_Angeles\n')
+    timezone.close()
+
+    self._installReconfigure('tzdata')
