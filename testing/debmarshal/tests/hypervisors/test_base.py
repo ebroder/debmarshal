@@ -23,8 +23,6 @@ __authors__ = [
 ]
 
 
-import os
-import posix
 import unittest
 
 from lxml import etree
@@ -32,31 +30,8 @@ import mox
 
 from debmarshal import errors
 from debmarshal.hypervisors import base
+from debmarshal import utils
 from debmarshal import vm
-
-
-class TestDiskIsBlockDevice(mox.MoxTestBase):
-  """Test base._diskIsBlockDevice."""
-  def testBlockDevice(self):
-    self.mox.StubOutWithMock(os, 'stat')
-    os.stat('/home/ebroder/root.img').AndReturn(posix.stat_result([
-      # st_mode is the first argument
-      060644, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
-
-    self.mox.ReplayAll()
-
-    self.assertEqual(base._diskIsBlockDevice('/home/ebroder/root.img'),
-                     True)
-
-  def testFile(self):
-    self.mox.StubOutWithMock(os, 'stat')
-    os.stat('/home/ebroder/root.img').AndReturn(posix.stat_result([
-      0100644, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
-
-    self.mox.ReplayAll()
-
-    self.assertEqual(base._diskIsBlockDevice('/home/ebroder/root.img'),
-                     False)
 
 
 class TestHypervisorMeta(unittest.TestCase):
@@ -128,9 +103,9 @@ class TestHypervisorDomainXML(mox.MoxTestBase):
                     mac='AA:BB:CC:DD:EE:FF',
                     arch='x86_64')
 
-    self.mox.StubOutWithMock(base, '_diskIsBlockDevice')
-    base._diskIsBlockDevice('/home/ebroder/block-dev').AndReturn(True)
-    base._diskIsBlockDevice('/home/ebroder/file.img').AndReturn(False)
+    self.mox.StubOutWithMock(utils, 'diskIsBlockDevice')
+    utils.diskIsBlockDevice('/home/ebroder/block-dev').AndReturn(True)
+    utils.diskIsBlockDevice('/home/ebroder/file.img').AndReturn(False)
 
     self.mox.ReplayAll()
 
