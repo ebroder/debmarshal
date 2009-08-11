@@ -132,6 +132,8 @@ class TestDistributionMeta(unittest.TestCase):
 
 class TestDistributionUpdateDefaults(mox.MoxTestBase):
   class TestDistro(base.Distribution):
+    _name = 'testdistro'
+
     def _initDefaults(self):
       super(TestDistributionUpdateDefaults.TestDistro, self)._initDefaults()
 
@@ -150,12 +152,12 @@ class TestDistributionUpdateDefaults(mox.MoxTestBase):
     self.mock_config.read(['/etc/debmarshal/distros.conf'])
 
   def testBase(self):
-    self.mock_config.has_section(self.TestDistro.classId() + '.base').\
+    self.mock_config.has_section('testdistro.base').\
         AndReturn(True)
-    self.mock_config.items(self.TestDistro.classId() + '.base').\
+    self.mock_config.items('testdistro.base').\
         AndReturn((('a', '5'), ('b', '6'), ('c', '7')))
 
-    self.mock_config.has_section(self.TestDistro.classId() + '.custom').\
+    self.mock_config.has_section('testdistro.custom').\
         AndReturn(False)
 
     self.mox.ReplayAll()
@@ -163,12 +165,12 @@ class TestDistributionUpdateDefaults(mox.MoxTestBase):
     self.assertEqual(self.TestDistro().base_defaults, {'a': '5', 'c': 2})
 
   def testCustom(self):
-    self.mock_config.has_section(self.TestDistro.classId() + '.base').\
+    self.mock_config.has_section('testdistro.base').\
         AndReturn(False)
 
-    self.mock_config.has_section(self.TestDistro.classId() + '.custom').\
+    self.mock_config.has_section('testdistro.custom').\
         AndReturn(True)
-    self.mock_config.items(self.TestDistro.classId() + '.custom').\
+    self.mock_config.items('testdistro.custom').\
         AndReturn((('a', '5'), ('b', '6'), ('c', '7')))
 
     self.mox.ReplayAll()
@@ -264,21 +266,10 @@ class TestDistributionGetItems(unittest.TestCase):
     self.assertEqual(TestDistro().getCustomConfig('bar'), 'baz')
 
 
-class TestDistributionClassId(unittest.TestCase):
-  """Test calculating the classID for a class."""
-  def test(self):
-    self.assertEqual(base.Distribution.classId(),
-                     'debmarshal.distros.base.Distribution')
-
-    class TestDistro(base.Distribution):
-      pass
-
-    self.assertEqual(TestDistro.classId(),
-                     'debmarshal.tests.distros.test_base.TestDistro')
-
-
 class TestDistributionHashConfig(unittest.TestCase):
   class TestDistro(NoDefaultsDistribution):
+    _name = 'testdistro'
+
     _version = 2
 
     def _initDefaults(self):

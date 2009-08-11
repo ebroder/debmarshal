@@ -132,6 +132,9 @@ class Distribution(object):
     custom_configurable: The set of option names that can be set by
       users for stage 2. Any elements which aren't also defined in
       custom_defaults must be passed in by the user.
+    _name: A short, unique name for the Distribution subclass. This
+      should be the same as the name of a debmarshal.distributions
+      entry_point directed at the subclass.
     _version: A version number for the distribution generator. This
       should be uniquely tracked by each Distribution subclass, and
       incremented whenever changes to the Distribution subclass would
@@ -144,11 +147,6 @@ class Distribution(object):
   _base_hash = None
 
   _custom_hash = None
-
-  @classmethod
-  def classId(cls):
-    """Identify this class by its full module path."""
-    return '.'.join([cls.__module__, cls.__name__])
 
   def _initDefaults(self):
     """Initialize the defaults and configurable options."""
@@ -163,17 +161,17 @@ class Distribution(object):
   def _updateDefaults(self):
     parser = ConfigParser.SafeConfigParser()
     parser.read(['/etc/debmarshal/distros.conf'])
-    if parser.has_section(self.classId() + '.base'):
+    if parser.has_section(self._name + '.base'):
       self.base_defaults.update(
           (k, v) for k, v in
-          parser.items(self.classId() + '.base')
+          parser.items(self._name + '.base')
           if k in self.base_defaults and
           isinstance(self.base_defaults[k], basestring))
 
-    if parser.has_section(self.classId() + '.custom'):
+    if parser.has_section(self._name + '.custom'):
       self.custom_defaults.update(
           (k, v) for k, v in
-          parser.items(self.classId() + '.custom')
+          parser.items(self._name + '.custom')
           if k in self.custom_defaults and
           isinstance(self.custom_defaults[k], basestring))
 
@@ -286,7 +284,7 @@ class Distribution(object):
     """
     if not self._base_hash:
       elements_to_hash = (
-        self.classId(),
+        self._name,
         self.version,
         tuple(sorted(
             (k, self.getBaseConfig(k)) for k in self.base_configurable)),

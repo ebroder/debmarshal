@@ -103,6 +103,10 @@ class Ubuntu(base.Distribution):
     'i386': 'linux-image-686',
     }
 
+  _name = 'ubuntu'
+
+  _version = 1
+
   def _initDefaults(self):
     """Configure the settings defaults for Ubuntu distributions."""
     super(Ubuntu, self)._initDefaults()
