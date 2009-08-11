@@ -223,6 +223,111 @@ class TestCreateSparseFile(unittest.TestCase):
       shutil.rmtree(dir)
 
 
+class TestRandomString(unittest.TestCase):
+  def test(self):
+    # This is going to fail once in a gajillion years, and it'll be
+    # hilarious, but you can't really do any more thorough testing
+    # without knowledge of the internals, which I'd just as soon not
+    # assume.
+    self.assertNotEqual(base._randomString(),
+                        base._randomString())
+
+
+class TestCreateCow(mox.MoxTestBase):
+  def setUp(self):
+    super(TestCreateCow, self).setUp()
+
+    self.mox.StubOutWithMock(tempfile, 'mkdtemp')
+    self.mox.StubOutWithMock(base, 'captureCall')
+    self.mox.StubOutWithMock(base, 'createSparseFile')
+    self.mox.StubOutWithMock(base, 'setupLoop')
+    self.mox.StubOutWithMock(base, '_randomString')
+    self.mox.StubOutWithMock(base, 'cleanupLoop')
+    self.mox.StubOutWithMock(shutil, 'rmtree')
+
+    tempfile.mkdtemp().AndReturn('/tmp/tmpcowmount')
+
+    base.captureCall(['mount',
+                      '-t', 'tmpfs',
+                      '-o', 'size=1024',
+                      'tmpcow',
+                      '/tmp/tmpcowmount'])
+    base.createSparseFile('/tmp/tmpcowmount/cowfile', 1024)
+    base.setupLoop('/tmp/tmpcowmount/cowfile').AndReturn('/dev/loop1')
+    base.captureCall(['blockdev', '--getsz', '/dev/loop0']).AndReturn('4096\n')
+
+  def testSuccess(self):
+    base._randomString().AndReturn('existsalready')
+    base.captureCall(['dmsetup', 'create', 'existsalready'],
+                stdin_str=mox.IgnoreArg()).AndRaise(
+      errors.CalledProcessError(
+        255,
+        ['dmsetup'],
+        'device-mapper: create ioctl failed: Device or resource busy\n'))
+
+    base._randomString().AndReturn('doesntexist')
+    base.captureCall(['dmsetup', 'create', 'doesntexist'],
+                stdin_str=mox.IgnoreArg())
+
+    base.captureCall(['umount', '-l', '/tmp/tmpcowmount'])
+    shutil.rmtree('/tmp/tmpcowmount')
+
+    self.mox.ReplayAll()
+
+    self.assertEquals(base.createCow('/dev/loop0', 1024),
+                      '/dev/mapper/doesntexist')
+
+  def testFailure(self):
+    base._randomString().AndReturn('herebedragons')
+    base.captureCall(['dmsetup', 'create', 'herebedragons'],
+                stdin_str=mox.IgnoreArg()).AndRaise(
+      errors.CalledProcessError(
+        255,
+        ['dmsetup'],
+        'And now for something completely different!\n'))
+
+    base.cleanupLoop('/dev/loop1')
+
+    base.captureCall(['umount', '-l', '/tmp/tmpcowmount'])
+    shutil.rmtree('/tmp/tmpcowmount')
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(errors.CalledProcessError,
+                      base.createCow,
+                      '/dev/loop0',
+                      1024)
+
+
+class TestCleanupCow(mox.MoxTestBase):
+  def setUp(self):
+    super(TestCleanupCow, self).setUp()
+
+    self.mox.StubOutWithMock(base, 'captureCall')
+    self.mox.StubOutWithMock(base, 'cleanupLoop')
+
+  def testSuccess(self):
+    base.captureCall(['dmsetup', 'table', '/dev/mapper/abcd']).AndReturn(
+      '0 1024 snapshot 7:0 7:1 128')
+
+    base.captureCall(['dmsetup', 'remove', '/dev/mapper/abcd'])
+    base.cleanupLoop('/dev/loop1')
+
+    self.mox.ReplayAll()
+
+    base.cleanupCow('/dev/mapper/abcd')
+
+  def testError(self):
+    base.captureCall(['dmsetup', 'table', '/dev/mapper/abcd']).AndReturn(
+      '0 1024 snapshot 7:0 8:1 128')
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(Exception,
+                      base.cleanupCow,
+                      '/dev/mapper/abcd')
+
+
 class TestDistributionMeta(unittest.TestCase):
   """Test the Distribution metaclass."""
   def test(self):

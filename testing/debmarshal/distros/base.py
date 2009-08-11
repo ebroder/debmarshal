@@ -32,10 +32,26 @@ try:
 except ImportError:  # pragma: no cover
   import md5
 import os
+import random
+import shutil
 import stat
+import string
 import subprocess
+import tempfile
 
 from debmarshal import errors
+
+
+def _randomString():
+  """Generate a random string.
+
+  The specific random string generated is composed of upper- and
+  lower-case ASCII characters and is 32 characters long, but that's
+  just an implementational detail.
+
+  The string will always be valid as a component of a file path.
+  """
+  return ''.join(random.choice(string.ascii_letters) for i in xrange(32))
 
 
 def captureCall(popen_args, stdin_str=None, *args, **kwargs):
@@ -157,6 +173,91 @@ def createSparseFile(path, len):
   if not os.path.exists(dir):
     os.makedirs(dir)
   open(path, 'w').truncate(len)
+
+
+def createCow(path, size):
+  """Create a copy-on-write snapshot of a device.
+
+  This will use the device-mapper to create a copy-on-write snapshot
+  of a block device.
+
+  It is the caller's responsibility to ensure that no writes to the
+  origin device occur after the snapshot is created.
+
+  Args:
+    path: The path to the block device to use as the snapshot origin.
+    size: The amount of space to allocate for the copy-on-write volume
+      in bytes. This does not have to be as large as the origin
+      volume, and is frequently much smaller.
+
+  Returns:
+    A path to the new copy-on-write snapshot device.
+  """
+  # Unfortunately, the only option for a dynamically-sized,
+  # nonpersistent block device is a loop device backed by a sparse
+  # file on a tmpfs.
+  #
+  # Especially if you want the copy-on-write device to be swappable,
+  # which you probably do, since you could potentially have gigabytes
+  # of RAM tied up in these CoW volumes.
+  #
+  # RAM disks (i.e. /dev/ram*) aren't an option because there's a
+  # fixed number of them, they don't swap, and their size is fixed at
+  # boot.
+  cowdir = tempfile.mkdtemp()
+
+  try:
+    captureCall(['mount',
+                 '-t', 'tmpfs',
+                 '-o', 'size=%d' % size,
+                 'tmpcow',
+                 cowdir])
+    try:
+      cow_path = os.path.join(cowdir, 'cowfile')
+      createSparseFile(cow_path, size)
+      cow_loop = setupLoop(cow_path)
+
+      try:
+        origin_size = captureCall(['blockdev', '--getsz', path]).strip()
+
+        table = '0 %s snapshot %s %s N 128' % (
+          origin_size,
+          path,
+          cow_loop)
+
+        while True:
+          try:
+            name = _randomString()
+            captureCall(['dmsetup', 'create', name], stdin_str=table)
+            return os.path.join('/dev/mapper', name)
+          except errors.CalledProcessError, e:
+            if not e.output.startswith(
+              'device-mapper: create ioctl failed: Device or resource busy'):
+              raise
+
+      # Only want to undo the loop in case of failure
+      except:
+        cleanupLoop(cow_loop)
+        raise
+    finally:
+      captureCall(['umount', '-l', cowdir])
+  finally:
+    shutil.rmtree(cowdir)
+
+
+def cleanupCow(path):
+  """Cleanup a snapshot device.
+
+  Args:
+    path: The path to the copy-on-write block device.
+  """
+  table = captureCall(['dmsetup', 'table', path])
+
+  origin, cow = table.split()[3:5]
+  assert cow.split(':')[0] == '7'
+
+  captureCall(['dmsetup', 'remove', path])
+  cleanupLoop('/dev/loop%s' % cow.split(':')[1])
 
 
 class DistributionMeta(type):
