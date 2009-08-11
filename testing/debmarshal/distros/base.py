@@ -23,6 +23,7 @@ __authors__ = [
 ]
 
 
+import ConfigParser
 try:
   import hashlib as md5
 except ImportError:  # pragma: no cover
@@ -113,6 +114,9 @@ class Distribution(object):
   and some which must be. Together, these options can be used to
   uniquely identify a given snapshot.
 
+  Options with defaults can be overridden using an
+  /etc/debmarshal/distros.conf configuration file.
+
   Attributes:
     base_defaults: A dict with the default configuration options for
       the base image.
@@ -150,6 +154,23 @@ class Distribution(object):
     """Identify this class by its full module path."""
     return '.'.join([cls.__module__, cls.__name__])
 
+  def _updateDefaults(self):
+    parser = ConfigParser.SafeConfigParser()
+    parser.read(['/etc/debmarshal/distros.conf'])
+    if parser.has_section(self.classId() + '.base'):
+      self.base_defaults.update(
+          (k, v) for k, v in
+          parser.items(self.classId() + '.base')
+          if k in self.base_defaults and
+          isinstance(self.base_defaults[k], basestring))
+
+    if parser.has_section(self.classId() + '.custom'):
+      self.custom_defaults.update(
+          (k, v) for k, v in
+          parser.items(self.classId() + '.custom')
+          if k in self.custom_defaults and
+          isinstance(self.custom_defaults[k], basestring))
+
   def __init__(self, base_config=None, custom_config=None):
     """Instantiate and configure a distribution.
 
@@ -163,6 +184,8 @@ class Distribution(object):
       custom_config: If not None, a dict with configuration for the
         customization of the base image.
     """
+    self._updateDefaults()
+
     if base_config is not None:
       base_keys = set(base_config)
       base_def_keys = set(self.base_defaults)

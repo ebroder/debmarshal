@@ -32,6 +32,11 @@ import mox
 
 from debmarshal.distros import base
 from debmarshal.distros import ubuntu
+from debmarshal.tests.distros import test_base
+
+
+class TestUbuntu(test_base.NoDefaultsDistribution, ubuntu.Ubuntu):
+  """Ubuntu distribution for testing."""
 
 
 class TestWithoutInitScripts(mox.MoxTestBase):
@@ -93,7 +98,7 @@ class TestUbuntuMountImage(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    deb = ubuntu.Ubuntu()
+    deb = TestUbuntu()
 
     self.assertEqual(deb._mountImage(self.img), self.root)
     deb._umountImage(self.root)
@@ -110,7 +115,7 @@ class TestUbuntuMountImage(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    deb = ubuntu.Ubuntu()
+    deb = TestUbuntu()
 
     self.assertRaises(subprocess.CalledProcessError,
                       deb._mountImage, self.img)
@@ -134,7 +139,7 @@ class TestUbuntuVerifyImage(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(ubuntu.Ubuntu()._verifyImage('/home/evan/test.img'),
+    self.assertEqual(TestUbuntu()._verifyImage('/home/evan/test.img'),
                      False)
 
   def testGood(self):
@@ -148,7 +153,7 @@ class TestUbuntuVerifyImage(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(ubuntu.Ubuntu()._verifyImage('/home/evan/test.img'),
+    self.assertEqual(TestUbuntu()._verifyImage('/home/evan/test.img'),
                      True)
 
   def testBad(self):
@@ -165,7 +170,7 @@ Conf libruby1.8 (1.8.6.111-2ubuntu1.3 Ubuntu:8.04/hardy-security
 
     self.mox.ReplayAll()
 
-    self.assertEqual(ubuntu.Ubuntu()._verifyImage('/home/evan/test.img'),
+    self.assertEqual(TestUbuntu()._verifyImage('/home/evan/test.img'),
                      False)
 
 
@@ -183,9 +188,9 @@ class TestUbuntuVerify(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(ubuntu.Ubuntu().verifyBase(), False)
+    self.assertEqual(TestUbuntu().verifyBase(), False)
     self.assertEqual(
-        ubuntu.Ubuntu(
+        TestUbuntu(
             None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
         False)
 
@@ -198,9 +203,9 @@ class TestUbuntuVerify(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(ubuntu.Ubuntu().verifyBase(), False)
+    self.assertEqual(TestUbuntu().verifyBase(), False)
     self.assertEqual(
-        ubuntu.Ubuntu(
+        TestUbuntu(
             None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
         False)
 
@@ -212,9 +217,9 @@ class TestUbuntuVerify(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertEqual(ubuntu.Ubuntu().verifyBase(), True)
+    self.assertEqual(TestUbuntu().verifyBase(), True)
     self.assertEqual(
-        ubuntu.Ubuntu(
+        TestUbuntu(
             None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
         True)
 
