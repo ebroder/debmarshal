@@ -12,7 +12,9 @@ Package: debmarshal-testing
 Architecture: all
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends},
  python-dbus, python-decorator, python-gobject, python-libvirt,
- python-lxml, python-virtinst, python-yaml
+ python-lxml, python-pkg-resources | python-setuptools,
+ python-virtinst, python-yaml, debootstrap, dmsetup, grub, kpartx |
+ multipath-tools, rsync
 Provides: ${python:Provides}
 Description: Virtualized, isolated total-system testing
  The debmarshal testing framework is designed to simplify testing of
