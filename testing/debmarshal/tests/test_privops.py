@@ -25,6 +25,7 @@ __authors__ = [
 
 import fcntl
 import os
+import traceback
 import unittest
 
 import dbus
@@ -55,6 +56,115 @@ class TestCoerceDbusArgs(unittest.TestCase):
       return True
 
     self.assertEqual(func(dbus.Int16(12)), True)
+
+
+class TestDaemonize(mox.MoxTestBase):
+  def setUp(self):
+    super(TestDaemonize, self).setUp()
+
+    self.mox.StubOutWithMock(os, 'fork')
+    self.mox.StubOutWithMock(os, 'setsid')
+    self.mox.StubOutWithMock(os, 'close')
+    self.mox.StubOutWithMock(os, 'open')
+    self.mox.StubOutWithMock(os, 'dup2')
+
+  def testParent(self):
+    os.fork().AndReturn(1234)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(privops._daemonize(), False)
+
+  def testIntermediate(self):
+    os.fork().AndReturn(0)
+    os.setsid()
+    os.fork().AndReturn(1234)
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(SystemExit, privops._daemonize)
+
+  def testDaemon(self):
+    os.fork().AndReturn(0)
+    os.setsid()
+    os.fork().AndReturn(0)
+
+    os.close(0)
+    os.close(1)
+    os.close(2)
+
+    os.open('/dev/null', os.O_RDWR)
+    os.dup2(0, 1)
+    os.dup2(0, 2)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(privops._daemonize(), True)
+
+
+class TestAsyncCallBase(mox.MoxTestBase):
+  def setUp(self):
+    super(TestAsyncCallBase, self).setUp()
+
+    self.mox.StubOutWithMock(privops, '_daemonize')
+
+
+class TestAsyncCallNotDaemon(TestAsyncCallBase):
+  def testNotDaemon(self):
+    privops._daemonize().AndReturn(False)
+
+    @privops._asyncCall
+    def shouldNotBeCalled(_debmarshal_sender=None):
+      raise Exception("This function should not be called")
+
+    self.mox.ReplayAll()
+
+    shouldNotBeCalled(':1.13')
+
+
+class TestAsyncCallDaemon(TestAsyncCallBase):
+  def setUp(self):
+    super(TestAsyncCallDaemon, self).setUp()
+
+    self.sender = ':1.13'
+
+    privops._daemonize().AndReturn(True)
+
+    self.mox.StubOutWithMock(dbus, 'SystemBus', use_mock_anything=True)
+
+    bus = self.mox.CreateMock(dbus.bus.BusConnection)
+    self.proxy = self.mox.CreateMockAnything()
+
+    dbus.SystemBus().AndReturn(bus)
+    bus.get_object(self.sender, privops.DBUS_WAIT_OBJECT_PATH).AndReturn(
+      self.proxy)
+
+  def testSuccess(self):
+    @privops._asyncCall
+    def successFunc(_debmarshal_sender=None):
+      pass
+
+    self.proxy.callReturn(dbus_interface=privops.DBUS_WAIT_INTERFACE)
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(SystemExit, successFunc, self.sender)
+
+  def testFailure(self):
+    self.mox.StubOutWithMock(traceback, 'format_exc')
+
+    traceback.format_exc().AndReturn('A traceback!')
+
+    @privops._asyncCall
+    def failFunc(_debmarshal_sender=None):
+      raise Exception('Failure!')
+
+    self.proxy.callError('A traceback!',
+                         dbus_interface=privops.DBUS_WAIT_INTERFACE)
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(SystemExit, failFunc, self.sender)
 
 
 class TestCreateNetwork(mox.MoxTestBase):

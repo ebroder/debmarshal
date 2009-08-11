@@ -40,6 +40,9 @@ __authors__ = [
 
 
 import fcntl
+import os
+import sys
+import traceback
 
 from dbus.mainloop import glib
 import dbus.service
@@ -97,6 +100,65 @@ def _resetExitTimer(f, *args, **kwargs):
   """
   _READY_TO_EXIT=False
   return f(*args, **kwargs)
+
+
+def _daemonize():
+  """Fork off into a separate process.
+
+  This function handles all of the necessary forking and other syscall
+  games needed to create a separate process, in a different process
+  group, without a controlling terminal, etc.
+
+  Returns:
+    True if this is the daemonized process and False if this is not
+  """
+  if os.fork():
+    return False
+
+  os.setsid()
+  if os.fork():
+    sys.exit(0)
+
+  for fd in range(3):
+    os.close(fd)
+  os.open('/dev/null', os.O_RDWR)
+  os.dup2(0, 1)
+  os.dup2(0, 2)
+
+  return True
+
+
+@decorator.decorator
+def _asyncCall(f, *args, **kwargs):
+  """Decorator to run the decorated function in a separate daemon.
+
+  This decorator makes a function or method asynchronous by spinning
+  it out into a separate daemon.
+
+  It causes the method to return None, and is intended for use with
+  the callWait method.
+  """
+  if _daemonize():
+    # The _debmarshal_sender argument should be coming in as a kwarg,
+    # but instead it's coming in as a positional argument. Not sure
+    # why.
+    sender = args[-1]
+
+    success = True
+
+    try:
+      f(*args, **kwargs)
+    except:
+      success = False
+      tb = traceback.format_exc()
+
+    proxy = dbus.SystemBus().get_object(sender, DBUS_WAIT_OBJECT_PATH)
+    if success:
+      proxy.callReturn(dbus_interface=DBUS_WAIT_INTERFACE)
+    else:
+      proxy.callError(tb, dbus_interface=DBUS_WAIT_INTERFACE)
+
+    sys.exit(0)
 
 
 class Privops(dbus.service.Object):
