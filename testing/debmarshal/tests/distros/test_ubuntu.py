@@ -922,6 +922,27 @@ class TestUbuntuInstallNetwork(unittest.TestCase):
       shutil.rmtree(target)
 
 
+class TestUbuntuInstallKernelConfig(unittest.TestCase):
+  def test(self):
+    target = tempfile.mkdtemp()
+
+    try:
+      os.makedirs(os.path.join(target, 'etc'))
+
+      deb = TestUbuntu()
+      deb.target = target
+
+      deb._installKernelConfig()
+
+      kernel_img = open(os.path.join(target, 'etc/kernel-img.conf')).read()
+      self.assert_(re.search(
+          '^do_initrd\s*=\s*yes$',
+          kernel_img,
+          re.M))
+    finally:
+      shutil.rmtree(target)
+
+
 class TestUbuntuCreateBase(mox.MoxTestBase):
   def setUp(self):
     super(TestUbuntuCreateBase, self).setUp()
