@@ -827,15 +827,15 @@ class TestUbuntuInstallFstab(mox.MoxTestBase):
       fstab = open(os.path.join(target, 'etc/fstab')).read()
 
       self.assert_(re.search(
-          '^UUID=[-0]{36}\s+/\s+ext3\s+defaults\s+0\s+1',
+          '^/dev/disk/by-uuid/[-0]{36}\s+/\s+ext3\s+defaults\s+0\s+1',
           fstab,
           re.M))
       self.assert_(re.search(
-          '^UUID=[-1]{36}\s+/var\s+ext3\s+defaults\s+0\s+2',
+          '^/dev/disk/by-uuid/[-1]{36}\s+/var\s+ext3\s+defaults\s+0\s+2',
           fstab,
           re.M))
       self.assert_(re.search(
-          '^UUID=[-2]{36}\s+none\s+swap\s+defaults\s+0\s+0',
+          '^/dev/disk/by-uuid/[-2]{36}\s+none\s+swap\s+defaults\s+0\s+0',
           fstab,
           re.M))
     finally:

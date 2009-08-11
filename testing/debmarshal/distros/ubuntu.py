@@ -582,9 +582,9 @@ class Ubuntu(base.Distribution):
     fstab.write(
         '# /etc/fstab: static file system information.\n'
         '#\n'
-        '# <file system>                           <mount point> '
-        '<type>  <options>       <dump>  <pass>\n')
-    fs_tmpl = '%-41s %-13s %-7s %-15s %d       %d\n'
+        '# <file system>                                        '
+        '<mount point> <type>  <options>       <dump>  <pass>\n')
+    fs_tmpl = '%-54s %-13s %-7s %-15s %d       %d\n'
 
     fstab.write(fs_tmpl % ('proc', '/proc', 'proc', 'defaults', 0, 0))
 
@@ -604,7 +604,7 @@ class Ubuntu(base.Distribution):
           fs_passno = 2
 
       fstab.write(fs_tmpl % (
-          'UUID=%s' % uuid.strip(),
+          '/dev/disk/by-uuid/%s' % uuid.strip(),
           fs_file,
           fs_type,
           'defaults',
