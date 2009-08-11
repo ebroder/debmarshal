@@ -571,6 +571,48 @@ class TestUbuntuInstallPartitions(unittest.TestCase):
       os.remove(name)
 
 
+class TestUbuntuLoop(mox.MoxTestBase):
+  def testSetup(self):
+    self.mox.StubOutWithMock(base, 'captureCall')
+
+    base.captureCall(['losetup', '--show', '--find', 'foo']).AndReturn(
+        "/dev/loop0\n")
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(TestUbuntu()._setupLoop('foo'), '/dev/loop0')
+
+  def testCleanup(self):
+    self.mox.StubOutWithMock(base, 'captureCall')
+
+    base.captureCall(['losetup', '-d', '/dev/loop0'])
+
+    self.mox.ReplayAll()
+
+    TestUbuntu()._cleanupLoop('/dev/loop0')
+
+
+class TestUbuntuDevices(mox.MoxTestBase):
+  def testSetup(self):
+    self.mox.StubOutWithMock(base, 'captureCall')
+
+    base.captureCall(['kpartx', '-p', '', '-a', '/dev/loop0'])
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(TestUbuntu()._setupDevices('/dev/loop0'),
+                     '/dev/mapper/loop0')
+
+  def testCleanup(self):
+    self.mox.StubOutWithMock(base, 'captureCall')
+
+    base.captureCall(['kpartx', '-p', '', '-d', '/dev/loop0'])
+
+    self.mox.ReplayAll()
+
+    TestUbuntu()._cleanupDevices('/dev/loop0')
+
+
 class TestUbuntuCreateBase(mox.MoxTestBase):
   def setUp(self):
     super(TestUbuntuCreateBase, self).setUp()

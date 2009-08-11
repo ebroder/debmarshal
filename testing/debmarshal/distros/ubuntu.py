@@ -25,6 +25,7 @@ __authors__ = [
 
 import os
 import shutil
+import stat
 import subprocess
 import tempfile
 
@@ -412,6 +413,46 @@ class Ubuntu(base.Distribution):
     base.captureCall(
         ['sfdisk', '-uM', img],
         stdin_str=',%d,L,*\n,,S\n;\n;\n' % root_blocks)
+
+  def _setupLoop(self, img):
+    """Setup a loop device for a disk image.
+
+    Args:
+      img: Path to the image file.
+
+    Returns:
+      The image exposed as a block device.
+    """
+    return base.captureCall(['losetup', '--show', '--find', img]).strip()
+
+  def _cleanupLoop(self, blk):
+    """Clean up a loop device for a disk image.
+
+    Args:
+      blk: The block device returned from _setupLoop
+    """
+    base.captureCall(['losetup', '-d', blk])
+
+  def _setupDevices(self, blk):
+    """Create device maps for partitions on a disk image.
+
+    Args:
+      blk: The block device
+
+    Returns:
+      The base path for the exposed partitions. Append an integer to
+        get a particular partition. (i.e. return_value + '1')
+    """
+    base.captureCall(['kpartx', '-p', '', '-a', blk])
+    return os.path.join('/dev/mapper', os.path.basename(blk))
+
+  def _cleanupDevices(self, blk):
+    """Cleanup the partition device maps.
+
+    Args:
+      blk: The block device
+    """
+    base.captureCall(['kpartx', '-p', '', '-d', blk])
 
   def createBase(self):
     """Create a valid base image.
