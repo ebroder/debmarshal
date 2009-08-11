@@ -26,6 +26,33 @@ __authors__ = [
 from debmarshal import errors
 
 
+class DistributionMeta(type):
+  """Metaclass for Distribution classes.
+
+  This class handles any metaprogramming magic that needs to happen
+  for Distribution classes to work right.
+
+  So far that means generating the version variable by chaining
+  together the version strings for all parent classes, giving a
+  representation of the version that reflects changes in both the
+  Distribution subclass, and in all parent classes.
+  """
+  def __init__(cls, name, bases, dct):
+    """Coalesce a version number for a Distribution class.
+
+    This will work out to be a series of fairly heavily nested
+    tuples. For example, if Dist3 subclasses Dist2 subclasses Dist1,
+    then Dist3.version will be (Dist3._version, (Dist2._version,
+    (Dist1._version,))).
+
+    Ugly? Kind of. But easy to keep consistent.
+    """
+    super(DistributionMeta, cls).__init__(name, bases, dct)
+
+    cls.version = ((cls._version,) +
+                   tuple(b.version for b in bases if hasattr(b, 'version')))
+
+
 class Distribution(object):
   """Superclass representation of an abstract Linux distribution.
 
@@ -57,7 +84,13 @@ class Distribution(object):
     custom_configurable: The set of option names that can be set by
       users for stage 2. Any elements which aren't also defined in
       custom_defaults must be passed in by the user.
+    _version: A version number for the distribution generator. This
+      should be uniquely tracked by each Distribution subclass, and
+      incremented whenever changes to the Distribution subclass would
+      affect the generated images.
   """
+  __metaclass__ = DistributionMeta
+
   base_defaults = {}
 
   base_configurable = set()
@@ -65,6 +98,8 @@ class Distribution(object):
   custom_defaults = {}
 
   custom_configurable = set()
+
+  _version = 1
 
   def __init__(self, base_config=None, custom_config=None):
     """Instantiate and configure a distribution.
