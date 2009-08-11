@@ -208,5 +208,13 @@ class TestDistributionVerify(mox.MoxTestBase):
     self.assertEqual(self.TestDistro().verifyCustom(), True)
 
 
+class TestDistributionCreate(unittest.TestCase):
+  def test(self):
+    self.assertRaises(errors.NotImplementedError,
+                      base.Distribution().createBase)
+    self.assertRaises(errors.NotImplementedError,
+                      base.Distribution().createCustom)
+
+
 if __name__ == '__main__':
   unittest.main()
