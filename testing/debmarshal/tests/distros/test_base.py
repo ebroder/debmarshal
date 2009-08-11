@@ -224,6 +224,10 @@ class TestDistributionHashConfig(unittest.TestCase):
 
     custom_configurable = set('def')
 
+  def testConsistentHashing(self):
+    dist = self.TestDistro({'c': '3'}, {'f': '3'})
+    self.assertEqual(dist.hashBaseConfig(), dist.hashBaseConfig())
+    self.assertEqual(dist.hashConfig(), dist.hashConfig())
 
   def testHashSameConfig(self):
     dist1 = self.TestDistro({'c': '3'}, {'f': '3'})
