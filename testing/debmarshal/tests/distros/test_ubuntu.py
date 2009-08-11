@@ -1138,8 +1138,10 @@ class TestUbuntuInstallCustom(mox.MoxTestBase):
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installFilesystem')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installSwap')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_mountImage')
+    self.mox.StubOutWithMock(base, 'createCow')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_copyFilesystem')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_umountImage')
+    self.mox.StubOutWithMock(base, 'cleanupCow')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installUpdates')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installFstab')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installNetwork')
@@ -1177,10 +1179,15 @@ class TestUbuntuInstallCustom(mox.MoxTestBase):
                                                   'domain': 'example.com'}
                                                  ).hashBaseConfig(),
         fcntl.LOCK_SH)
-    ubuntu.Ubuntu._mountImage('/base').AndReturn('/tmp/tmpold')
+    base.setupLoop('/base').AndReturn('/dev/loop1')
+    base.createCow('/dev/loop1', mox.IgnoreArg()).AndReturn(
+      '/dev/mapper/cow')
+    ubuntu.Ubuntu._mountImage('/dev/mapper/cow').AndReturn('/tmp/tmpold')
 
     ubuntu.Ubuntu._copyFilesystem('/tmp/tmpold', '/tmp/tmpnew')
     ubuntu.Ubuntu._umountImage('/tmp/tmpold')
+    base.cleanupCow('/dev/mapper/cow')
+    base.cleanupLoop('/dev/loop1')
 
     ubuntu.Ubuntu._installUpdates()
     ubuntu.Ubuntu._installFstab({'/': '/dev/mapper/sda1',

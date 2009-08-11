@@ -818,12 +818,21 @@ class Ubuntu(base.Distribution):
               base_lock = utils.acquireLock(
                   'debmarshal-base-dist-%s' % self.hashBaseConfig(),
                   fcntl.LOCK_SH)
-              base_mount = self._mountImage(self.basePath())
-
               try:
-                self._copyFilesystem(base_mount, self.target)
+                base_loop = base.setupLoop(self.basePath())
+                try:
+                  base_cow = base.createCow(base_loop, 1024 ** 2)
+                  try:
+                    base_mount = self._mountImage(base_cow)
+                    try:
+                      self._copyFilesystem(base_mount, self.target)
+                    finally:
+                      self._umountImage(base_mount)
+                  finally:
+                    base.cleanupCow(base_cow)
+                finally:
+                  base.cleanupLoop(base_loop)
               finally:
-                self._umountImage(base_mount)
                 del base_lock
 
               # Because of the verification step, we know there aren't
