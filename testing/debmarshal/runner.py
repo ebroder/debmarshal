@@ -35,7 +35,64 @@ __authors__ = [
 ]
 
 
+import optparse
+import os
 import sys
+
+
+def _parseOptions(argv):
+  """Parse command line options.
+
+  Args:
+    A list of options from a command line.
+
+  Returns:
+    A 2-tuple of (options, arguments) where options is an object
+      containing all options
+  """
+  parser = optparse.OptionParser()
+  # We don't take any options yet, or they'd go here.
+
+  return parser.parse_args(argv)
+
+
+def _runTest(test):
+  """Actually execute a test.
+
+  Args:
+    Directory where the test is stored.
+
+  Returns:
+    True if the test passes; False otherwise.
+  """
+  return True
+
+
+def _printSummary(run, failures, errors, stream=sys.stdout):
+  """Print out a summary of the test run, similar to unittest.
+
+  Args:
+    run: The total number of tests run.
+    failures: The number of tests that failed
+    errors: The number of tests that threw exceptions.
+    stream: Where to output the summary, if not stdout.
+  """
+  print >>stream, '-' * 70
+  print >>stream, 'Ran %d test%s' % (run, 's' if run != 1 else '')
+
+  if failures or errors:
+    stream.write('FAILED (')
+
+    if failures and errors:
+      stream.write('failures=%d, errors=%d' % (failures, errors))
+    elif failures:
+      stream.write('failures=%d' % failures)
+    else:
+      stream.write('errors=%d' % errors)
+
+    print >>stream, ')'
+  else:
+    print >>stream, 'OK'
 
 
 def _main(argv):
@@ -47,7 +104,35 @@ def _main(argv):
   Returns:
     The exit code for the program.
   """
-  return 0
+  options, tests = _parseOptions(argv)
+
+  if not tests:
+    tests = [os.getcwd()]
+
+  # TODO(ebroder): See if we can leverage infrastructure from the
+  #   unittest module to do most of this
+  failures = 0
+  errors = 0
+  for test in tests:
+    test = os.path.abspath(test)
+
+    print 'Running %s ... ' % test,
+    try:
+      if _runTest(test):
+        print 'OK'
+      else:
+        print 'F'
+        failures += 1
+    except:
+      print 'E'
+      errors += 1
+
+  _printSummary(len(tests), failures, errors)
+
+  if failures or errors:
+    return 1
+  else:
+    return 0
 
 
 def main():
