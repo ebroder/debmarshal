@@ -226,28 +226,33 @@ class Ubuntu(base.Distribution):
     Returns:
       A bool. True if the image is valid; False if it's not.
     """
-    root = self._mountImage(image)
+    cow = base.createCow(image, 1024 ** 3)
 
     try:
-      try:
-        base.captureCall(['chroot', root,
-                          'apt-get',
-                          '-qq',
-                          'update'])
+      root = self._mountImage(cow)
 
-        # apt-get -sqq dist-upgrade will print out a summary of the
-        # steps it would have taken, had this not been a dry run. If
-        # there is nothing to do, it will print nothing.
-        updates = base.captureCall(['chroot', root,
-                                    'apt-get',
-                                    '-o', 'Debug::NoLocking=true',
-                                    '-sqq',
-                                    'dist-upgrade'])
-        return updates.strip() == ''
-      except subprocess.CalledProcessError:
-        return False
+      try:
+        try:
+          base.captureCall(['chroot', root,
+                            'apt-get',
+                            '-qq',
+                            'update'])
+
+          # apt-get -sqq dist-upgrade will print out a summary of the
+          # steps it would have taken, had this not been a dry run. If
+          # there is nothing to do, it will print nothing.
+          updates = base.captureCall(['chroot', root,
+                                      'apt-get',
+                                      '-o', 'Debug::NoLocking=true',
+                                      '-sqq',
+                                      'dist-upgrade'])
+          return updates.strip() == ''
+        except subprocess.CalledProcessError:
+          return False
+      finally:
+        self._umountImage(root)
     finally:
-      self._umountImage(root)
+      base.cleanupCow(cow)
 
   def verifyBase(self):
     """Verify that a base image is still valid.
@@ -264,7 +269,11 @@ class Ubuntu(base.Distribution):
     if not super(Ubuntu, self).verifyBase():
       return False
     else:
-      return self._verifyImage(self.basePath())
+      loop = base.setupLoop(self.basePath())
+      try:
+        return self._verifyImage(loop)
+      finally:
+        base.cleanupLoop(loop)
 
   def verifyCustom(self):
     """Verify that a customized image is still valid.

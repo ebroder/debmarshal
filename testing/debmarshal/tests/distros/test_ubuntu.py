@@ -165,13 +165,19 @@ class TestUbuntuVerifyImage(mox.MoxTestBase):
   def setUp(self):
     super(TestUbuntuVerifyImage, self).setUp()
 
+    self.mox.StubOutWithMock(base, 'createCow')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_mountImage')
     self.mox.StubOutWithMock(base, 'captureCall')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_umountImage')
+    self.mox.StubOutWithMock(base, 'cleanupCow')
 
-    ubuntu.Ubuntu._mountImage('/home/evan/test.img').AndReturn('/tmp/tmp.ABC')
+    base.createCow('/home/evan/test.img', 1024 ** 3).AndReturn(
+      '/dev/mapper/somethingrandom')
+    ubuntu.Ubuntu._mountImage('/dev/mapper/somethingrandom').AndReturn(
+      '/tmp/tmp.ABC')
 
     ubuntu.Ubuntu._umountImage('/tmp/tmp.ABC')
+    base.cleanupCow('/dev/mapper/somethingrandom')
 
   def testUpdateError(self):
     base.captureCall(['chroot', '/tmp/tmp.ABC', 'apt-get', '-qq', 'update']).\
@@ -224,7 +230,9 @@ class TestUbuntuVerifyBase(mox.MoxTestBase):
         fcntl.LOCK_EX)
 
     self.mox.StubOutWithMock(base.Distribution, 'verifyBase')
+    self.mox.StubOutWithMock(base, 'setupLoop')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_verifyImage')
+    self.mox.StubOutWithMock(base, 'cleanupLoop')
 
   def testNoExists(self):
     base.Distribution.verifyBase().AndReturn(False)
@@ -236,7 +244,9 @@ class TestUbuntuVerifyBase(mox.MoxTestBase):
   def testExists(self):
     base.Distribution.verifyBase().AndReturn(True)
 
-    ubuntu.Ubuntu._verifyImage(mox.IgnoreArg()).AndReturn(False)
+    base.setupLoop(mox.IgnoreArg()).AndReturn('/dev/loop0')
+    ubuntu.Ubuntu._verifyImage('/dev/loop0').AndReturn(False)
+    base.cleanupLoop('/dev/loop0')
 
     self.mox.ReplayAll()
 
@@ -245,7 +255,9 @@ class TestUbuntuVerifyBase(mox.MoxTestBase):
   def testAllGood(self):
     base.Distribution.verifyBase().AndReturn(True)
 
-    ubuntu.Ubuntu._verifyImage(mox.IgnoreArg()).AndReturn(True)
+    base.setupLoop(mox.IgnoreArg()).AndReturn('/dev/loop0')
+    ubuntu.Ubuntu._verifyImage('/dev/loop0').AndReturn(True)
+    base.cleanupLoop('/dev/loop0')
 
     self.mox.ReplayAll()
 
