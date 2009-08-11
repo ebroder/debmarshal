@@ -32,6 +32,8 @@ from debmarshal import utils
 hypervisors = {}
 
 
+# TODO(ebroder): Eliminate the HypervisorMeta class and hypervisors
+#   dict, and replace them with setuptools entry_points
 class HypervisorMeta(type):
   """Metaclass to register all descendents of Hypervisor.
 
