@@ -749,3 +749,64 @@ class Ubuntu(base.Distribution):
     except:
       os.remove(self.basePath())
       raise
+
+  def createCustom(self):
+    """Create a valid customized image.
+
+    This method will create a customized disk image at
+    self.customPath()
+
+    No arguments are taken, and no value is returned.
+    """
+    if self.verifyCustom():
+      return
+
+    self.createBase()
+
+    if os.path.exists(self.customPath()):
+      os.remove(self.customPath())
+
+    size = 10 * (1024 ** 3)
+    self._createSparseFile(self.customPath(), size)
+    try:
+      self._installPartitions(self.customPath())
+      loop = self._setupLoop(self.customPath())
+      try:
+        fake_disk = self._setupMapper(loop)
+        try:
+          devs = self._setupDevices(fake_disk)
+
+          try:
+            root = devs + '1'
+            swap = devs + '2'
+            self._installFilesystem(root)
+            self._installSwap(swap)
+
+            self.target = self._mountImage(root)
+            try:
+              base = self._mountImage(self.basePath())
+
+              try:
+                self._copyFilesystem(base, self.target)
+              finally:
+                self._umountImage(base)
+
+              self._installFstab({'/': root, 'swap': swap})
+              self._installNetwork()
+              self._installKernelConfig()
+              self._installPackages('grub')
+              self._installPackages(self.getCustomConfig('kernel'))
+              self._installBootloader(fake_disk, root)
+              self._installExtraPackages()
+              self._installSSHKey()
+            finally:
+              self._umountImage(self.target)
+          finally:
+            self._cleanupDevices(fake_disk)
+        finally:
+          self._cleanupMapper(fake_disk)
+      finally:
+        self._cleanupLoop(loop)
+    except:
+      os.remove(self.customPath())
+      raise

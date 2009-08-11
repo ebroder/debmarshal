@@ -1088,5 +1088,103 @@ class TestUbuntuCreateBase(mox.MoxTestBase):
     self.assertRaises(Exception, TestUbuntu().createBase)
 
 
+class TestUbuntuInstallCustom(mox.MoxTestBase):
+  def setUp(self):
+    super(TestUbuntuInstallCustom, self).setUp()
+
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, 'verifyCustom')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, 'createBase')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, 'basePath')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, 'customPath')
+    self.mox.StubOutWithMock(os.path, 'exists')
+    self.mox.StubOutWithMock(os, 'remove')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_createSparseFile')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installPartitions')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_setupLoop')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_setupMapper')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_setupDevices')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installFilesystem')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installSwap')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_mountImage')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_copyFilesystem')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_umountImage')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installFstab')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installNetwork')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installKernelConfig')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installPackages')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installBootloader')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installExtraPackages')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installSSHKey')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_cleanupDevices')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_cleanupMapper')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_cleanupLoop')
+
+    ubuntu.Ubuntu.verifyCustom().AndReturn(False)
+
+    ubuntu.Ubuntu.createBase()
+
+    ubuntu.Ubuntu.basePath().MultipleTimes().AndReturn('/base')
+    ubuntu.Ubuntu.customPath().MultipleTimes().AndReturn('/custom')
+
+    os.path.exists('/custom').AndReturn(True)
+    os.remove('/custom')
+
+    ubuntu.Ubuntu._createSparseFile('/custom', 10 * (1024 ** 3))
+    ubuntu.Ubuntu._installPartitions('/custom')
+    ubuntu.Ubuntu._setupLoop('/custom').AndReturn('/dev/loop0')
+    ubuntu.Ubuntu._setupMapper('/dev/loop0').AndReturn('/dev/mapper/sda')
+    ubuntu.Ubuntu._setupDevices('/dev/mapper/sda').AndReturn('/dev/mapper/sda')
+    ubuntu.Ubuntu._installFilesystem('/dev/mapper/sda1')
+    ubuntu.Ubuntu._installSwap('/dev/mapper/sda2')
+
+    ubuntu.Ubuntu._mountImage('/dev/mapper/sda1').AndReturn('/tmp/tmpnew')
+    ubuntu.Ubuntu._mountImage('/base').AndReturn('/tmp/tmpold')
+
+    ubuntu.Ubuntu._copyFilesystem('/tmp/tmpold', '/tmp/tmpnew')
+    ubuntu.Ubuntu._umountImage('/tmp/tmpold')
+
+    ubuntu.Ubuntu._installFstab({'/': '/dev/mapper/sda1',
+                                 'swap': '/dev/mapper/sda2'})
+    ubuntu.Ubuntu._installNetwork()
+    ubuntu.Ubuntu._installKernelConfig()
+    ubuntu.Ubuntu._installPackages('grub')
+    ubuntu.Ubuntu._installPackages('linux-image-generic')
+    ubuntu.Ubuntu._installBootloader('/dev/mapper/sda', '/dev/mapper/sda1')
+    ubuntu.Ubuntu._installExtraPackages()
+
+    # And finally the cleanup that will happen
+    ubuntu.Ubuntu._umountImage('/tmp/tmpnew')
+    ubuntu.Ubuntu._cleanupDevices('/dev/mapper/sda')
+    ubuntu.Ubuntu._cleanupMapper('/dev/mapper/sda')
+    ubuntu.Ubuntu._cleanupLoop('/dev/loop0')
+
+  def testSuccess(self):
+    ubuntu.Ubuntu._installSSHKey()
+
+    ubuntu.Ubuntu.verifyCustom().AndReturn(True)
+    self.mox.ReplayAll()
+
+    # The first time we try, verifyBase returns False. Since the rest
+    # of the method has only been stubbed out once, if returning True
+    # doesn't cause us to return, then we'll throw errors about
+    # methods being called too many times.
+    TestUbuntu(None,
+               {'hostname': 'www', 'domain': 'example.com'}).createCustom()
+    TestUbuntu(None,
+               {'hostname': 'www', 'domain': 'example.com'}).createCustom()
+
+  def testFailure(self):
+    ubuntu.Ubuntu._installSSHKey().AndRaise(Exception('An error!'))
+
+    os.remove('/custom')
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(
+        Exception,
+        TestUbuntu(None,
+                   {'hostname': 'www', 'domain': 'example.com'}).createCustom)
+
+
 if __name__ == '__main__':
   unittest.main()
