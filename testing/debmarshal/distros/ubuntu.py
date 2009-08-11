@@ -96,6 +96,13 @@ def withoutInitScripts(f, *args, **kwargs):
 
 class Ubuntu(base.Distribution):
   """Ubuntu (and Ubuntu-based) distributions."""
+  _DEFAULT_KERNEL = 'linux-image-generic'
+
+  _DAPPER_KERNELS = {
+    'amd64': 'linux-image-amd64-generic',
+    'i386': 'linux-image-686',
+    }
+
   def _initDefaults(self):
     """Configure the settings defaults for Ubuntu distributions."""
     super(Ubuntu, self)._initDefaults()
@@ -125,7 +132,7 @@ class Ubuntu(base.Distribution):
         'add_pkg': [],
         'rm_pkg': [],
         'ssh_key': '',
-        'kernel': 'linux-image-generic',
+        'kernel': self._DEFAULT_KERNEL,
         # Configuration for networking doesn't really fit well into
         # this config model. But if dhcp is True, then ip, netmask,
         # gateway, and dns should have their default values. If dhcp
@@ -141,6 +148,26 @@ class Ubuntu(base.Distribution):
         'add_pkg', 'rm_pkg', 'ssh_key', 'kernel',
         'hostname', 'domain',
         'dhcp', 'ip', 'netmask', 'gateway', 'dns'])
+
+  def __init__(self, base_config=None, custom_config=None):
+    """Load configuration for the Ubuntu installer.
+
+    In particular, Dapper kernels are named differently from other
+    current releases, and vary based on the architecture of the
+    install, so the defaults will need to be adjusted based on the
+    architecture
+
+    Args:
+      base_config: If not None, a dict with configuration for the
+        distribution base image.
+      custom_config: If not None, a dict with configuration for the
+        customization of the base image.
+    """
+    if base_config and base_config.get('suite') == 'dapper':
+      self._DEFAULT_KERNEL = self._DAPPER_KERNELS[
+        base_config.get('arch', 'amd64')]
+
+    super(Ubuntu, self).__init__(base_config, custom_config)
 
   def _mountImage(self, img):
     """Mount a filesystem image in a temporary directory.

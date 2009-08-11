@@ -85,6 +85,21 @@ class TestWithoutInitScripts(mox.MoxTestBase):
     test(self)
 
 
+class TestUbuntuInit(unittest.TestCase):
+  def test(self):
+    """Test handling of Dapper-specific kernel config."""
+    self.assertEqual(TestUbuntu().getCustomConfig('kernel'),
+                     'linux-image-generic')
+    self.assertEqual(TestUbuntu({'suite': 'dapper'}).getCustomConfig('kernel'),
+                     'linux-image-amd64-generic')
+    self.assertEqual(TestUbuntu({'suite': 'dapper',
+                                 'arch': 'amd64'}).getCustomConfig('kernel'),
+                     'linux-image-amd64-generic')
+    self.assertEqual(TestUbuntu({'suite': 'dapper',
+                                 'arch': 'i386'}).getCustomConfig('kernel'),
+                     'linux-image-686')
+
+
 class TestUbuntuMountImage(mox.MoxTestBase):
   def setUp(self):
     super(TestUbuntuMountImage, self).setUp()
