@@ -603,25 +603,41 @@ class TestUbuntuInstallLocale(TestMethodsWithoutInitScripts):
 
 
 class TestUbuntuInstallTimezone(TestMethodsWithoutInitScripts):
-  def test(self):
-    target = tempfile.mkdtemp()
-    etc_dir = os.path.join(target, 'etc')
-    os.makedirs(etc_dir)
+  def setUp(self):
+    super(TestUbuntuInstallTimezone, self).setUp()
 
-    try:
-      self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installReconfigure')
-      ubuntu.Ubuntu._installReconfigure('tzdata')
+    self.target = tempfile.mkdtemp()
+    self.etc_dir = os.path.join(self.target, 'etc')
+    os.makedirs(self.etc_dir)
 
-      self.mox.ReplayAll()
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installReconfigure')
 
-      deb = TestUbuntu()
-      deb.target = target
-      deb._installTimezone()
+  def tearDown(self):
+    shutil.rmtree(self.target)
 
-      self.assertEqual(open(os.path.join(etc_dir, 'timezone')).read().strip(),
-                       'America/Los_Angeles')
-    finally:
-      shutil.rmtree(target)
+    super(TestUbuntuInstallTimezone, self).tearDown()
+
+  def testRecent(self):
+    ubuntu.Ubuntu._installReconfigure('tzdata')
+
+    self.mox.ReplayAll()
+
+    deb = TestUbuntu()
+    deb.target = self.target
+    deb._installTimezone()
+
+    self.assertEqual(
+        open(os.path.join(self.etc_dir, 'timezone')).read().strip(),
+        'America/Los_Angeles')
+
+  def testDapper(self):
+    ubuntu.Ubuntu._installReconfigure('locales')
+
+    self.mox.ReplayAll()
+
+    deb = TestUbuntu({'suite': 'dapper'})
+    deb.target = self.target
+    deb._installTimezone()
 
 
 class TestUbuntuInstallPartitions(unittest.TestCase):

@@ -429,7 +429,10 @@ class Ubuntu(base.Distribution):
     timezone.write('America/Los_Angeles\n')
     timezone.close()
 
-    self._installReconfigure('tzdata')
+    if self.getBaseConfig('suite') == 'dapper':
+      self._installReconfigure('locales')
+    else:
+      self._installReconfigure('tzdata')
 
   def _installPartitions(self, img):
     """Partition a disk image.
