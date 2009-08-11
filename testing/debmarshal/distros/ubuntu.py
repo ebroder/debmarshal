@@ -297,3 +297,14 @@ class Ubuntu(base.Distribution):
                        '-fnoninteractive',
                        '-pcritical',
                        pkg])
+
+  def _installDebootstrap(self):
+    """Debootstrap a basic Ubuntu install."""
+    components = ','.join(self.getBaseConfig('components'))
+    base.captureCall(['debootstrap',
+                      '--keyring=%s' % self.getBaseConfig('keyring'),
+                      '--arch=%s' % self.getBaseConfig('arch'),
+                      '--components=%s' % components,
+                      self.getBaseConfig('suite'),
+                      self.target,
+                      self.getBaseConfig('mirror')])

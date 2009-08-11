@@ -339,5 +339,26 @@ class TestUbuntuInstallReconfigure(TestMethodsWithoutInitScripts):
     deb._installReconfigure('foo')
 
 
+class TestUbuntuInstallDebootstrap(mox.MoxTestBase):
+  def test(self):
+    self.mox.StubOutWithMock(base, 'captureCall')
+
+    deb = TestUbuntu()
+    deb.target = 'blah'
+
+    base.captureCall([
+        'debootstrap',
+        '--keyring=/usr/share/keyrings/ubuntu-archive-keyring.gpg',
+        '--arch=amd64',
+        '--components=main,restricted,universe,multiverse',
+        'jaunty',
+        'blah',
+        'http://us.archive.ubuntu.com/ubuntu/'])
+
+    self.mox.ReplayAll()
+
+    deb._installDebootstrap()
+
+
 if __name__ == '__main__':
   unittest.main()
