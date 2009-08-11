@@ -101,6 +101,11 @@ class Distribution(object):
 
   _version = 1
 
+  @classmethod
+  def classId(cls):
+    """Identify this class by its full module path."""
+    return '.'.join([cls.__module__, cls.__name__])
+
   def __init__(self, base_config=None, custom_config=None):
     """Instantiate and configure a distribution.
 
