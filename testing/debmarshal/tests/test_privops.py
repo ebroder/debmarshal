@@ -305,6 +305,31 @@ class TestDestroyDomain(mox.MoxTestBase):
     privops.Privops().destroyDomain('debmarshal-0', 'qemu')
 
 
+class TestCallback(mox.MoxTestBase):
+  def test(self):
+    loop = self.mox.CreateMock(gobject.MainLoop)
+
+    self.mox.StubOutWithMock(gobject, 'idle_add')
+
+    cb = privops.Callback()
+    cb._loop = loop
+    cb._error = None
+
+    gobject.idle_add(loop.quit)
+    gobject.idle_add(loop.quit)
+
+    self.mox.ReplayAll()
+
+    cb.callReturn()
+
+    self.assertEqual(cb._error, None)
+
+    error_val = 'Look! An error!'
+    cb.callError(error_val)
+
+    self.assertEqual(cb._error, error_val)
+
+
 class TestCall(mox.MoxTestBase):
   """Test dispatching privileged operations."""
   def test(self):
@@ -325,6 +350,53 @@ class TestCall(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     privops.call('createNetwork', ['www.company.com', 'login.company.com'])
+
+
+class TestCallWait(mox.MoxTestBase):
+  def setUp(self):
+    super(TestCallWait, self).setUp()
+
+    bus = self.mox.CreateMock(dbus.bus.BusConnection)
+    self.call = self.mox.CreateMock(privops.Callback)
+    self.loop = self.mox.CreateMock(gobject.MainLoop)
+
+    self.mox.StubOutWithMock(privops, 'call')
+    self.mox.StubOutWithMock(dbus.mainloop.glib, 'DBusGMainLoop')
+    self.mox.StubOutWithMock(dbus, 'SystemBus', use_mock_anything=True)
+    self.mox.StubOutWithMock(privops, 'Callback', use_mock_anything=True)
+    self.mox.StubOutWithMock(gobject, 'MainLoop', use_mock_anything=True)
+
+    self.method = 'generateImage'
+    self.args = (None, None)
+
+    privops.call(self.method, *self.args)
+
+    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+    dbus.SystemBus().AndReturn(bus)
+
+    privops._callback = None
+    privops.Callback(bus, privops.DBUS_WAIT_OBJECT_PATH).AndReturn(self.call)
+    gobject.MainLoop().AndReturn(self.loop)
+
+  def testSuccess(self):
+    def _runSideEffects():
+      self.call._error = None
+
+    self.loop.run().WithSideEffects(_runSideEffects)
+
+    self.mox.ReplayAll()
+
+    privops.callWait(self.method, *self.args)
+
+  def testFailure(self):
+    def _runSideEffects():
+      self.call._error = Exception('This is an error!')
+
+    self.loop.run().WithSideEffects(_runSideEffects)
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(Exception, privops.callWait, self.method, *self.args)
 
 
 class TestMaybeExit(mox.MoxTestBase):

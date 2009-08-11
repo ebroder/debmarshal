@@ -61,10 +61,16 @@ from debmarshal._privops import utils
 DBUS_INTERFACE='com.googlecode.debmarshal.Privops'
 
 
+DBUS_WAIT_INTERFACE='com.googlecode.debmarshal.Callback'
+
+
 DBUS_BUS_NAME='com.googlecode.debmarshal'
 
 
 DBUS_OBJECT_PATH='/com/googlecode/debmarshal/Privops'
+
+
+DBUS_WAIT_OBJECT_PATH='/com/googlecode/debmarshal/Callback'
 
 
 _READY_TO_EXIT=False
@@ -342,6 +348,23 @@ class Privops(dbus.service.Object):
     utils.caller = None
 
 
+_callback = None
+
+
+class Callback(dbus.service.Object):
+  """Simple object for receiving a callback from the Privops daemon."""
+  @dbus.service.method(DBUS_WAIT_INTERFACE,
+                       in_signature='', out_signature='')
+  def callReturn(self):
+    gobject.idle_add(self._loop.quit)
+
+  @dbus.service.method(DBUS_WAIT_INTERFACE,
+                       in_signature='s', out_signature='')
+  def callError(self, err_val):
+    self._error = err_val
+    gobject.idle_add(self._loop.quit)
+
+
 def call(method, *args):
   """Call a privileged operation.
 
@@ -355,6 +378,39 @@ def call(method, *args):
   proxy = dbus.SystemBus().get_object(DBUS_BUS_NAME, DBUS_OBJECT_PATH)
   return utils.coerceDbusType(proxy.get_dbus_method(
       method, dbus_interface=DBUS_INTERFACE)(*args))
+
+def callWait(method, *args):
+  """Call a privileged operation, and wait for it to return.
+
+  For privileged operations which take a long time (and don't need to
+  return a value), this will call the operation, and then spin up a
+  main loop to wait for a method call indicating that the operation
+  completed.
+
+  Methods called through callWait can not return anything.
+
+  Args:
+    method: The name of the method to call.
+    *args: The arguments to pass to the method.
+  """
+  global _callback
+
+  glib.DBusGMainLoop(set_as_default=True)
+  bus = dbus.SystemBus()
+
+  call(method, *args)
+
+  # dbus gets snippy if you initialize multiple objects bound to a
+  # single object path, so we'll just reuse one.
+  if not _callback:
+    _callback = Callback(bus, DBUS_WAIT_OBJECT_PATH)
+  loop = gobject.MainLoop()
+  _callback._error = None
+  _callback._loop = loop
+  loop.run()
+
+  if _callback._error:
+    raise dbus.exceptions.DBusException(_callback._error)
 
 
 def _maybeExit(loop):
