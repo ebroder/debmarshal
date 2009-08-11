@@ -662,6 +662,40 @@ class Ubuntu(base.Distribution):
         "link_in_boot = no\n")
     kernel_img.close()
 
+  def _installBootloader(self, disk, root):
+    """Install the GRUB bootloader onto a disk's MBR.
+
+    Args:
+      disk: The block device for the disk, as seen by the host.
+      root: The block device for the root partition, as seen by the
+        host.
+    """
+    # First we need to write out a fake device.map
+    os.makedirs(os.path.join(self.target, 'boot/grub'))
+    device_map = open(os.path.join(self.target, 'boot/grub/device.map'), 'w')
+
+    device_map.write('(hd0) %s\n' % disk)
+    device_map.close()
+
+    base.captureCall(['grub-install',
+                      '--root-directory=%s' % self.target,
+                      disk])
+
+    # Run update-grub once to create the menu.lst
+    self._runInTarget(['update-grub', '-y'])
+    uuid = base.captureCall(
+        ['blkid', '-o', 'value', '-s', 'UUID', root]).strip()
+    self._runInTarget(['sed',
+                       '-r', '-i',
+                       '-e',
+                       r's/^(# kopt=.*root=)[^ ]*/\1UUID=%s noapic/' % uuid,
+                       '-e',
+                       r's/^(# defoptions=).*$/\1/',
+                       '/boot/grub/menu.lst'])
+
+    # Run update-grub one more time to take the new defaults
+    self._runInTarget(['update-grub', '-y'])
+
   def createBase(self):
     """Create a valid base image.
 

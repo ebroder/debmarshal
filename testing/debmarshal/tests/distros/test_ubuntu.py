@@ -943,6 +943,48 @@ class TestUbuntuInstallKernelConfig(unittest.TestCase):
       shutil.rmtree(target)
 
 
+class TestUbuntuInstallBootloader(mox.MoxTestBase):
+  def test(self):
+    target = tempfile.mkdtemp()
+
+    try:
+      self.mox.StubOutWithMock(base, 'captureCall')
+      base.captureCall(['grub-install',
+                        '--root-directory=%s' % target,
+                        '/dev/mapper/sdc'])
+
+      self.mox.StubOutWithMock(ubuntu.Ubuntu, '_runInTarget')
+      ubuntu.Ubuntu._runInTarget(['update-grub', '-y'])
+
+      base.captureCall(['blkid',
+                        '-o', 'value',
+                        '-s', 'UUID',
+                        '/dev/mapper/sdc1']).AndReturn(
+          "00000000-0000-0000-0000-000000000000")
+
+      def _validateSed(arg):
+        return (arg[0] == 'sed' and
+                arg[-1] == '/boot/grub/menu.lst')
+
+      ubuntu.Ubuntu._runInTarget(mox.Func(_validateSed))
+      ubuntu.Ubuntu._runInTarget(['update-grub', '-y'])
+
+      self.mox.ReplayAll()
+
+      deb = TestUbuntu()
+      deb.target = target
+
+      deb._installBootloader('/dev/mapper/sdc', '/dev/mapper/sdc1')
+
+      device_map = open(os.path.join(target, 'boot/grub/device.map')).read()
+      self.assert_(re.search(
+          '^\(hd0\)\s+/dev/mapper/sdc$',
+          device_map,
+          re.M))
+    finally:
+      shutil.rmtree(target)
+
+
 class TestUbuntuCreateBase(mox.MoxTestBase):
   def setUp(self):
     super(TestUbuntuCreateBase, self).setUp()
