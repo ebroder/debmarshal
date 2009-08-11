@@ -39,6 +39,8 @@ import string
 import subprocess
 import tempfile
 
+import pkg_resources
+
 from debmarshal import errors
 
 
@@ -258,6 +260,24 @@ def cleanupCow(path):
 
   captureCall(['dmsetup', 'remove', path])
   cleanupLoop('/dev/loop%s' % cow.split(':')[1])
+
+
+def findDistribution(name):
+  """Find an installed distribtion.
+
+  Args:
+    name: The name of the distribution to use. This should be the name
+      of an entry_point providing debmarshal.distributions
+
+  Returns:
+    The class providing the entry_point of the given name.
+  """
+  entry_points = list(pkg_resources.iter_entry_points(
+      'debmarshal.distributions',
+      name=name))
+  assert len(entry_points) == 1
+
+  return entry_points.pop().load()
 
 
 class DistributionMeta(type):

@@ -35,9 +35,9 @@ import dbus.service
 import gobject
 import libvirt
 import mox
-import pkg_resources
 import virtinst
 
+from debmarshal.distros import base
 from debmarshal.distros import ubuntu
 from debmarshal import errors
 from debmarshal import hypervisors
@@ -422,19 +422,12 @@ class TestGenerateImage(mox.MoxTestBase):
     self.mox.StubOutWithMock(privops, '_daemonize')
     privops._daemonize().AndReturn(True)
 
-    entry_point = self.mox.CreateMock(pkg_resources.EntryPoint)
-
-    self.mox.StubOutWithMock(pkg_resources, 'iter_entry_points')
-    pkg_resources.iter_entry_points(
-      'debmarshal.distributions',
-      name='ubuntu').AndReturn(
-      (x for x in [entry_point]))
-
     mock_ubuntu = self.mox.CreateMock(ubuntu.Ubuntu)
     self.mox.StubOutWithMock(ubuntu, 'Ubuntu', use_mock_anything=True)
-
-    entry_point.load().AndReturn(ubuntu.Ubuntu)
     ubuntu.Ubuntu({'a': 'b'}, {'c': 'd'}).AndReturn(mock_ubuntu)
+
+    self.mox.StubOutWithMock(base, 'findDistribution')
+    base.findDistribution('ubuntu').AndReturn(ubuntu.Ubuntu)
 
     mock_ubuntu.createCustom()
 

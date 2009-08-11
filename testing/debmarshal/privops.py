@@ -49,9 +49,9 @@ import dbus.service
 import decorator
 import gobject
 import libvirt
-import pkg_resources
 import virtinst
 
+from debmarshal.distros import base
 from debmarshal import errors
 from debmarshal import hypervisors
 from debmarshal import ip
@@ -440,12 +440,7 @@ class Privops(dbus.service.Object):
     """
     utils.caller = _debmarshal_sender
 
-    entry_points = list(pkg_resources.iter_entry_points(
-        'debmarshal.distributions',
-        name=distribution))
-    assert len(entry_points) == 1
-
-    dist_class = entry_points.pop().load()
+    dist_class = base.findDistribution(distribution)
 
     dist = dist_class(base_config, custom_config)
     dist.createCustom()

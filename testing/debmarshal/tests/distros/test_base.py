@@ -37,6 +37,7 @@ import tempfile
 import unittest
 
 import mox
+import pkg_resources
 
 from debmarshal.distros import base
 from debmarshal import errors
@@ -326,6 +327,23 @@ class TestCleanupCow(mox.MoxTestBase):
     self.assertRaises(Exception,
                       base.cleanupCow,
                       '/dev/mapper/abcd')
+
+
+class TestFindDistribution(mox.MoxTestBase):
+  def test(self):
+    entry_point = self.mox.CreateMock(pkg_resources.EntryPoint)
+
+    self.mox.StubOutWithMock(pkg_resources, 'iter_entry_points')
+    pkg_resources.iter_entry_points(
+      'debmarshal.distributions',
+      name='base').AndReturn(
+      (x for x in [entry_point]))
+
+    entry_point.load().AndReturn(base.Distribution)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(base.findDistribution('base'), base.Distribution)
 
 
 class TestDistributionMeta(unittest.TestCase):
