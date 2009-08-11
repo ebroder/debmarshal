@@ -706,6 +706,17 @@ class Ubuntu(base.Distribution):
     self._installPackages(*('%s-' % pkg for pkg in
                             self.getCustomConfig('rm_pkg')))
 
+  def _installSSHKey(self):
+    """Install an ssh key for logins as root, if one is set."""
+    if self.getCustomConfig('ssh_key'):
+      os.makedirs(os.path.join(self.target, 'root/.ssh'))
+      authorized_keys = open(os.path.join(self.target,
+                                          'root/.ssh/authorized_keys'),
+                             'w')
+      authorized_keys.write(self.getCustomConfig('ssh_key') + '\n')
+
+      authorized_keys.close()
+
   def createBase(self):
     """Create a valid base image.
 

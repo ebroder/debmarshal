@@ -1001,6 +1001,27 @@ class TestUbuntuInstallExtraPackages(mox.MoxTestBase):
     deb._installExtraPackages()
 
 
+class TestUbuntuInstallSSHKey(unittest.TestCase):
+  def test(self):
+    target = tempfile.mkdtemp()
+
+    try:
+      deb = TestUbuntu(None, {'hostname': 'www',
+                              'domain': 'example.com',
+                              'ssh_key': 'some_ssh_key'})
+      deb.target = target
+      deb._installSSHKey()
+
+      authorized_keys = open(
+          os.path.join(target, 'root/.ssh/authorized_keys')).read()
+      self.assert_(re.search(
+          '^some_ssh_key$',
+          authorized_keys,
+          re.M))
+    finally:
+      shutil.rmtree(target)
+
+
 class TestUbuntuCreateBase(mox.MoxTestBase):
   def setUp(self):
     super(TestUbuntuCreateBase, self).setUp()
