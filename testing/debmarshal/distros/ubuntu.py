@@ -390,3 +390,36 @@ class Ubuntu(base.Distribution):
     timezone.close()
 
     self._installReconfigure('tzdata')
+
+  def createBase(self):
+    """Create a valid base image.
+
+    This method is responsible for creating a base image at
+    self.basePath().
+
+    No arguments are taken and no value is returned, because the
+    location of the resulting base image is already known.
+    """
+    if self.verifyBase():
+      return
+
+    if os.path.exists(self.basePath()):
+      os.remove(self.basePath())
+
+    self._createSparseFile(self.basePath(), 1024 ** 3)
+    try:
+      self._installFilesystem(self.basePath())
+      self.target = self._mountImage(self.basePath())
+
+      try:
+        self._installDebootstrap()
+        self._installHosts()
+        self._installSources()
+        self._installUpdates()
+        self._installLocale()
+        self._installTimezone()
+      finally:
+        self._umountImage(self.target)
+    except:
+      os.remove(self.basePath())
+      raise

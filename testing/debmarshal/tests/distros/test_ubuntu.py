@@ -532,5 +532,71 @@ class TestUbuntuInstallTimezone(TestMethodsWithoutInitScripts):
       shutil.rmtree(target)
 
 
+class TestUbuntuCreateBase(mox.MoxTestBase):
+  def setUp(self):
+    super(TestUbuntuCreateBase, self).setUp()
+
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, 'verifyBase')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, 'basePath')
+    self.mox.StubOutWithMock(os.path, 'exists')
+    self.mox.StubOutWithMock(os, 'remove')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_createSparseFile')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installFilesystem')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_mountImage')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installDebootstrap')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installHosts')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installSources')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installUpdates')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installLocale')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installTimezone')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_umountImage')
+
+    ubuntu.Ubuntu.verifyBase().AndReturn(False)
+
+    ubuntu.Ubuntu.basePath().MultipleTimes().AndReturn('abcd')
+    os.path.exists('abcd').AndReturn(True)
+    os.remove('abcd')
+
+    ubuntu.Ubuntu._createSparseFile('abcd', 1024 ** 3)
+    ubuntu.Ubuntu._installFilesystem('abcd')
+    ubuntu.Ubuntu._mountImage('abcd').AndReturn('dcba')
+
+    # The order these get called in does actually
+    # matter. Unfortunately, we can't test that across multiple
+    # MockMethods.
+    ubuntu.Ubuntu._installDebootstrap()
+    ubuntu.Ubuntu._installHosts()
+    ubuntu.Ubuntu._installSources()
+    ubuntu.Ubuntu._installUpdates()
+    ubuntu.Ubuntu._installLocale()
+    ubuntu.Ubuntu._umountImage('dcba')
+
+  def testSuccess(self):
+    ubuntu.Ubuntu._installTimezone()
+
+    ubuntu.Ubuntu.verifyBase().AndReturn(True)
+
+    self.mox.ReplayAll()
+
+    # The first time we try, verifyBase returns False. Since the rest
+    # of the method has only been stubbed out once, if returning True
+    # doesn't cause us to return, then we'll throw errors about
+    # methods being called too many times.
+    TestUbuntu().createBase()
+    TestUbuntu().createBase()
+
+  def testFailure(self):
+    # We want to be sure that /all/ of the cleanup still runs, even if
+    # there's an exception
+    ubuntu.Ubuntu._installTimezone().AndRaise(
+        subprocess.CalledProcessError(1, []))
+
+    os.remove('abcd')
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(Exception, TestUbuntu().createBase)
+
+
 if __name__ == '__main__':
   unittest.main()
