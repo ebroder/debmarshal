@@ -198,54 +198,104 @@ Conf libruby1.8 (1.8.6.111-2ubuntu1.3 Ubuntu:8.04/hardy-security
                      False)
 
 
-class TestUbuntuVerify(mox.MoxTestBase):
+class TestUbuntuVerifyBase(mox.MoxTestBase):
   def setUp(self):
-    super(TestUbuntuVerify, self).setUp()
+    super(TestUbuntuVerifyBase, self).setUp()
 
     self.mox.StubOutWithMock(base.Distribution, 'verifyBase')
-    self.mox.StubOutWithMock(base.Distribution, 'verifyCustom')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_verifyImage')
 
   def testNoExists(self):
     base.Distribution.verifyBase().AndReturn(False)
-    base.Distribution.verifyCustom().AndReturn(False)
 
     self.mox.ReplayAll()
 
     self.assertEqual(TestUbuntu().verifyBase(), False)
+
+  def testExists(self):
+    base.Distribution.verifyBase().AndReturn(True)
+
+    ubuntu.Ubuntu._verifyImage(mox.IgnoreArg()).AndReturn(False)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(TestUbuntu().verifyBase(), False)
+
+  def testAllGood(self):
+    base.Distribution.verifyBase().AndReturn(True)
+
+    ubuntu.Ubuntu._verifyImage(mox.IgnoreArg()).AndReturn(True)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(TestUbuntu().verifyBase(), True)
+
+
+class TestUbuntuVerifyCustom(mox.MoxTestBase):
+  def test(self):
+    self.mox.StubOutWithMock(base.Distribution, 'verifyCustom')
+
+    base.Distribution.verifyCustom().AndReturn(False)
+
+    self.mox.ReplayAll()
+
     self.assertEqual(
         TestUbuntu(
             None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
         False)
 
-  def testExists(self):
-    base.Distribution.verifyBase().AndReturn(True)
+class TestUbuntuVerifyCustomExists(mox.MoxTestBase):
+  def setUp(self):
+    super(TestUbuntuVerifyCustomExists, self).setUp()
+
+    self.mox.StubOutWithMock(base.Distribution, 'verifyCustom')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_verifyImage')
     base.Distribution.verifyCustom().AndReturn(True)
 
-    ubuntu.Ubuntu._verifyImage(mox.IgnoreArg()).MultipleTimes().AndReturn(
-        False)
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_setupLoop')
+    ubuntu.Ubuntu._setupLoop(mox.IgnoreArg()).AndReturn('/dev/loop0')
+
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_cleanupDevices')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_cleanupLoop')
+
+    ubuntu.Ubuntu._cleanupDevices('/dev/loop0')
+    ubuntu.Ubuntu._cleanupLoop('/dev/loop0')
+
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_setupDevices')
+
+  def testExists(self):
+    ubuntu.Ubuntu._setupDevices('/dev/loop0').AndReturn('/dev/mapper/loop0')
+    ubuntu.Ubuntu._verifyImage('/dev/mapper/loop01').AndReturn(False)
 
     self.mox.ReplayAll()
 
-    self.assertEqual(TestUbuntu().verifyBase(), False)
     self.assertEqual(
         TestUbuntu(
             None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
         False)
 
   def testAllGood(self):
-    base.Distribution.verifyBase().AndReturn(True)
-    base.Distribution.verifyCustom().AndReturn(True)
+    ubuntu.Ubuntu._setupDevices('/dev/loop0').AndReturn('/dev/mapper/loop0')
 
-    ubuntu.Ubuntu._verifyImage(mox.IgnoreArg()).MultipleTimes().AndReturn(True)
+    ubuntu.Ubuntu._verifyImage('/dev/mapper/loop01').AndReturn(True)
 
     self.mox.ReplayAll()
 
-    self.assertEqual(TestUbuntu().verifyBase(), True)
     self.assertEqual(
         TestUbuntu(
             None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
         True)
+
+  def testError(self):
+    ubuntu.Ubuntu._setupDevices('/dev/loop0').AndRaise(
+        Exception("Test exception"))
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(
+        TestUbuntu(
+            None, {'hostname': 'www', 'domain': 'example.com'}).verifyCustom(),
+        False)
 
 
 class TestUbuntuCreateSparseFile(unittest.TestCase):
