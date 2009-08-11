@@ -29,6 +29,20 @@ from debmarshal.distros import base
 from debmarshal import errors
 
 
+class TestDistributionMeta(unittest.TestCase):
+  """Test the Distribution metaclass."""
+  def test(self):
+    class TestDist1(object):
+      __metaclass__ = base.DistributionMeta
+      _version = 1
+    class TestDist2(TestDist1):
+      _version = 2
+    class TestDist3(TestDist2):
+      _version = 3
+
+    self.assertEqual(TestDist3.version, (3, (2, (1,))))
+
+
 class TestDistributionInit(unittest.TestCase):
   """Test base.Distribution.__init__."""
   def testNoArguments(self):
