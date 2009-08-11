@@ -24,11 +24,15 @@ __authors__ = [
 
 
 import ConfigParser
+import errno
+import glob
+import itertools
 try:
   import hashlib as md5
 except ImportError:  # pragma: no cover
   import md5
 import os
+import stat
 import subprocess
 
 from debmarshal import errors
@@ -71,6 +75,38 @@ def captureCall(popen_args, stdin_str=None, *args, **kwargs):
   return out
 
 
+def _createNewLoopDev():
+  """Create a new loop device.
+
+  On recent kernels (>2.6.22), the kernel actually supports a bunch of
+  loop devices, but only creates nodes for /dev/loop0 through
+  /dev/loop7 by default.
+
+  We should be able to create more loop devices with just an
+  appropriate mknod call.
+
+  We need to try multiple times, just in case somebody else is running
+  this at the same time.
+  """
+  while True:
+    loop_nums = (int(loop[9:]) for loop in glob.glob('/dev/loop*'))
+    last_loop = max(loop_nums)
+
+    new_loop = last_loop + 1
+
+    try:
+      # TODO(ebroder): Figure out how to get udev to generate the /dev
+      #   node. We want udev to be doing that so that all of the
+      #   permissions get set correctly, etc.
+      os.mknod('/dev/loop%d' % new_loop,
+               stat.S_IFBLK | 0600,
+               os.makedev(7, new_loop))
+      break
+    except EnvironmentError, e:
+      if e.errno != errno.EEXIST:
+        raise
+
+
 def setupLoop(img):
   """Setup a loop device for a disk image.
 
@@ -80,7 +116,19 @@ def setupLoop(img):
   Returns:
     The image exposed as a block device.
   """
-  return captureCall(['losetup', '--show', '--find', img]).strip()
+  # We have to try a few times just in case there's contention over
+  # the newly created loop devices, but we also have to give up
+  # eventually in case we're on an insufficiently new kernel
+  for i in itertools.count(0):
+    try:
+      return captureCall(['losetup', '--show', '--find', img]).strip()
+    except errors.CalledProcessError, e:
+      if (e.output != 'losetup: could not find any free loop device\n' or
+          i == 9):
+        raise
+
+      _createNewLoopDev()
+
 
 
 def cleanupLoop(blk):
