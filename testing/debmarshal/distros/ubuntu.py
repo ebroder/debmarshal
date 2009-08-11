@@ -826,6 +826,10 @@ class Ubuntu(base.Distribution):
                 self._umountImage(base_mount)
                 del base_lock
 
+              # Because of the verification step, we know there aren't
+              # any packages that need to be updated, but we still
+              # might have an out of date package index.
+              self._installUpdates()
               self._installFstab({'/': root, 'swap': swap})
               self._installNetwork()
               self._installKernelConfig()

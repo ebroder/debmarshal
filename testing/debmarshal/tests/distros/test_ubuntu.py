@@ -1134,6 +1134,7 @@ class TestUbuntuInstallCustom(mox.MoxTestBase):
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_mountImage')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_copyFilesystem')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_umountImage')
+    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installUpdates')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installFstab')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installNetwork')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installKernelConfig')
@@ -1175,6 +1176,7 @@ class TestUbuntuInstallCustom(mox.MoxTestBase):
     ubuntu.Ubuntu._copyFilesystem('/tmp/tmpold', '/tmp/tmpnew')
     ubuntu.Ubuntu._umountImage('/tmp/tmpold')
 
+    ubuntu.Ubuntu._installUpdates()
     ubuntu.Ubuntu._installFstab({'/': '/dev/mapper/sda1',
                                  'swap': '/dev/mapper/sda2'})
     ubuntu.Ubuntu._installNetwork()
