@@ -283,34 +283,16 @@ class Ubuntu(base.Distribution):
     else:
       try:
         try:
-          loop = self._setupLoop(self.customPath())
+          loop = base.setupLoop(self.customPath())
           try:
             devs = self._setupDevices(loop)
             return self._verifyImage(devs + '1')
           finally:
             self._cleanupDevices(loop)
         finally:
-          self._cleanupLoop(loop)
+          base.cleanupLoop(loop)
       except:
         return False
-
-  def _createSparseFile(self, path, len):
-    """Create a sparse file.
-
-    Create a sparse file with a given length, say for use as a disk
-    image.
-
-    It is the caller's responsibility to ensure that the passed in
-    path doesn't exist, or can be overwritten.
-
-    Args:
-      path: Path to the file to be created.
-      len: Length of the sparse file in bytes.
-    """
-    dir = os.path.dirname(path)
-    if not os.path.exists(dir):
-      os.makedirs(dir)
-    open(path, 'w').truncate(len)
 
   def _runInTarget(self, command_args, *args, **kwargs):
     """Run a command in the install target.
@@ -493,25 +475,6 @@ class Ubuntu(base.Distribution):
     base.captureCall(
         ['sfdisk', '-uM', img],
         stdin_str=',%d,L,*\n,,S\n;\n;\n' % root_blocks)
-
-  def _setupLoop(self, img):
-    """Setup a loop device for a disk image.
-
-    Args:
-      img: Path to the image file.
-
-    Returns:
-      The image exposed as a block device.
-    """
-    return base.captureCall(['losetup', '--show', '--find', img]).strip()
-
-  def _cleanupLoop(self, blk):
-    """Clean up a loop device for a disk image.
-
-    Args:
-      blk: The block device returned from _setupLoop
-    """
-    base.captureCall(['losetup', '-d', blk])
 
   def _setupDevices(self, blk):
     """Create device maps for partitions on a disk image.
@@ -787,7 +750,7 @@ class Ubuntu(base.Distribution):
     if os.path.exists(self.basePath()):
       os.remove(self.basePath())
 
-    self._createSparseFile(self.basePath(), 1024 ** 3)
+    base.createSparseFile(self.basePath(), 1024 ** 3)
     try:
       self._installFilesystem(self.basePath())
       self.target = self._mountImage(self.basePath())
@@ -826,10 +789,10 @@ class Ubuntu(base.Distribution):
       os.remove(self.customPath())
 
     size = 10 * (1024 ** 3)
-    self._createSparseFile(self.customPath(), size)
+    base.createSparseFile(self.customPath(), size)
     try:
       self._installPartitions(self.customPath())
-      loop = self._setupLoop(self.customPath())
+      loop = base.setupLoop(self.customPath())
       try:
         fake_disk = self._setupMapper(loop)
         try:
@@ -846,12 +809,12 @@ class Ubuntu(base.Distribution):
               base_lock = utils.acquireLock(
                   'debmarshal-base-dist-%s' % self.hashBaseConfig(),
                   fcntl.LOCK_SH)
-              base = self._mountImage(self.basePath())
+              base_mount = self._mountImage(self.basePath())
 
               try:
-                self._copyFilesystem(base, self.target)
+                self._copyFilesystem(base_mount, self.target)
               finally:
-                self._umountImage(base)
+                self._umountImage(base_mount)
                 del base_lock
 
               self._installFstab({'/': root, 'swap': swap})
@@ -869,7 +832,7 @@ class Ubuntu(base.Distribution):
         finally:
           self._cleanupMapper(fake_disk)
       finally:
-        self._cleanupLoop(loop)
+        base.cleanupLoop(loop)
     except:
       os.remove(self.customPath())
       raise

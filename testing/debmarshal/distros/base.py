@@ -71,6 +71,46 @@ def captureCall(popen_args, stdin_str=None, *args, **kwargs):
   return out
 
 
+def setupLoop(img):
+  """Setup a loop device for a disk image.
+
+  Args:
+    img: Path to the image file.
+
+  Returns:
+    The image exposed as a block device.
+  """
+  return captureCall(['losetup', '--show', '--find', img]).strip()
+
+
+def cleanupLoop(blk):
+  """Clean up a loop device for a disk image.
+
+  Args:
+    blk: The block device returned from setupLoop
+  """
+  captureCall(['losetup', '-d', blk])
+
+
+def createSparseFile(path, len):
+  """Create a sparse file.
+
+  Create a sparse file with a given length, say for use as a disk
+  image.
+
+  It is the caller's responsibility to ensure that the passed in path
+  doesn't exist, or can be overwritten.
+
+  Args:
+    path: Path to the file to be created.
+    len: Length of the sparse file in bytes.
+  """
+  dir = os.path.dirname(path)
+  if not os.path.exists(dir):
+    os.makedirs(dir)
+  open(path, 'w').truncate(len)
+
+
 class DistributionMeta(type):
   """Metaclass for Distribution classes.
 

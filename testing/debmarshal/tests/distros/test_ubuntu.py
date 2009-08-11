@@ -285,14 +285,14 @@ class TestUbuntuVerifyCustomExists(mox.MoxTestBase):
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_verifyImage')
     base.Distribution.verifyCustom().AndReturn(True)
 
-    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_setupLoop')
-    ubuntu.Ubuntu._setupLoop(mox.IgnoreArg()).AndReturn('/dev/loop0')
+    self.mox.StubOutWithMock(base, 'setupLoop')
+    base.setupLoop(mox.IgnoreArg()).AndReturn('/dev/loop0')
 
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_cleanupDevices')
-    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_cleanupLoop')
+    self.mox.StubOutWithMock(base, 'cleanupLoop')
 
     ubuntu.Ubuntu._cleanupDevices('/dev/loop0')
-    ubuntu.Ubuntu._cleanupLoop('/dev/loop0')
+    base.cleanupLoop('/dev/loop0')
 
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_setupDevices')
 
@@ -331,39 +331,6 @@ class TestUbuntuVerifyCustomExists(mox.MoxTestBase):
         False)
 
 
-class TestUbuntuCreateSparseFile(unittest.TestCase):
-  """Test creating sparse files.
-
-  For once, this has well enough defined behavior that we can actually
-  test ends instead of means.
-  """
-  def testCreateFile(self):
-    fd, name = tempfile.mkstemp()
-    os.close(fd)
-    size = 1024 ** 2
-
-    TestUbuntu()._createSparseFile(name, size)
-
-    try:
-      self.assertEqual(os.stat(name).st_size, size)
-      self.assertEqual(os.stat(name).st_blocks, 0)
-    finally:
-      os.remove(name)
-
-  def testCreateDirectoriesAndFile(self):
-    dir = tempfile.mkdtemp()
-
-    name = os.path.join(dir, 'foo/file')
-    size = 1024 ** 2
-    TestUbuntu()._createSparseFile(name, size)
-
-    try:
-      self.assertEqual(os.stat(name).st_size, size)
-      self.assertEqual(os.stat(name).st_blocks, 0)
-    finally:
-      shutil.rmtree(dir)
-
-
 class TestUbuntuRunInTarget(mox.MoxTestBase):
   def test(self):
     self.mox.StubOutWithMock(base, 'captureCall')
@@ -384,7 +351,7 @@ class TestUbuntuInstallFilesystem(unittest.TestCase):
 
     try:
       deb = TestUbuntu()
-      deb._createSparseFile(name, 1024**3)
+      base.createSparseFile(name, 1024**3)
       deb._installFilesystem(name)
 
       # Let's simulate libmagic to test if name contains an ext3
@@ -408,7 +375,7 @@ class TestUbuntuInstallSwap(unittest.TestCase):
 
     try:
       deb = TestUbuntu()
-      deb._createSparseFile(name, 1024**3)
+      base.createSparseFile(name, 1024**3)
       deb._installSwap(name)
 
       # Test that what we ended up with is actually swapspace.
@@ -680,7 +647,7 @@ class TestUbuntuInstallPartitions(unittest.TestCase):
     fd, name = tempfile.mkstemp()
     os.close(fd)
     size = 10 * (1024 ** 3)
-    TestUbuntu()._createSparseFile(name, size)
+    base.createSparseFile(name, size)
 
     try:
       TestUbuntu()._installPartitions(name)
@@ -713,27 +680,6 @@ class TestUbuntuInstallPartitions(unittest.TestCase):
     finally:
       os.remove(name)
   test.slow = 1
-
-
-class TestUbuntuLoop(mox.MoxTestBase):
-  def testSetup(self):
-    self.mox.StubOutWithMock(base, 'captureCall')
-
-    base.captureCall(['losetup', '--show', '--find', 'foo']).AndReturn(
-        "/dev/loop0\n")
-
-    self.mox.ReplayAll()
-
-    self.assertEqual(TestUbuntu()._setupLoop('foo'), '/dev/loop0')
-
-  def testCleanup(self):
-    self.mox.StubOutWithMock(base, 'captureCall')
-
-    base.captureCall(['losetup', '-d', '/dev/loop0'])
-
-    self.mox.ReplayAll()
-
-    TestUbuntu()._cleanupLoop('/dev/loop0')
 
 
 class TestUbuntuDevices(mox.MoxTestBase):
@@ -1090,7 +1036,7 @@ class TestUbuntuCreateBase(mox.MoxTestBase):
     self.mox.StubOutWithMock(ubuntu.Ubuntu, 'basePath')
     self.mox.StubOutWithMock(os.path, 'exists')
     self.mox.StubOutWithMock(os, 'remove')
-    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_createSparseFile')
+    self.mox.StubOutWithMock(base, 'createSparseFile')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installFilesystem')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_mountImage')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installDebootstrap')
@@ -1107,7 +1053,7 @@ class TestUbuntuCreateBase(mox.MoxTestBase):
     os.path.exists('abcd').AndReturn(True)
     os.remove('abcd')
 
-    ubuntu.Ubuntu._createSparseFile('abcd', 1024 ** 3)
+    base.createSparseFile('abcd', 1024 ** 3)
     ubuntu.Ubuntu._installFilesystem('abcd')
     ubuntu.Ubuntu._mountImage('abcd').AndReturn('dcba')
 
@@ -1166,9 +1112,9 @@ class TestUbuntuInstallCustom(mox.MoxTestBase):
     self.mox.StubOutWithMock(ubuntu.Ubuntu, 'customPath')
     self.mox.StubOutWithMock(os.path, 'exists')
     self.mox.StubOutWithMock(os, 'remove')
-    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_createSparseFile')
+    self.mox.StubOutWithMock(base, 'createSparseFile')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installPartitions')
-    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_setupLoop')
+    self.mox.StubOutWithMock(base, 'setupLoop')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_setupMapper')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_setupDevices')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installFilesystem')
@@ -1185,7 +1131,7 @@ class TestUbuntuInstallCustom(mox.MoxTestBase):
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installSSHKey')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_cleanupDevices')
     self.mox.StubOutWithMock(ubuntu.Ubuntu, '_cleanupMapper')
-    self.mox.StubOutWithMock(ubuntu.Ubuntu, '_cleanupLoop')
+    self.mox.StubOutWithMock(base, 'cleanupLoop')
 
     ubuntu.Ubuntu.verifyCustom().AndReturn(False)
 
@@ -1197,9 +1143,9 @@ class TestUbuntuInstallCustom(mox.MoxTestBase):
     os.path.exists('/custom').AndReturn(True)
     os.remove('/custom')
 
-    ubuntu.Ubuntu._createSparseFile('/custom', 10 * (1024 ** 3))
+    base.createSparseFile('/custom', 10 * (1024 ** 3))
     ubuntu.Ubuntu._installPartitions('/custom')
-    ubuntu.Ubuntu._setupLoop('/custom').AndReturn('/dev/loop0')
+    base.setupLoop('/custom').AndReturn('/dev/loop0')
     ubuntu.Ubuntu._setupMapper('/dev/loop0').AndReturn('/dev/mapper/sda')
     ubuntu.Ubuntu._setupDevices('/dev/mapper/sda').AndReturn('/dev/mapper/sda')
     ubuntu.Ubuntu._installFilesystem('/dev/mapper/sda1')
@@ -1230,7 +1176,7 @@ class TestUbuntuInstallCustom(mox.MoxTestBase):
     ubuntu.Ubuntu._umountImage('/tmp/tmpnew')
     ubuntu.Ubuntu._cleanupDevices('/dev/mapper/sda')
     ubuntu.Ubuntu._cleanupMapper('/dev/mapper/sda')
-    ubuntu.Ubuntu._cleanupLoop('/dev/loop0')
+    base.cleanupLoop('/dev/loop0')
 
   def testSuccess(self):
     ubuntu.Ubuntu._installSSHKey()
