@@ -98,6 +98,8 @@ class DistributionMeta(type):
                    tuple(b.version for b in bases if hasattr(b, 'version')))
 
 
+# TODO(ebroder): Look into using protocol buffers instead of this
+#   hackish configuration solution
 class Distribution(object):
   """Superclass representation of an abstract Linux distribution.
 
