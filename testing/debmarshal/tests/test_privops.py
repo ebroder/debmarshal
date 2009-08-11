@@ -35,8 +35,10 @@ import dbus.service
 import gobject
 import libvirt
 import mox
+import pkg_resources
 import virtinst
 
+from debmarshal.distros import ubuntu
 from debmarshal import errors
 from debmarshal import hypervisors
 from debmarshal import privops
@@ -413,6 +415,48 @@ class TestDestroyDomain(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     privops.Privops().destroyDomain('debmarshal-0', 'qemu')
+
+
+class TestGenerateImage(mox.MoxTestBase):
+  def test(self):
+    self.mox.StubOutWithMock(privops, '_daemonize')
+    privops._daemonize().AndReturn(True)
+
+    entry_point = self.mox.CreateMock(pkg_resources.EntryPoint)
+
+    self.mox.StubOutWithMock(pkg_resources, 'iter_entry_points')
+    pkg_resources.iter_entry_points(
+      'debmarshal.distributions',
+      name='ubuntu').AndReturn(
+      (x for x in [entry_point]))
+
+    mock_ubuntu = self.mox.CreateMock(ubuntu.Ubuntu)
+    self.mox.StubOutWithMock(ubuntu, 'Ubuntu', use_mock_anything=True)
+
+    entry_point.load().AndReturn(ubuntu.Ubuntu)
+    ubuntu.Ubuntu({'a': 'b'}, {'c': 'd'}).AndReturn(mock_ubuntu)
+
+    mock_ubuntu.createCustom()
+
+    bus = self.mox.CreateMock(dbus.bus.BusConnection)
+    self.proxy = self.mox.CreateMockAnything()
+
+    self.mox.StubOutWithMock(dbus, 'SystemBus', use_mock_anything=True)
+    dbus.SystemBus().AndReturn(bus)
+
+    bus.get_object(':1.13', privops.DBUS_WAIT_OBJECT_PATH).AndReturn(
+      self.proxy)
+    self.proxy.callReturn(dbus_interface=privops.DBUS_WAIT_INTERFACE)
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(
+      SystemExit,
+      privops.Privops().generateImage,
+      'ubuntu',
+      {'a': 'b'},
+      {'c': 'd'},
+      ':1.13')
 
 
 class TestCallback(mox.MoxTestBase):

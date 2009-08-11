@@ -49,6 +49,7 @@ import dbus.service
 import decorator
 import gobject
 import libvirt
+import pkg_resources
 import virtinst
 
 from debmarshal import errors
@@ -406,6 +407,48 @@ class Privops(dbus.service.Object):
 
     del doms[(name, hypervisor)]
     utils.storeState(doms, 'debmarshal-domains')
+
+    utils.caller = None
+
+  @_resetExitTimer
+  @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
+                       in_signature='sa{sv}a{sv}', out_signature='')
+  @_coerceDbusArgs
+  @_asyncCall
+  def generateImage(self, distribution, base_config, custom_config,
+                    _debmarshal_sender=None):
+    """Generate a customized disk image for a distribution.
+
+    Both base_config and custom_config vary from distribution to
+    distribution, so consult the distribution's documentation for
+    which configuration options to pass.
+
+    Args:
+      distribution: The name of the distribution to generate a disk
+        for. This should be the name of an entry_point providing
+        debmarshal.distributions.
+      base_config: A dict of configuration options used for the
+        first-stage install of an uncustomized OS.
+      custom_config: A dict of configuration options used for
+        customizing the install.
+
+    Returns:
+      The path to the new customized disk image. Using the
+        debmarshal.distros.base.Distribution interface, it's easy to
+        back this out from the base_config and custom_config, but we
+        return it anyway.
+    """
+    utils.caller = _debmarshal_sender
+
+    entry_points = list(pkg_resources.iter_entry_points(
+        'debmarshal.distributions',
+        name=distribution))
+    assert len(entry_points) == 1
+
+    dist_class = entry_points.pop().load()
+
+    dist = dist_class(base_config, custom_config)
+    dist.createCustom()
 
     utils.caller = None
 
