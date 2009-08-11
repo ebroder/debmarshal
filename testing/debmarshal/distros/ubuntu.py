@@ -689,7 +689,7 @@ class Ubuntu(base.Distribution):
                       disk])
 
     # Run update-grub once to create the menu.lst
-    self._runInTarget(['update-grub', '-y'])
+    self._runInTarget(['bash', 'update-grub', '-y'])
     uuid = base.captureCall(
         ['blkid', '-o', 'value', '-s', 'UUID', root]).strip()
     self._runInTarget(['sed',
@@ -701,7 +701,7 @@ class Ubuntu(base.Distribution):
                        '/boot/grub/menu.lst'])
 
     # Run update-grub one more time to take the new defaults
-    self._runInTarget(['update-grub', '-y'])
+    self._runInTarget(['bash', 'update-grub', '-y'])
 
   def _installExtraPackages(self):
     """Install and remove packages as configured.

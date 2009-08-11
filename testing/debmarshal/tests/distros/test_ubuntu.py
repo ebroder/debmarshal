@@ -954,7 +954,7 @@ class TestUbuntuInstallBootloader(mox.MoxTestBase):
                         '/dev/mapper/sdc'])
 
       self.mox.StubOutWithMock(ubuntu.Ubuntu, '_runInTarget')
-      ubuntu.Ubuntu._runInTarget(['update-grub', '-y'])
+      ubuntu.Ubuntu._runInTarget(['bash', 'update-grub', '-y'])
 
       base.captureCall(['blkid',
                         '-o', 'value',
@@ -967,7 +967,7 @@ class TestUbuntuInstallBootloader(mox.MoxTestBase):
                 arg[-1] == '/boot/grub/menu.lst')
 
       ubuntu.Ubuntu._runInTarget(mox.Func(_validateSed))
-      ubuntu.Ubuntu._runInTarget(['update-grub', '-y'])
+      ubuntu.Ubuntu._runInTarget(['bash', 'update-grub', '-y'])
 
       self.mox.ReplayAll()
 
