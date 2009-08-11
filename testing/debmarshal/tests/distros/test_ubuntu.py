@@ -478,5 +478,37 @@ class TestUbuntuInstallUpdates(TestMethodsWithoutInitScripts):
     deb._installUpdates()
 
 
+class TestUbuntuInstallLocale(TestMethodsWithoutInitScripts):
+  def test(self):
+    target = tempfile.mkdtemp()
+    etc_dir = os.path.join(target, 'etc')
+    os.makedirs(etc_dir)
+
+    defaults_dir = os.path.join(target, 'etc/default')
+    os.makedirs(defaults_dir)
+
+    try:
+      self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installPackages')
+      self.mox.StubOutWithMock(ubuntu.Ubuntu, '_runInTarget')
+      self.mox.StubOutWithMock(ubuntu.Ubuntu, '_installReconfigure')
+
+      ubuntu.Ubuntu._installPackages('locales')
+      ubuntu.Ubuntu._runInTarget(['locale-gen'])
+      ubuntu.Ubuntu._installReconfigure('locales')
+
+      self.mox.ReplayAll()
+
+      deb = TestUbuntu()
+      deb.target = target
+      deb._installLocale()
+
+      self.assertEqual(open(os.path.join(etc_dir, 'locale.gen')).read(),
+                       'en_US.UTF-8 UTF-8\n')
+      self.assertEqual(open(os.path.join(defaults_dir, 'locale')).read(),
+                       'LANG="en_US.UTF-8"\n')
+    finally:
+      shutil.rmtree(target)
+
+
 if __name__ == '__main__':
   unittest.main()

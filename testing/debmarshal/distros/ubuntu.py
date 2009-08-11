@@ -365,3 +365,19 @@ class Ubuntu(base.Distribution):
     self._runInTarget(['apt-get',
                        '-y',
                        'dist-upgrade'])
+
+  @withoutInitScripts
+  def _installLocale(self):
+    """Configure locale settings."""
+    locale = open(os.path.join(self.target, 'etc/default/locale'), 'w')
+    locale.write('LANG="en_US.UTF-8"\n')
+    locale.close()
+
+    locale_gen = open(os.path.join(self.target, 'etc/locale.gen'), 'w')
+    locale_gen.write('en_US.UTF-8 UTF-8\n')
+    locale_gen.close()
+
+    self._installPackages('locales')
+
+    self._runInTarget(['locale-gen'])
+    self._installReconfigure('locales')
