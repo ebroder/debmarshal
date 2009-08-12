@@ -40,7 +40,7 @@ class TestValidateHostname(mox.MoxTestBase):
     """Make sure that an exception gets raised if an invalid hostname
     is passed in"""
     self.assertRaises(errors.InvalidInput, networks._validateHostname,
-                      'not-a-domain.faketld')
+                      'not-a-domain.#$@')
 
   def testValidInput(self):
     """Test that nothing happens if a valid hostname is passed in"""
