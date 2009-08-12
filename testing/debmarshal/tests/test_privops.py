@@ -569,7 +569,7 @@ class TestCall(mox.MoxTestBase):
     proxy = self.mox.CreateMockAnything()
     method = self.mox.CreateMockAnything()
 
-    dbus.SystemBus().AndReturn(bus)
+    dbus.SystemBus(private=True).AndReturn(bus)
     bus.get_object(privops.DBUS_BUS_NAME, privops.DBUS_OBJECT_PATH).AndReturn(
       proxy)
     proxy.get_dbus_method(
@@ -599,10 +599,10 @@ class TestCallWait(mox.MoxTestBase):
     self.method = 'generateImage'
     self.args = (None, None)
 
-    privops.call(self.method, *self.args)
+    dbus.mainloop.glib.DBusGMainLoop().AndReturn(42)
+    dbus.SystemBus(private=True, mainloop=42).AndReturn(bus)
 
-    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-    dbus.SystemBus().AndReturn(bus)
+    privops.call(self.method, dbus_con=bus, *self.args)
 
     privops._callback = None
     privops.Callback(bus, privops.DBUS_WAIT_OBJECT_PATH).AndReturn(self.call)
@@ -627,23 +627,6 @@ class TestCallWait(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     self.assertRaises(Exception, privops.callWait, self.method, *self.args)
-
-
-class TestMaybeExit(mox.MoxTestBase):
-  """Test exiting from the main loop."""
-  def test(self):
-    """Test debmarshal.privops._maybeExit."""
-    loop = self.mox.CreateMockAnything()
-    loop.quit()
-
-    self.mox.ReplayAll()
-
-    self.assertEqual(privops._maybeExit(loop), True)
-    self.assertEqual(privops._READY_TO_EXIT, True)
-    privops._READY_TO_EXIT = False
-    self.assertEqual(privops._maybeExit(loop), True)
-    self.assertEqual(privops._READY_TO_EXIT, True)
-    privops._maybeExit(loop)
 
 
 class TestMain(mox.MoxTestBase):
@@ -672,7 +655,6 @@ class TestMain(mox.MoxTestBase):
     dbus.service.BusName(privops.DBUS_BUS_NAME, bus).AndReturn(name)
     privops.Privops(name, privops.DBUS_OBJECT_PATH).AndReturn(dbus_obj)
     gobject.MainLoop().AndReturn(loop)
-    gobject.timeout_add_seconds(1, privops._maybeExit, loop)
     loop.run()
 
     self.mox.ReplayAll()

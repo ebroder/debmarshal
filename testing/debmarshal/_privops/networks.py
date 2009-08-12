@@ -38,11 +38,12 @@ from debmarshal import ip
 from debmarshal._privops import utils
 
 
-_hostname_re = re.compile(r"([a-z0-9][a-z0-9-]{0,62}\.)+([a-z]{2,4})$", re.I)
+_hostname_re = re.compile(
+  r"([a-z0-9][a-z0-9-]{0,62}\.)*[a-z0-9][a-z0-9-]{0,62}$", re.I)
 
 
 def _validateHostname(name):
-  """Check that the input is a valid, fully-qualified domain name.
+  """Check that the input is a valid hostname.
 
   Args:
     name: The hostname to validate

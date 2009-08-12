@@ -77,9 +77,6 @@ DBUS_OBJECT_PATH='/com/googlecode/debmarshal/Privops'
 DBUS_WAIT_OBJECT_PATH='/com/googlecode/debmarshal/Callback'
 
 
-_READY_TO_EXIT=False
-
-
 @decorator.decorator
 def _coerceDbusArgs(f, *args, **kwargs):
   """Decorator to coerce all positional arguments into normal Python types.
@@ -90,17 +87,6 @@ def _coerceDbusArgs(f, *args, **kwargs):
   Python types instead.
   """
   return f(*(utils.coerceDbusType(arg) for arg in args), **kwargs)
-
-
-@decorator.decorator
-def _resetExitTimer(f, *args, **kwargs):
-  """Decorator to reset the exit timer.
-
-  This function resets _READY_TO_EXIT to False, indicating that a dbus
-  message was received between the last and next calls to _maybeExit.
-  """
-  _READY_TO_EXIT=False
-  return f(*args, **kwargs)
 
 
 def _daemonize():
@@ -174,9 +160,8 @@ class Privops(dbus.service.Object):
   dbus.service.method decorator because of the introspection it
   performs on method arguments.
   """
-  Introspect = _resetExitTimer(dbus.service.Object.Introspect)
+  Introspect = dbus.service.Object.Introspect
 
-  @_resetExitTimer
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='as', out_signature='(sssa{s(ss)})')
   @_coerceDbusArgs
@@ -255,7 +240,6 @@ class Privops(dbus.service.Object):
 
     return (net_name, net_gateway, net_mask, net_hosts)
 
-  @_resetExitTimer
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='s', out_signature='')
   @_coerceDbusArgs
@@ -295,7 +279,6 @@ class Privops(dbus.service.Object):
 
     utils.caller = None
 
-  @_resetExitTimer
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='sasssss', out_signature='s')
   @_coerceDbusArgs
@@ -371,7 +354,6 @@ class Privops(dbus.service.Object):
 
     return name
 
-  @_resetExitTimer
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='ss', out_signature='')
   @_coerceDbusArgs
@@ -410,7 +392,6 @@ class Privops(dbus.service.Object):
 
     utils.caller = None
 
-  @_resetExitTimer
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='sa{sv}a{sv}', out_signature='')
   @_coerceDbusArgs
@@ -447,7 +428,6 @@ class Privops(dbus.service.Object):
 
     utils.caller = None
 
-  @_resetExitTimer
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='sa{sv}a{sv}t', out_signature='s')
   @_coerceDbusArgs
@@ -493,7 +473,6 @@ class Privops(dbus.service.Object):
 
     return snapshot
 
-  @_resetExitTimer
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
                        in_signature='s', out_signature='')
   @_coerceDbusArgs
@@ -542,7 +521,7 @@ class Callback(dbus.service.Object):
     gobject.idle_add(self._loop.quit)
 
 
-def call(method, *args):
+def call(method, *args, **kwargs):
   """Call a privileged operation.
 
   This function handles calling privileged operations. Currently,
@@ -552,7 +531,11 @@ def call(method, *args):
     method: The name of the method to call.
     *args: The arguments to pass to the method.
   """
-  proxy = dbus.SystemBus().get_object(DBUS_BUS_NAME, DBUS_OBJECT_PATH)
+  if 'dbus_con' in kwargs:
+    dbus_con = kwargs['dbus_con']
+  else:
+    dbus_con = dbus.SystemBus(private=True)
+  proxy = dbus_con.get_object(DBUS_BUS_NAME, DBUS_OBJECT_PATH)
   return utils.coerceDbusType(proxy.get_dbus_method(
       method, dbus_interface=DBUS_INTERFACE)(*args))
 
@@ -572,10 +555,10 @@ def callWait(method, *args):
   """
   global _callback
 
-  glib.DBusGMainLoop(set_as_default=True)
-  bus = dbus.SystemBus()
+  main_loop = glib.DBusGMainLoop()
+  bus = dbus.SystemBus(private=True, mainloop=main_loop)
 
-  call(method, *args)
+  call(method, dbus_con=bus, *args)
 
   # dbus gets snippy if you initialize multiple objects bound to a
   # single object path, so we'll just reuse one.
@@ -588,36 +571,6 @@ def callWait(method, *args):
 
   if _callback._error:
     raise dbus.exceptions.DBusException(_callback._error)
-
-
-def _maybeExit(loop):
-  """Exit if there were no methods called in the last second.
-
-  DBus proxy objects are associated with a connection to a specific
-  non-well-known bus name. If the main loop was configured to exit as
-  soon as there were no pending tasks, there would be a race
-  condition. Calls from the Python bindings first make an Introspect
-  call before calling the actual method, and the idle hook might
-  trigger between those two calls.
-
-  With _maybeExit, the main loop will only exit if there have been no
-  dbus methods called in the last 10 seconds. There's still a
-  potential race here. But if your bindings try to reuse a connection,
-  but are so slow that they wait for a whole seconds between the
-  Introspection and the actual method, it just sucks to be you.
-
-  Args:
-    loop: The gobject.MainLoop that we will quit if no dbus methods
-      were called.
-  """
-  global _READY_TO_EXIT
-
-  if _READY_TO_EXIT:
-    loop.quit()
-  else:
-    _READY_TO_EXIT=True
-
-  return True
 
 
 def main():
@@ -636,7 +589,6 @@ def main():
   name = dbus.service.BusName(DBUS_BUS_NAME, dbus.SystemBus())
   dbus_obj = Privops(name, DBUS_OBJECT_PATH)
   loop = gobject.MainLoop()
-  gobject.timeout_add_seconds(1, _maybeExit, loop)
   loop.run()
 
 
