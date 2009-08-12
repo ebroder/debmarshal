@@ -569,7 +569,7 @@ class TestCall(mox.MoxTestBase):
     proxy = self.mox.CreateMockAnything()
     method = self.mox.CreateMockAnything()
 
-    dbus.SystemBus().AndReturn(bus)
+    dbus.SystemBus(private=True).AndReturn(bus)
     bus.get_object(privops.DBUS_BUS_NAME, privops.DBUS_OBJECT_PATH).AndReturn(
       proxy)
     proxy.get_dbus_method(
@@ -599,10 +599,10 @@ class TestCallWait(mox.MoxTestBase):
     self.method = 'generateImage'
     self.args = (None, None)
 
-    privops.call(self.method, *self.args)
+    dbus.mainloop.glib.DBusGMainLoop().AndReturn(42)
+    dbus.SystemBus(private=True, mainloop=42).AndReturn(bus)
 
-    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-    dbus.SystemBus().AndReturn(bus)
+    privops.call(self.method, dbus_con=bus, *self.args)
 
     privops._callback = None
     privops.Callback(bus, privops.DBUS_WAIT_OBJECT_PATH).AndReturn(self.call)
