@@ -542,7 +542,7 @@ class Callback(dbus.service.Object):
     gobject.idle_add(self._loop.quit)
 
 
-def call(method, *args):
+def call(method, *args, **kwargs):
   """Call a privileged operation.
 
   This function handles calling privileged operations. Currently,
@@ -552,7 +552,11 @@ def call(method, *args):
     method: The name of the method to call.
     *args: The arguments to pass to the method.
   """
-  proxy = dbus.SystemBus().get_object(DBUS_BUS_NAME, DBUS_OBJECT_PATH)
+  if 'dbus_con' in kwargs:
+    dbus_con = kwargs['dbus_con']
+  else:
+    dbus_con = dbus.SystemBus(private=True)
+  proxy = dbus_con.get_object(DBUS_BUS_NAME, DBUS_OBJECT_PATH)
   return utils.coerceDbusType(proxy.get_dbus_method(
       method, dbus_interface=DBUS_INTERFACE)(*args))
 
@@ -572,10 +576,10 @@ def callWait(method, *args):
   """
   global _callback
 
-  glib.DBusGMainLoop(set_as_default=True)
-  bus = dbus.SystemBus()
+  main_loop = glib.DBusGMainLoop()
+  bus = dbus.SystemBus(private=True, mainloop=main_loop)
 
-  call(method, *args)
+  call(method, dbus_con=bus, *args)
 
   # dbus gets snippy if you initialize multiple objects bound to a
   # single object path, so we'll just reuse one.
