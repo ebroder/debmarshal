@@ -1,3 +1,9 @@
+debmarshal-testing (0.0.0r348-1) unstable; urgency=low
+
+  * New subversion snapshot.
+
+ -- Evan Broder <ebroder@google.com>  Wed, 12 Aug 2009 14:41:53 -0700
+
 debmarshal-testing (0.0.0r342-1) unstable; urgency=low
 
   * New subversion snapshot.
