@@ -37,7 +37,16 @@ __authors__ = [
 
 import optparse
 import os
+import shutil
 import sys
+import tempfile
+import traceback
+
+import dbus
+import yaml
+
+from debmarshal.distros import base
+from debmarshal import privops
 
 
 def _parseOptions(argv):
@@ -56,6 +65,26 @@ def _parseOptions(argv):
   return parser.parse_args(argv)
 
 
+def _loadTest(test):
+  """Load and validate the configuration for a test.
+
+  Returns:
+    A dict containing the test configuration.
+
+  Raises:
+    AssertionError if the test is not correctly configured.
+  """
+  config_path = os.path.join(test, 'config.yml')
+  assert os.path.exists(config_path)
+  assert os.path.exists(os.path.join(test, 'script'))
+
+  config = yaml.safe_load(open(config_path))
+
+  assert len(config['vms']) > 0
+
+  return config
+
+
 def _runTest(test):
   """Actually execute a test.
 
@@ -65,7 +94,60 @@ def _runTest(test):
   Returns:
     True if the test passes; False otherwise.
   """
-  return True
+  config = _loadTest(test)
+
+  hostnames = [vm['hostname'] for vm in config['vms'].values()]
+  net_config = privops.call('createNetwork', hostnames)
+
+  try:
+    images = {}
+    domains = {}
+
+    try:
+      for vm_name, vm in config['vms'].items():
+        custom_config = vm['custom_config']
+        custom_config['hostname'] = vm['hostname']
+        custom_config['domain'] = config['domain']
+
+        privops.callWait('generateImage',
+                         vm['distribution'],
+                         vm['base_config'],
+                         custom_config)
+
+        custom_path = base.findDistribution(vm['distribution'])(
+          vm['base_config'], custom_config).customPath()
+
+        fd, copy_path = tempfile.mkstemp()
+        os.close(fd)
+        base.captureCall(['cp', custom_path, copy_path])
+        images[vm_name] = copy_path
+
+      try:
+        for vm, image in images.items():
+          domains[vm] = privops.createDomain(
+            # memory
+            config['vms'][vm].memory,
+            # disks
+            [image],
+            # network
+            net_config[0],
+            # mac
+            net_config[3][config['vms'][vm]['hostname']][1],
+            # hypervisor
+            'kvm',
+            # arch
+            'x86_64')
+
+      finally:
+        for domain in domains.values():
+          privops.call('destroyDomain', domain)
+
+    finally:
+      for image in images.items():
+        os.unlink(image)
+
+  finally:
+    privops.call('destroyNetwork', net_config[0])
 
 
 def _printSummary(run, failures, errors, stream=sys.stdout):
@@ -125,6 +207,7 @@ def _main(argv):
         failures += 1
     except:
       print 'E'
+      print traceback.print_exc()
       errors += 1
 
   _printSummary(len(tests), failures, errors)
