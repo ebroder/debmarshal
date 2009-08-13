@@ -107,7 +107,7 @@ def getCaller():
     # privilege to begin with.
     return 0
 
-  dbus_obj = dbus.StarterBus().get_object('org.freedesktop.DBus',
+  dbus_obj = dbus.SystemBus().get_object('org.freedesktop.DBus',
                                           '/org/freedesktop/DBus')
   return int(dbus_obj.GetConnectionUnixUser(
       caller, dbus_interface='org.freedesktop.DBus'))

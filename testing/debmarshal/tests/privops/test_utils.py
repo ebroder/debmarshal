@@ -116,9 +116,9 @@ class TestGetCaller(mox.MoxTestBase):
     bus = self.mox.CreateMock(dbus.bus.BusConnection)
     dbus_obj = self.mox.CreateMockAnything()
 
-    self.mox.StubOutWithMock(dbus, 'StarterBus', use_mock_anything=True)
+    self.mox.StubOutWithMock(dbus, 'SystemBus', use_mock_anything=True)
 
-    dbus.StarterBus().AndReturn(bus)
+    dbus.SystemBus().AndReturn(bus)
     bus.get_object('org.freedesktop.DBus', '/org/freedesktop/DBus').AndReturn(
         dbus_obj)
     dbus_obj.GetConnectionUnixUser(
