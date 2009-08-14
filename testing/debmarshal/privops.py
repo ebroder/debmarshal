@@ -89,65 +89,6 @@ def _coerceDbusArgs(f, *args, **kwargs):
   return f(*(utils.coerceDbusType(arg) for arg in args), **kwargs)
 
 
-def _daemonize():
-  """Fork off into a separate process.
-
-  This function handles all of the necessary forking and other syscall
-  games needed to create a separate process, in a different process
-  group, without a controlling terminal, etc.
-
-  Returns:
-    True if this is the daemonized process and False if this is not
-  """
-  if os.fork():
-    return False
-
-  os.setsid()
-  if os.fork():
-    sys.exit(0)
-
-  for fd in range(3):
-    os.close(fd)
-  os.open('/dev/null', os.O_RDWR)
-  os.dup2(0, 1)
-  os.dup2(0, 2)
-
-  return True
-
-
-@decorator.decorator
-def _asyncCall(f, *args, **kwargs):
-  """Decorator to run the decorated function in a separate daemon.
-
-  This decorator makes a function or method asynchronous by spinning
-  it out into a separate daemon.
-
-  It causes the method to return None, and is intended for use with
-  the callWait method.
-  """
-  if _daemonize():
-    # The _debmarshal_sender argument should be coming in as a kwarg,
-    # but instead it's coming in as a positional argument. Not sure
-    # why.
-    sender = args[-1]
-
-    success = True
-
-    try:
-      f(*args, **kwargs)
-    except:
-      success = False
-      tb = traceback.format_exc()
-
-    proxy = dbus.SystemBus().get_object(sender, DBUS_WAIT_OBJECT_PATH)
-    if success:
-      proxy.callReturn(dbus_interface=DBUS_WAIT_INTERFACE)
-    else:
-      proxy.callError(tb, dbus_interface=DBUS_WAIT_INTERFACE)
-
-    sys.exit(0)
-
-
 class Privops(dbus.service.Object):
   """Collection class for privileged dbus methods.
 
@@ -392,136 +333,8 @@ class Privops(dbus.service.Object):
 
     utils.caller = None
 
-  @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
-                       in_signature='sa{sv}a{sv}', out_signature='')
-  @_coerceDbusArgs
-  @_asyncCall
-  def generateImage(self, distribution, base_config, custom_config,
-                    _debmarshal_sender=None):
-    """Generate a customized disk image for a distribution.
 
-    Both base_config and custom_config vary from distribution to
-    distribution, so consult the distribution's documentation for
-    which configuration options to pass.
-
-    Args:
-      distribution: The name of the distribution to generate a disk
-        for. This should be the name of an entry_point providing
-        debmarshal.distributions.
-      base_config: A dict of configuration options used for the
-        first-stage install of an uncustomized OS.
-      custom_config: A dict of configuration options used for
-        customizing the install.
-
-    Returns:
-      The path to the new customized disk image. Using the
-        debmarshal.distros.base.Distribution interface, it's easy to
-        back this out from the base_config and custom_config, but we
-        return it anyway.
-    """
-    utils.caller = _debmarshal_sender
-
-    dist_class = base.findDistribution(distribution)
-
-    dist = dist_class(base_config, custom_config)
-    dist.createCustom()
-
-    utils.caller = None
-
-  @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
-                       in_signature='sa{sv}a{sv}t', out_signature='s')
-  @_coerceDbusArgs
-  def createSnapshot(self, distribution, base_config, custom_config, size,
-                     _debmarshal_sender=None):
-    """Generate a snapshot of a customized disk image.
-
-    This will generate a memory-backed snapshot of a customized disk
-    image, ideal for throwaway use with VMs.
-
-    The resulting device node will be owned by the caller.
-
-    Args:
-      distribution: The name of the distribution to snapshot.
-      base_config: The config options for the base image.
-      custom_config: The config options for the custom image.
-      size: The size of the snapshot volume in bytes. This does not
-        need to be the same size as the original disk image, and is
-        frequently much smaller.
-
-    Returns:
-      The path to the newly created snapshot image.
-
-    Raises:
-      debmarshal.errors.NotFound: Beacuse this is not an asynchronous
-        call, and is assumed to return quickly, this exception is
-        raised if the customized disk image does not already exist.
-    """
-    utils.caller = _debmarshal_sender
-
-    dist_class = base.findDistribution(distribution)
-
-    dist = dist_class(base_config, custom_config)
-
-    if not os.path.exists(dist.customPath()):
-      raise errors.NotFound(
-        "The customized disk image for this configuration does not exist")
-
-    snapshot = dist.customCow(size)
-    os.chown(snapshot, utils.getCaller(), -1)
-
-    utils.caller = None
-
-    return snapshot
-
-  @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
-                       in_signature='s', out_signature='')
-  @_coerceDbusArgs
-  def cleanupSnapshot(self, snapshot, _debmarshal_sender=None):
-    """Cleanup a snapshot image.
-
-    The snapshot must be owned by the calling user.
-
-    Args:
-      snapshot: Path to the snapshot image.
-
-    Raises:
-      debmarshal.errors.AccessDenied: Raised if the caller does not
-        own the passed in snapshot
-    """
-    utils.caller = _debmarshal_sender
-
-    if os.stat(snapshot).st_uid not in (0, utils.getCaller()):
-      raise errors.AccessDenied("The caller does not own snapshot '%s'" %
-                                snapshot)
-
-    table = base.captureCall(['dmsetup', 'table', snapshot])
-    origin_dev = table.split()[3]
-    assert origin_dev.split(':')[0] == '7'
-
-    base.cleanupCow(snapshot)
-    base.cleanupLoop('/dev/loop%s' % origin_dev.split(':')[1])
-
-    utils.caller = None
-
-
-_callback = None
-
-
-class Callback(dbus.service.Object):
-  """Simple object for receiving a callback from the Privops daemon."""
-  @dbus.service.method(DBUS_WAIT_INTERFACE,
-                       in_signature='', out_signature='')
-  def callReturn(self):
-    gobject.idle_add(self._loop.quit)
-
-  @dbus.service.method(DBUS_WAIT_INTERFACE,
-                       in_signature='s', out_signature='')
-  def callError(self, err_val):
-    self._error = err_val
-    gobject.idle_add(self._loop.quit)
-
-
-def call(method, *args, **kwargs):
+def call(method, *args):
   """Call a privileged operation.
 
   This function handles calling privileged operations. Currently,
@@ -531,46 +344,9 @@ def call(method, *args, **kwargs):
     method: The name of the method to call.
     *args: The arguments to pass to the method.
   """
-  if 'dbus_con' in kwargs:
-    dbus_con = kwargs['dbus_con']
-  else:
-    dbus_con = dbus.SystemBus(private=True)
-  proxy = dbus_con.get_object(DBUS_BUS_NAME, DBUS_OBJECT_PATH)
+  proxy = dbus.SystemBus().get_object(DBUS_BUS_NAME, DBUS_OBJECT_PATH)
   return utils.coerceDbusType(proxy.get_dbus_method(
       method, dbus_interface=DBUS_INTERFACE)(*args))
-
-def callWait(method, *args):
-  """Call a privileged operation, and wait for it to return.
-
-  For privileged operations which take a long time (and don't need to
-  return a value), this will call the operation, and then spin up a
-  main loop to wait for a method call indicating that the operation
-  completed.
-
-  Methods called through callWait can not return anything.
-
-  Args:
-    method: The name of the method to call.
-    *args: The arguments to pass to the method.
-  """
-  global _callback
-
-  main_loop = glib.DBusGMainLoop()
-  bus = dbus.SystemBus(private=True, mainloop=main_loop)
-
-  call(method, dbus_con=bus, *args)
-
-  # dbus gets snippy if you initialize multiple objects bound to a
-  # single object path, so we'll just reuse one.
-  if not _callback:
-    _callback = Callback(bus, DBUS_WAIT_OBJECT_PATH)
-  loop = gobject.MainLoop()
-  _callback._error = None
-  _callback._loop = loop
-  loop.run()
-
-  if _callback._error:
-    raise dbus.exceptions.DBusException(_callback._error)
 
 
 def main():
