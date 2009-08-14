@@ -51,7 +51,7 @@ class QEMU(base.Hypervisor):
 
     xml.set('type', 'qemu')
 
-    xml_os = etree.SubElement(xml, 'os')
+    xml_os = xml.xpath('/domain/os')[0]
     etree.SubElement(xml_os, 'type', arch=vm.arch).text = 'hvm'
 
     xml_devices = xml.xpath('/domain/devices')[0]

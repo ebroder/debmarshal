@@ -79,6 +79,13 @@ class Hypervisor(object):
     etree.SubElement(xml, 'name').text = vm.name
     etree.SubElement(xml, 'memory').text = str(vm.memory)
 
+    xml_os = etree.SubElement(xml, 'os')
+    if vm.kernel:
+      etree.SubElement(xml_os, 'kernel').text = vm.kernel
+      etree.SubElement(xml_os, 'initrd').text = vm.initrd
+      if vm.cmdline:
+        etree.SubElement(xml_os, 'cmdline').txt = vm.cmdline
+
     devices = etree.SubElement(xml, 'devices')
     for disk_num, disk in enumerate(vm.disks):
       xml_disk = etree.SubElement(devices, 'disk')
