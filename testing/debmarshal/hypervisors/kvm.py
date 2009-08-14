@@ -15,19 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
-"""Hypervisor-specific configuration for debmarshal test domains.
-
-The debmarshal.hypervisors package contains classes to help with any
-specialized configuration required for the different virtualization
-engines supported by debmarshal.
-
-Note that because debmarshal.privops.domains uses
-debmarshal.hypervisors to generate the libvirt XML for a domain,
-debmarshal.hypervisors and all modules under it are trusted code.
-
-In the root of the package, we load each submodule to make sure that
-it's registered in debmarshal.hypervisors.base.hypervisors.
-"""
+"""KVM-specific hypervisor configuration for debmarshal"""
 
 
 __authors__ = [
@@ -35,6 +23,33 @@ __authors__ = [
 ]
 
 
-from debmarshal.hypervisors import base
-from debmarshal.hypervisors import kvm
+import libvirt
+from lxml import etree
+
 from debmarshal.hypervisors import qemu
+
+
+class KVM(qemu.QEMU):
+  """Hypervisor configuration specific to KVM."""
+  __name__ = 'kvm'
+
+  @classmethod
+  def domainXML(cls, vm):
+    """Generate the XML to pass to libvirt to create a new domain.
+
+    Args:
+      vm: an instance of debmarshal.vm.VM with the parmaeters for the
+        VM to create
+
+    Returns:
+      An lxml.etree.Element object containing the XML to specify the
+        domain
+    """
+    xml = super(KVM, cls).domainXML(vm)
+
+    xml.set('type', 'kvm')
+
+    emulator = xml.xpath('/domain/devices/emulator')[0]
+    emulator.text = '/usr/bin/kvm'
+
+    return xml
