@@ -41,7 +41,10 @@ class TestQEMUDomainXML(unittest.TestCase):
                     disks=[],
                     network='debmarshal-0',
                     mac='00:11:22:33:44:55',
-                    arch='x86_64')
+                    arch='x86_64',
+                    kernel='',
+                    initrd='',
+                    cmdline='')
 
     xml = qemu.QEMU.domainXML(test_vm)
 

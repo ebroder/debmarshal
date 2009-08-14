@@ -221,10 +221,11 @@ class Privops(dbus.service.Object):
     utils.caller = None
 
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
-                       in_signature='sasssss', out_signature='s')
+                       in_signature='sassssssss', out_signature='s')
   @_coerceDbusArgs
   @debmarshal.utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
   def createDomain(self, memory, disks, network, mac, hypervisor, arch,
+                   kernel, initrd, cmdline,
                    _debmarshal_sender=None):
     """Create a virtual machine domain.
 
@@ -235,6 +236,9 @@ class Privops(dbus.service.Object):
     privileged side. Since debmarshal is intended to be run on
     single-user machines, the worst case scenario is a DoS of
     yourself.
+
+    When supported by the hypervisor, createDomain can also pass in a
+    hypervisor, initrd, and command line, bypassing the BIOS.
 
     Args:
       memory: str containing the amount of memory to be allocated to
@@ -256,6 +260,16 @@ class Privops(dbus.service.Object):
       arch: The CPU architecture for the VM, or an empty string if the
         architecture should be the same as that of the host.
 
+      kernel: The kernel to boot with, if requested. To use the
+        hypervisor's BIOS/bootloader to choose what kernel to use,
+        pass an empty string for this value. The kernel should be
+        readable by the user calling createDomain.
+      initrd: The initrd to boot with, if requested, or an empty
+        string if using a BIOS/bootloader. The initrd should also be
+        readable by the user calling createDomain
+      cmdline: Additional command-line arguments to pass to the
+        kernel.
+
     Returns:
       The name of the new domain.
     """
@@ -276,7 +290,10 @@ class Privops(dbus.service.Object):
                       disks=disks,
                       network=network,
                       mac=mac,
-                      arch=arch)
+                      arch=arch,
+                      kernel=kernel,
+                      initrd=initrd,
+                      cmdline=cmdline)
 
     dom_xml = hyper_class.domainXMLString(vm_params)
 
