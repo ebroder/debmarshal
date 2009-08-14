@@ -282,6 +282,14 @@ class Privops(dbus.service.Object):
     for d in disks:
       domains._validatePath(d, os.R_OK | os.W_OK)
 
+    if kernel:
+      if not initrd:
+        raise errors.InvalidInput(
+          "Must specify both a kernel and initrd, or neither.")
+
+      domains._validatePath(kernel, os.R_OK)
+      domains._validatePath(kernel, os.W_OK)
+
     name = domains._findUnusedName(virt_con)
     memory = domains._parseKBytes(memory)
 
