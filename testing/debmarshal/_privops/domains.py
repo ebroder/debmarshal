@@ -73,18 +73,20 @@ def _validateNetwork(net, virt_con=None):
       (net, utils.getCaller()))
 
 
-def _validateDisk(disk):
-  """Validate a disk image.
+def _validatePath(path, perms):
+  """Validate a disk image or other ifle.
 
-  _validateDisk makes sure that the user requesting a privileged
-  operation would have permission to read the disk.
+  _validatePath makes sure that the user requesting a privileged
+  operation would have permission to interact with the file in
+  question.
 
   Args:
     disk: A path to a disk image
+    perms: A bitmask composed of os.R_OK, os.W_OK, and/or os.X_OK
 
   Raises:
     debmarshal.errors.AccessDenied if the unprivileged user doesn't
-      have permission to read from and write to the disk image.
+      have permission to interact with the path using perms.
   """
   # Start by setting the process uid to getCaller(). This is primarily
   # done to make sure we're respecting the abstraction introduced by
@@ -97,9 +99,9 @@ def _validateDisk(disk):
   os.setreuid(utils.getCaller(), 0)
 
   try:
-    if not os.access(disk, os.R_OK | os.W_OK):
+    if not os.access(path, perms):
       raise errors.AccessDenied('UID %s does not have access to %s.' %
-                                (utils.getCaller(), disk))
+                                (utils.getCaller(), path))
   finally:
     # Reset the process uid that we changed earlier.
     os.setuid(old_uid)

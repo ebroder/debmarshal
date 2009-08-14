@@ -92,11 +92,11 @@ class TestValidateNetwork(mox.MoxTestBase):
     domains._validateNetwork('debmarshal-0')
 
 
-class TestValidateDisk(mox.MoxTestBase):
-  """Test debmarshal._privops.domains._validateDisk."""
+class TestValidatePath(mox.MoxTestBase):
+  """Test debmarshal._privops.domains._validatePath."""
   def setUp(self):
     """Setup the getuid/setuid dance."""
-    super(TestValidateDisk, self).setUp()
+    super(TestValidatePath, self).setUp()
 
     self.mox.StubOutWithMock(os, 'getuid')
     self.mox.StubOutWithMock(os, 'setreuid')
@@ -116,7 +116,7 @@ class TestValidateDisk(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    domains._validateDisk('/home/ebroder/disk.img')
+    domains._validatePath('/home/ebroder/disk.img', os.R_OK | os.W_OK)
 
   def testInvalidDisk(self):
     """Test access with an invalid disk image."""
@@ -127,7 +127,7 @@ class TestValidateDisk(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    self.assertRaises(errors.AccessDenied, domains._validateDisk, disk)
+    self.assertRaises(errors.AccessDenied, domains._validatePath, disk, os.R_OK | os.W_OK)
 
 
 class TestFindUnusedName(mox.MoxTestBase):

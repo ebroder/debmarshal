@@ -266,7 +266,7 @@ class Privops(dbus.service.Object):
 
     domains._validateNetwork(network, virt_con)
     for d in disks:
-      domains._validateDisk(d)
+      domains._validatePath(d, os.R_OK | os.W_OK)
 
     name = domains._findUnusedName(virt_con)
     memory = domains._parseKBytes(memory)

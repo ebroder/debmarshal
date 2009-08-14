@@ -24,6 +24,7 @@ __authors__ = [
 
 
 import fcntl
+import os
 import unittest
 
 import dbus
@@ -223,9 +224,9 @@ class TestCreateDomain(mox.MoxTestBase):
     self.mox.StubOutWithMock(domains, '_validateNetwork')
     domains._validateNetwork(net, qemu_con)
 
-    self.mox.StubOutWithMock(domains, '_validateDisk')
+    self.mox.StubOutWithMock(domains, '_validatePath')
     for d in disks:
-      domains._validateDisk(d)
+      domains._validatePath(d, os.R_OK | os.W_OK)
 
     self.mox.StubOutWithMock(domains, '_findUnusedName')
     domains._findUnusedName(qemu_con).AndReturn(name)
@@ -248,7 +249,7 @@ class TestCreateDomain(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     self.assertEqual(privops.Privops().createDomain(
-      memory, disks, net, mac, 'qemu', 'x86_64'), name)
+      memory, disks, net, mac, 'qemu', 'x86_64', '', '', ''), name)
 
 
 class TestDestroyDomain(mox.MoxTestBase):
