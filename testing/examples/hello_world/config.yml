@@ -1,0 +1,14 @@
+timeout: 120
+
+domain: example.com
+# A list of hostnames to proxy out to the real world.
+proxies:
+ - us.archive.ubuntu.com
+
+vms:
+  # Each VM needed for the test gets a block in the config file. To
+  # actually configure the installation of the VM, you provide a
+  # preseed file for the debian-installer at $VM_NAME.preseed
+  hello:
+    memory: 128M
+    distribution: ubuntu

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# This is just a simple "Hello world" test, used as an example of the
+# test format.
+exit 0
