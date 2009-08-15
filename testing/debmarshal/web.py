@@ -55,7 +55,7 @@ def serve(serve_dir):
   httpd = BaseHTTPServer.HTTPServer(server_address,
                                     SimpleHTTPServer.SimpleHTTPRequestHandler)
 
-  print httpd.server_port
+  os.write(1, str(httpd.server_port))
 
   # Close stdin, stdout, and stderr
   for i in xrange(3):
