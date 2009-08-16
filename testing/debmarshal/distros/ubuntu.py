@@ -59,3 +59,31 @@ def genCommandLine(preseed):
       args[opt] = value
 
   return ' '.join('%s=%s' % (k, v) for k, v in args.iteritems())
+
+
+def doInstall(test, vm, web_port, results_queue):
+  """Start and monitor an unattended Ubuntu install.
+
+  This function will start an unattended Ubuntu install, running in a
+  VM, as part of a debmarshal test. It will also monitor that install
+  to completion.
+
+  This is intended to be run as a separate thread of execution, so
+  that many installs can run in parallel.
+
+  Its success or failure is reported back to the spawning process
+  through the results_queue.
+
+  Args:
+    test: A path to a debmarshal test
+    vm: The hostname of the vm within the test to install
+    web_port: The port the test is being served over. The spawning
+      process should be serving the directory containing the
+      debmarshal test over HTTP.
+    results_queue: A Queue.Queue object that doInstall will store its
+      success or failure into that
+  """
+  try:
+    pass
+  except:
+    results_queue.put((test, vm, False))
