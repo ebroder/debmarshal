@@ -23,6 +23,9 @@ __authors__ = [
 ]
 
 
+import yaml
+
+
 def genCommandLine(preseed):
   """Given a preseed file, generate a list of command line args.
 
@@ -84,6 +87,18 @@ def doInstall(test, vm, web_port, results_queue):
       success or failure into that
   """
   try:
-    pass
+    config = yaml.safe_load(open(os.path.join(test, 'config.yml')))
+
+    vm_config = config['vms'][vm]
+
+    dist_name = vm_config['distribution']
+    arch = vm_config.get('arch', 'x86_64')
+    if arch == 'x86_64':
+      arch = 'amd64'
+
+    dist_opts = vm_config.get('dist_opts', {})
+    suite = dist_opts.get('suite', 'jaunty')
+
+    preseed_path = os.path.join(test, '%s.preseed' % vm)
   except:
     results_queue.put((test, vm, False))
