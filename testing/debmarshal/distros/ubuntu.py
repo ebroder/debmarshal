@@ -148,13 +148,12 @@ def doInstall(test, vm, web_port, results_queue):
 
     dist_name = vm_config['distribution']
     arch = vm_config.get('arch', 'x86_64')
-    if arch == 'x86_64':
-      arch = 'amd64'
+    deb_arch = arch if arch != 'x86_64' else 'amd64'
 
     dist_opts = vm_config.get('dist_opts', {})
     suite = dist_opts.get('suite', 'jaunty')
 
-    kernel, initrd = loadKernel(suite, arch)
+    kernel, initrd = loadKernel(suite, deb_arch)
 
     preseed_path = os.path.join(test, '%s.preseed' % vm)
   except:
