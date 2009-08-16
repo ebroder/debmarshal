@@ -30,6 +30,19 @@ __authors__ = [
 ]
 
 
+import sys
+
+
+USAGE = """Usage: debmarshal prepare [--options] [<test1> [<test2> ...]]"""
+
+
+def usage():
+  """Print out usage information, then error out."""
+  print USAGE
+
+  sys.exit(1)
+
+
 def _main(argv):
   """The main test runner.
 
