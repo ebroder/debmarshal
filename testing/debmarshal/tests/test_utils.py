@@ -26,6 +26,7 @@ __authors__ = [
 import fcntl
 import os
 import posix
+import unittest
 
 import mox
 
@@ -100,3 +101,22 @@ class TestWithLockfile(mox.MoxTestBase):
       return True
 
     self.assertEqual(hasALock(), True)
+
+
+class TestParseKBytes(unittest.TestCase):
+  """Test utils.parseKBytes."""
+  def testGB(self):
+    """Test amount with GB suffix."""
+    self.assertEqual(utils.parseKBytes("15G"), 15728640)
+
+  def testP(self):
+    """Test amount with just 'P' for suffix."""
+    self.assertEqual(utils.parseKBytes("2P"), 2199023255552)
+
+  def testMiB(self):
+    """Test amount with MiB suffix."""
+    self.assertEqual(utils.parseKBytes("8MiB"), 8192)
+
+  def testK(self):
+    """Make sure that parseKBytes does the right thing with kilobytes."""
+    self.assertEqual(utils.parseKBytes("12K"), 12)

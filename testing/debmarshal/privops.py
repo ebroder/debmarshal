@@ -291,7 +291,7 @@ class Privops(dbus.service.Object):
       domains._validatePath(kernel, os.W_OK)
 
     name = domains._findUnusedName(virt_con)
-    memory = domains._parseKBytes(memory)
+    memory = debmarshal.utils.parseKBytes(memory)
 
     vm_params = vm.VM(name=name,
                       memory=memory,
