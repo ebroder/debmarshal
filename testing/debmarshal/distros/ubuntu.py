@@ -119,7 +119,7 @@ def loadKernel(suite, arch):
   return (kernel_cache, initrd_cache)
 
 
-def doInstall(test, vm, web_port, results_queue):
+def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
   """Start and monitor an unattended Ubuntu install.
 
   This function will start an unattended Ubuntu install, running in a
@@ -135,6 +135,9 @@ def doInstall(test, vm, web_port, results_queue):
   Args:
     test: A path to a debmarshal test
     vm: The hostname of the vm within the test to install
+    net_name: The name of a debmarshal network configured for this VM.
+    net_gateway: The gateway of the debmarshal network.
+    mac: The MAC address of this VM.
     web_port: The port the test is being served over. The spawning
       process should be serving the directory containing the
       debmarshal test over HTTP.
