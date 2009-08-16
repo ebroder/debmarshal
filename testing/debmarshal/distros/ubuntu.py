@@ -24,6 +24,10 @@ __authors__ = [
 
 
 import fcntl
+try:
+  import hashlib as md5
+except ImportError:  # pragma: no cover
+  import md5
 import os
 import traceback
 import urllib
@@ -117,6 +121,33 @@ def loadKernel(suite, arch):
   del initrd_lock
 
   return (kernel_cache, initrd_cache)
+
+
+def hashConfig(hostname, domain, suite, arch, disk, preseed_path):
+  """Generate a hash representing a domain's configuration.
+
+  This hash should be usable for things like disk image reuse.
+
+  Args:
+    hostname: Hostname of the VM.
+    domain: Domain name of the VM.
+    suite: Suite of the VM.
+    arch: (Debian-style) architecture of the VM.
+    disk: Size of the VM's disk, in bytes.
+    preseed_Path: Path to the preseed file for the VM.
+
+  Returns:
+    Something that should sort of be a cryptographic hash of all the
+      input.
+  """
+  to_hash = []
+  to_hash.append(str(hostname))
+  to_hash.append(str(domain))
+  to_hash.append(str(suite))
+  to_hash.append(str(arch))
+  to_hash.append(open(preseed_path).read())
+
+  return md5.md5('\n'.join(to_hash)).hexdigest()
 
 
 def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
