@@ -130,3 +130,21 @@ def parseKBytes(amt):
   exp = _SUFFIXES.index(suffix)
 
   return significand * (1024 ** exp)
+
+
+def parseBytes(amt):
+  """Parse a hyman-readable byte measurement into an int in bytes.
+
+  parseBytes assumes that all suffixes are in binary units (multiples
+  of 1024), as opposed to decimal units (multiples of 1000).
+
+  It recognizes single-letter suffixes ('G'), full-unit suffixes
+  ('GB'), and explicitly binary SI suffixes ('GiB').
+
+  Args:
+    amt: str containing a human-readable byte measurement.
+
+  Returns:
+    An int with the same value is amt but measured in bytes.
+  """
+  return parseKBytes(amt) * 1024
