@@ -53,6 +53,10 @@ setup(name="debmarshal",
       packages=find_packages(),
       data_files=[(BUSCONFIGDIR, ['dbus/com.googlecode.debmarshal.conf']),
                   (SERVICEDIR, ['dbus/com.googlecode.debmarshal.service'])],
+      entry_points="""
+[debmarshal.distributions]
+ubuntu = debmarshal.distros.ubuntu:doInstall
+""",
       long_description="""
 The Debmarshal testing framework is designed to make it easy to test
 entire systems and interactions between multiple systems. It uses
