@@ -100,6 +100,9 @@ def _main(argv):
   Returns:
     The exit code for the program.
   """
+  if len(argv) == 0:
+    usage()
+
   if argv[0] == 'prepare':
     return doPrepare(argv[1:])
   else:
