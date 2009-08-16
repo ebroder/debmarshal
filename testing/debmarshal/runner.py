@@ -30,6 +30,8 @@ __authors__ = [
 ]
 
 
+import optparse
+import os
 import sys
 
 
@@ -43,6 +45,32 @@ def usage():
   sys.exit(1)
 
 
+def parsePrepareArgs(argv):
+  """Parse command line options for the prepare subcommand.
+
+  Args:
+    argv: A list of all command line arguments after the subcommand.
+
+  Returns:
+    A 2-tuple of (options, arguments), where options is an object
+      containing all options.
+  """
+  parser = optparse.OptionParser()
+  # We don't actually have any options to parse yet, but they'll go
+  # here if we ever do.
+
+  return parser.parse_args(argv)
+
+
+def prepareTest(test):
+  """Prepare the disk image for a single test.
+
+  Args:
+    Path to a debmarshal test.
+  """
+  pass
+
+
 def doPrepare(argv):
   """Prepare disk images for a series of tests.
 
@@ -54,7 +82,13 @@ def doPrepare(argv):
   Returns:
     The exit code for this subcommand.
   """
-  pass
+  opts, args = parsePrepareArgs(argv)
+
+  if not args:
+    args = [os.getcwd()]
+
+  for test in args:
+    prepareTest(test)
 
 
 def _main(argv):
