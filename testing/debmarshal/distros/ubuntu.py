@@ -23,8 +23,10 @@ __authors__ = [
 ]
 
 
+import fcntl
 import os
 import traceback
+import urllib
 
 import yaml
 
@@ -67,6 +69,56 @@ def genCommandLine(preseed):
   return ' '.join('%s=%s' % (k, v) for k, v in args.iteritems())
 
 
+def loadKernel(suite, arch):
+  """Make sure the kernel and initrd are available.
+
+  This function downloads the kernel and initrd for the requested
+  suite and architecture into
+  ~/.cache/debmarshal/dists/ubuntu/<suite>.
+
+  Args:
+    suite: Which suite's kernel and initrd to download
+    arch: What architecture to download.
+  """
+  # TODO(ebroder): Don't hardcode mirrors!
+  base_url = (
+    'http://us.archive.ubuntu.com/ubuntu/dists/' +
+    suite +
+    '/main/installer-%s/current/images/netboot/ubuntu-installer/%s/' % (
+      arch, arch))
+  base_cache = os.path.expanduser(os.path.join(
+      '~/.cache/debmarshal/dists/ubuntu', suite))
+
+  if not os.path.exists(base_cache):
+    os.makedirs(base_cache)
+
+  kernel_cache = os.path.join(base_cache, 'linux')
+
+  kernel_lock = open(kernel_cache + '.lock', 'w')
+  fcntl.lockf(kernel_lock, fcntl.LOCK_EX)
+  if not os.path.exists(kernel_cache):
+    try:
+      urllib.urlretrieve(base_url + 'linux', kernel_cache)
+    except:
+      os.unlink(kernel_cache)
+      raise
+  del kernel_lock
+
+  initrd_cache = os.path.join(base_cache, 'initrd.gz')
+
+  initrd_lock = open(initrd_cache + '.lock', 'w')
+  fcntl.lockf(initrd_lock, fcntl.LOCK_EX)
+  if not os.path.exists(initrd_cache):
+    try:
+      urllib.urlretrieve(base_url + 'initrd.gz', initrd_cache)
+    except:
+      os.unlink(initrd_cache)
+      raise
+  del initrd_lock
+
+  return (kernel_cache, initrd_cache)
+
+
 def doInstall(test, vm, web_port, results_queue):
   """Start and monitor an unattended Ubuntu install.
 
@@ -101,6 +153,8 @@ def doInstall(test, vm, web_port, results_queue):
 
     dist_opts = vm_config.get('dist_opts', {})
     suite = dist_opts.get('suite', 'jaunty')
+
+    kernel, initrd = loadKernel(suite, arch)
 
     preseed_path = os.path.join(test, '%s.preseed' % vm)
   except:
