@@ -23,6 +23,9 @@ __authors__ = [
 ]
 
 
+import os
+import traceback
+
 import yaml
 
 
@@ -101,4 +104,4 @@ def doInstall(test, vm, web_port, results_queue):
 
     preseed_path = os.path.join(test, '%s.preseed' % vm)
   except:
-    results_queue.put((test, vm, False))
+    results_queue.put((test, vm, False, traceback.format_exc()))
