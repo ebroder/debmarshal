@@ -43,8 +43,22 @@ def usage():
   sys.exit(1)
 
 
+def doPrepare(argv):
+  """Prepare disk images for a series of tests.
+
+  If no tests are specified, the current directory is assumed.
+
+  Args:
+    Command line arguments after the subcommand.
+
+  Returns:
+    The exit code for this subcommand.
+  """
+  pass
+
+
 def _main(argv):
-  """The main test runner.
+  """The main test runner. Dispatcher to subcommands.
 
   Args:
     All command line arguments.
@@ -52,7 +66,10 @@ def _main(argv):
   Returns:
     The exit code for the program.
   """
-  pass
+  if argv[0] == 'prepare':
+    return doPrepare(argv[1:])
+  else:
+    usage()
 
 
 def main():
