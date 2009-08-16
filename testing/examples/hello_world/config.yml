@@ -12,3 +12,5 @@ vms:
   hello:
     memory: 128M
     distribution: ubuntu
+    dist_opts:
+      suite: hardy
