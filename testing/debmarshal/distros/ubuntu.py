@@ -201,6 +201,10 @@ def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
 
     hash = hashConfig(vm, domain, suite, deb_arch, disk_size, preseed_path)
 
+    cmdline = genCommandLine(preseed_path)
+    cmdline += ' preseed/url=http://%s:%s/%s.preseed' % (
+      net_gateway, web_port, vm)
+
     disk_dir = os.path.expanduser(os.path.join(
         '~/.cache/debmarshal/disks/ubuntu'))
     if not os.path.exists(disk_dir):
