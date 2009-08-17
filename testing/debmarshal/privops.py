@@ -280,6 +280,11 @@ class Privops(dbus.service.Object):
     for d in disks:
       domains._validatePath(d, os.R_OK | os.W_OK)
 
+    allowed_extras = set(['kernel', 'initrd', 'cmdline',
+                          'on_poweroff', 'on_reboot'])
+    if set(extra) - allowed_extras != set():
+      raise errors.InvalidInput("Invalid extra parameter specified.")
+
     if 'kernel' in extra:
       if 'initrd' not in extra:
         raise errors.InvalidInput(
