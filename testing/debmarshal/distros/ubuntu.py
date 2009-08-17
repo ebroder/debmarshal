@@ -228,6 +228,14 @@ def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
                             cmdline)
 
     # Now wait for the install to finish...
+    #
+    # libvirt has an API for integration with somebody else's main
+    # loop. Unfortunately, they forgot to make it usable by
+    # humans. libvirt-glib in Debian experimental might be a good
+    # jumping off point.
+    #
+    # TODO(ebroder): Figure out how to use some sort of select() loop
+    #   instead of a while-sleep loop.
     while True:
       time.sleep(60)
 
