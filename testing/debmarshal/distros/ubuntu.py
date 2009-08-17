@@ -214,39 +214,43 @@ def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
 
     base.createSparseFile(disk_path, disk_size)
 
-    kernel, initrd = loadKernel(suite, deb_arch)
+    try:
+      kernel, initrd = loadKernel(suite, deb_arch)
 
-    cmdline = genCommandLine(preseed_path)
-    cmdline += ' preseed/url=http://%s:%s/%s.preseed' % (
-      net_gateway, web_port, vm)
-    cmdline += ' apm=power_off'
+      cmdline = genCommandLine(preseed_path)
+      cmdline += ' preseed/url=http://%s:%s/%s.preseed' % (
+        net_gateway, web_port, vm)
+      cmdline += ' apm=power_off'
 
-    dom_name = privops.call('createDomain',
-                            memory,
-                            [disk_path],
-                            net_name,
-                            mac,
-                            'qemu',
-                            arch,
-                            kernel,
-                            initrd,
-                            cmdline)
+      dom_name = privops.call('createDomain',
+                              memory,
+                              [disk_path],
+                              net_name,
+                              mac,
+                              'qemu',
+                              arch,
+                              kernel,
+                              initrd,
+                              cmdline)
 
-    # Now wait for the install to finish...
-    #
-    # libvirt has an API for integration with somebody else's main
-    # loop. Unfortunately, they forgot to make it usable by
-    # humans. libvirt-glib in Debian experimental might be a good
-    # jumping off point.
-    #
-    # TODO(ebroder): Figure out how to use some sort of select() loop
-    #   instead of a while-sleep loop.
-    while True:
-      time.sleep(10)
+      # Now wait for the install to finish...
+      #
+      # libvirt has an API for integration with somebody else's main
+      # loop. Unfortunately, they forgot to make it usable by
+      # humans. libvirt-glib in Debian experimental might be a good
+      # jumping off point.
+      #
+      # TODO(ebroder): Figure out how to use some sort of select()
+      #   loop instead of a while-sleep loop.
+      while True:
+        time.sleep(10)
 
-      if dom_name not in qemu.QEMU.listDomains():
-        break
+        if dom_name not in qemu.QEMU.listDomains():
+          break
 
-    results_queue.put((test, vm, True, None))
+      results_queue.put((test, vm, True, None))
+    except:
+      os.remove(disk_path)
+      raise
   except:
     results_queue.put((test, vm, False, traceback.format_exc()))
