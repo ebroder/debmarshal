@@ -146,3 +146,14 @@ class Hypervisor(object):
       A read-write libvirt.virConnect connection to this hypervisor.
     """
     raise errors.NotImplementedError
+
+  @classmethod
+  def listDomains(cls):
+    """List the currently running domains on this Hypervisor.
+
+    Yields:
+      The names of all domains running on this hypervisor.
+    """
+    virt_con = cls.openReadOnly()
+    for i in virt_con.listDomainsID():
+      yield virt_con.lookupByID(i).name()
