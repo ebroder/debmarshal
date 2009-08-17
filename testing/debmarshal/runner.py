@@ -111,7 +111,7 @@ def prepareSummary(results_queue, stream=sys.stdout):
   stream.write('%d VM%s built for %s\n' % (
       result_count,
       's' if result_count != 1 else '',
-      test))
+      result[0]))
 
   if fail_count:
     stream.write('(%d failed)\n' % fail_count)
