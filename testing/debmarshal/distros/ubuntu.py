@@ -84,7 +84,7 @@ def loadKernel(suite, arch):
 
   This function downloads the kernel and initrd for the requested
   suite and architecture into
-  ~/.cache/debmarshal/dists/ubuntu/<suite>.
+  /var/tmp/debmarshal-$USER/dists/ubuntu/<suite>.
 
   Args:
     suite: Which suite's kernel and initrd to download
@@ -96,8 +96,8 @@ def loadKernel(suite, arch):
     suite +
     '/main/installer-%s/current/images/netboot/ubuntu-installer/%s/' % (
       arch, arch))
-  base_cache = os.path.expanduser(os.path.join(
-      '~/.cache/debmarshal/dists/ubuntu', suite))
+  base_cache = os.path.join(
+      '/var/tmp/debmarshal-%s/dists/ubuntu' % os.environ['USER'], suite)
 
   if not os.path.exists(base_cache):
     os.makedirs(base_cache)
@@ -202,8 +202,8 @@ def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
 
     hash = hashConfig(vm, domain, suite, deb_arch, disk_size, preseed_path)
 
-    disk_dir = os.path.expanduser(os.path.join(
-        '~/.cache/debmarshal/disks/ubuntu'))
+    disk_dir = os.path.join(
+        '/var/tmp/debmarshal-%s/disks/ubuntu' % os.environ['USER'])
     if not os.path.exists(disk_dir):
       os.makedirs(disk_dir)
 
