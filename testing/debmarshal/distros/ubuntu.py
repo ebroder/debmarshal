@@ -186,6 +186,7 @@ def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
     vm_config = config['vms'][vm]
 
     disk_size = utils.parseBytes(vm_config.get('disk', '10G'))
+    memory = vm_config.get('memory', '128M')
 
     dist_name = vm_config['distribution']
     arch = vm_config.get('arch', 'x86_64')
