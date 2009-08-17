@@ -29,12 +29,14 @@ try:
 except ImportError:  # pragma: no cover
   import md5
 import os
+import time
 import traceback
 import urllib
 
 import yaml
 
 from debmarshal.distros import base
+from debmarshal.hypervisors import qemu
 from debmarshal import privops
 from debmarshal import utils
 
@@ -224,5 +226,14 @@ def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
                             kernel,
                             initrd,
                             cmdline)
+
+    # Now wait for the install to finish...
+    while True:
+      time.sleep(60)
+
+      if dom_name not in qemu.QEMU.listDomains():
+        break
+
+    results_queue.put((test, vm, True, None))
   except:
     results_queue.put((test, vm, False, traceback.format_exc()))
