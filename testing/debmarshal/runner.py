@@ -65,7 +65,7 @@ def parsePrepareArgs(argv):
     A 2-tuple of (options, arguments), where options is an object
       containing all options.
   """
-  parser = optparse.OptionParser()
+  parser = optparse.OptionParser(usage=USAGE)
   # We don't actually have any options to parse yet, but they'll go
   # here if we ever do.
 
