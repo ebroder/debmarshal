@@ -34,6 +34,8 @@ import optparse
 import os
 import sys
 
+import yaml
+
 
 USAGE = """Usage: debmarshal prepare [--options] [<test1> [<test2> ...]]"""
 
@@ -68,7 +70,27 @@ def prepareTest(test):
   Args:
     Path to a debmarshal test.
   """
-  pass
+  # First, load the configuration
+  config = yaml.safe_load(open(os.path.join(test, 'config.yml')))
+
+  # Next, network configuration. Configure the network as it will be
+  # for the test run.
+  vms = config['vms'].keys()
+  net_name, net_gate, net_mask, net_vms = privops.call('createNetwork',
+                                                       vms)
+
+  try:
+    # Then, spawn the web server for serving the test configuration.
+    httpd = subprocess.Popen(['python', '-m', 'debmarshal.web', test],
+                             stdout=subprocess.PIPE)
+    web_port = httpd.stdout.read()
+
+    try:
+      pass
+    finally:
+      httpd.terminate()
+  finally:
+    privops.call('destroyNetwork', net_name)
 
 
 def doPrepare(argv):
