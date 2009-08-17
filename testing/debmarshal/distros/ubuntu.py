@@ -198,16 +198,9 @@ def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
     dist_opts = vm_config.get('dist_opts', {})
     suite = dist_opts.get('suite', 'jaunty')
 
-    kernel, initrd = loadKernel(suite, deb_arch)
-
     preseed_path = os.path.join(test, '%s.preseed' % vm)
 
     hash = hashConfig(vm, domain, suite, deb_arch, disk_size, preseed_path)
-
-    cmdline = genCommandLine(preseed_path)
-    cmdline += ' preseed/url=http://%s:%s/%s.preseed' % (
-      net_gateway, web_port, vm)
-    cmdline += ' apm=power_off'
 
     disk_dir = os.path.expanduser(os.path.join(
         '~/.cache/debmarshal/disks/ubuntu'))
@@ -215,7 +208,18 @@ def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
       os.makedirs(disk_dir)
 
     disk_path = os.path.join(disk_dir, hash)
+    if os.path.exists(disk_path):
+      results_queue.put((test, vm, True, 'cached'))
+      return
+
     base.createSparseFile(disk_path, disk_size)
+
+    kernel, initrd = loadKernel(suite, deb_arch)
+
+    cmdline = genCommandLine(preseed_path)
+    cmdline += ' preseed/url=http://%s:%s/%s.preseed' % (
+      net_gateway, web_port, vm)
+    cmdline += ' apm=power_off'
 
     dom_name = privops.call('createDomain',
                             memory,

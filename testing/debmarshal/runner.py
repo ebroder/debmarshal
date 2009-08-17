@@ -102,7 +102,10 @@ def prepareSummary(results_queue, start_time, stream=sys.stdout):
 
     stream.write('Prepared %s ...' % result[1])
     if result[2]:
-      stream.write('OK\n')
+      stream.write('OK')
+      if result[3] == 'cached':
+        stream.write(' (cached)')
+      stream.write('\n')
     else:
       fail_count += 1
       stream.write('F\n')
