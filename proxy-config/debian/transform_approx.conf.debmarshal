@@ -1,0 +1,9 @@
+#!/bin/sh
+cat
+cat <<EOF
+
+debian		http://ftp.debian.org/debian
+security	http://security.debian.org/debian-security
+volatile	http://volatile.debian.org/debian-volatile
+ubuntu          http://us.archive.ubuntu.com/ubuntu/
+EOF

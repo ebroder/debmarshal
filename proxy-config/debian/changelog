@@ -1,0 +1,5 @@
+debmarshal-proxy-config (1.0) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Evan Broder <ebroder@google.com>  Mon, 17 Aug 2009 11:32:02 -0700

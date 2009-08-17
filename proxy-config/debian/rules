@@ -1,0 +1,8 @@
+#!/usr/bin/make -f
+
+DEB_DIVERT_EXTENSION = .debmarshal
+DEB_TRANSFORM_FILES_debmarshal-proxy-config += \
+	/etc/approx/approx.conf.debmarshal
+
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/rules/config-package.mk

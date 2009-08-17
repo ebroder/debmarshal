@@ -1,0 +1,15 @@
+Source: debmarshal-proxy-config
+Section: net
+Priority: extra
+Maintainer: Evan Broder <ebroder@google.com>
+Build-Depends: cdbs (>= 0.4.23-1.1), debhelper (>= 5),
+ config-package-dev (>= 4.5~), approx
+Standards-Version: 3.8.0
+Homepage: http://code.google.com/p/debmarshal/
+
+Package: debmarshal-proxy-config
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, approx
+Description: Proxy configuration for debmarshal installs
+ This package configures the approx apt proxy on port 9999 to use as
+ the mirror for installing debmarshal VMs.
