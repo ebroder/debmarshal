@@ -35,6 +35,7 @@ import urllib
 import yaml
 
 from debmarshal.distros import base
+from debmarshal import privops
 from debmarshal import utils
 
 
@@ -212,5 +213,16 @@ def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
 
     disk_path = os.path.join(disk_dir, hash)
     base.createSparseFile(disk_path, disk_size)
+
+    dom_name = privops.call('createDomain',
+                            memory,
+                            [disk_path],
+                            net_name,
+                            mac,
+                            'qemu',
+                            arch,
+                            kernel,
+                            initrd,
+                            cmdline)
   except:
     results_queue.put((test, vm, False, traceback.format_exc()))
