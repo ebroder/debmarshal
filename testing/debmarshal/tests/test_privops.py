@@ -249,7 +249,7 @@ class TestCreateDomain(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     self.assertEqual(privops.Privops().createDomain(
-      memory, disks, net, mac, 'qemu', 'x86_64', '', '', ''), name)
+      memory, disks, net, mac, 'qemu', 'x86_64', {}), name)
 
 
 class TestDestroyDomain(mox.MoxTestBase):

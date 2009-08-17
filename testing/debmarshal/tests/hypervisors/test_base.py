@@ -68,9 +68,7 @@ class TestHypervisorDomainXML(mox.MoxTestBase):
                     network='debmarshal-0',
                     mac='00:11:22:33:44:55',
                     arch='x86_64',
-                    kernel='',
-                    initrd='',
-                    cmdline='')
+                    extra={})
 
     xml = base.Hypervisor.domainXML(test_vm)
 
@@ -105,9 +103,7 @@ class TestHypervisorDomainXML(mox.MoxTestBase):
                     network='debmarshal-1',
                     mac='AA:BB:CC:DD:EE:FF',
                     arch='x86_64',
-                    kernel='',
-                    initrd='',
-                    cmdline='')
+                    extra={})
 
     self.mox.StubOutWithMock(utils, 'diskIsBlockDevice')
     utils.diskIsBlockDevice('/home/ebroder/block-dev').AndReturn(True)

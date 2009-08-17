@@ -50,9 +50,7 @@ class TestVM(mox.MoxTestBase):
           network='debmarshal-0',
           mac='AA:BB:CC:DD:EE:FF',
           arch='x86_64',
-          kernel='',
-          initrd='',
-          cmdline='')
+          extra={})
 
   def testMissingArguments(self):
     """Make sure that vm.VM's __init__ raises an exception if all
@@ -69,9 +67,7 @@ class TestVM(mox.MoxTestBase):
                       network='debmarshal-0',
                       mac='AA:BB:CC:DD:EE:FF',
                       arch='x86_64',
-                      kernel='',
-                      initrd='',
-                      cmdline='',
+                      extra={},
                       foo='bar')
 
   def testArchNone(self):
@@ -92,9 +88,7 @@ class TestVM(mox.MoxTestBase):
                            network='debmarshal-0',
                            mac='AA:BB:CC:DD:EE:FF',
                            arch=None,
-                           kernel='',
-                           initrd='',
-                           cmdline='').arch,
+                           extra={}).arch,
                      'x86_64')
 
 

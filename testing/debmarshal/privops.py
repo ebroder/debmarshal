@@ -221,11 +221,11 @@ class Privops(dbus.service.Object):
     utils.caller = None
 
   @dbus.service.method(DBUS_INTERFACE, sender_keyword='_debmarshal_sender',
-                       in_signature='sassssssss', out_signature='s')
+                       in_signature='sasssssa{sv}', out_signature='s')
   @_coerceDbusArgs
   @debmarshal.utils.withLockfile('debmarshal-domlist', fcntl.LOCK_EX)
   def createDomain(self, memory, disks, network, mac, hypervisor, arch,
-                   kernel, initrd, cmdline,
+                   extra,
                    _debmarshal_sender=None):
     """Create a virtual machine domain.
 
@@ -260,15 +260,13 @@ class Privops(dbus.service.Object):
       arch: The CPU architecture for the VM, or an empty string if the
         architecture should be the same as that of the host.
 
-      kernel: The kernel to boot with, if requested. To use the
-        hypervisor's BIOS/bootloader to choose what kernel to use,
-        pass an empty string for this value. The kernel should be
-        readable by the user calling createDomain.
-      initrd: The initrd to boot with, if requested, or an empty
-        string if using a BIOS/bootloader. The initrd should also be
-        readable by the user calling createDomain
-      cmdline: Additional command-line arguments to pass to the
-        kernel.
+      extra: A dict of optional extra configuration arguments, e.g.:
+        kernel: The kernel to boot with, if requested. The kernel
+          should be readable by the user calling createDomain.
+        initrd: The initrd to boot with, if requested. The initrd
+          should also be readable by the user calling createDomain
+        cmdline: Additional command-line arguments to pass to the
+          kernel.
 
     Returns:
       The name of the new domain.
@@ -282,13 +280,13 @@ class Privops(dbus.service.Object):
     for d in disks:
       domains._validatePath(d, os.R_OK | os.W_OK)
 
-    if kernel:
-      if not initrd:
+    if 'kernel' in extra:
+      if 'initrd' not in extra:
         raise errors.InvalidInput(
           "Must specify both a kernel and initrd, or neither.")
 
-      domains._validatePath(kernel, os.R_OK)
-      domains._validatePath(kernel, os.W_OK)
+      domains._validatePath(extra['kernel'], os.R_OK)
+      domains._validatePath(extra['initrd'], os.R_OK)
 
     name = domains._findUnusedName(virt_con)
     memory = debmarshal.utils.parseKBytes(memory)
@@ -299,9 +297,7 @@ class Privops(dbus.service.Object):
                       network=network,
                       mac=mac,
                       arch=arch,
-                      kernel=kernel,
-                      initrd=initrd,
-                      cmdline=cmdline)
+                      extra=extra)
 
     dom_xml = hyper_class.domainXMLString(vm_params)
 

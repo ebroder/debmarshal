@@ -232,9 +232,9 @@ def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
                               mac,
                               'qemu',
                               arch,
-                              kernel,
-                              initrd,
-                              cmdline)
+                              {'kernel': kernel,
+                               'initrd': initrd,
+                               'cmdline': cmdline})
 
       # Now wait for the install to finish...
       #

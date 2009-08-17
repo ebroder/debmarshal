@@ -45,17 +45,15 @@ class VM(object):
     arch: The CPU architecture of the VM, or None to indicate that the
       arch should be the same as the host. Depending on the
       capabilities of the hypervisor, the arch field may be ignored.
-    kernel: The kernel to boot with, if requested. To use the
-      hypervisor's BIOS/bootloader to choose what kernel to use, pass
-      an empty string for this value. This option may be ignored
-      depending on the capabilities of the hypervisor.
-    initrd: The initrd to boot with, if requested, or an empty string
-      if using a BIOS/bootloader.
-    cmdline: Additional command-line arguments to pass to the kernel,
-      or the empty string if using the hypervisor's BIOS/bootloader.
+    extra: A dict containing optional extra configuration, such as:
+      kernel: The kernel to boot with, if requested. This option may
+        be ignored depending on the capabilities of the hypervisor.
+      initrd: The initrd to boot with, if requested.
+      cmdline: Additional command-line arguments to pass to the
+        kernel.
   """
   __slots__ = ['name', 'memory', 'disks', 'network', 'mac', 'arch',
-               'kernel', 'initrd', 'cmdline']
+               'extra']
 
   def __init__(self, **kwargs):
     """Initialize a VM object.
