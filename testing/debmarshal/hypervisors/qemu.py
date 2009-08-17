@@ -68,6 +68,15 @@ class QEMU(base.Hypervisor):
     """Open a read-write libvirt connection to the qemu hypervisor.
 
     Returns:
-      A read-write libvirt.virConncet connection to qemu
+      A read-write libvirt.virConncect connection to qemu
     """
     return libvirt.open('qemu:///system')
+
+  @staticmethod
+  def openReadOnly():
+    """Open a read-only libvirt connection to the qemu hypervisor.
+
+    Returns:
+      A read-only libvirt.virConnect connection to qemu.
+    """
+    return libvirt.openReadOnly('qemu:///system')

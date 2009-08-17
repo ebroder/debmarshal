@@ -135,3 +135,14 @@ class Hypervisor(object):
       A read-write libvirt.virConnect connection to this hypervisor
     """
     raise errors.NotImplementedError
+
+  @staticmethod
+  def openReadOnly():
+    """Open a read-only connection to this hypervisor.
+
+    This method should be overridden by descendants of Hypervisor.
+
+    Returns:
+      A read-write libvirt.virConnect connection to this hypervisor.
+    """
+    raise errors.NotImplementedError
