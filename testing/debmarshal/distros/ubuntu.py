@@ -223,6 +223,9 @@ def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
       cmdline = genCommandLine(preseed_path)
       cmdline += ' preseed/url=http://%s:%s/%s.preseed' % (
         net_gateway, web_port, vm)
+      cmdline += ' mirror/http/hostname=%s:9999' % net_gateway
+      cmdline += ' mirror/http/directory=/ubuntu'
+      cmdline += ' mirror/http/proxy='
 
       dom_name = privops.call('createDomain',
                               memory,
