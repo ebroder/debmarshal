@@ -293,6 +293,11 @@ class Privops(dbus.service.Object):
       domains._validatePath(extra['kernel'], os.R_OK)
       domains._validatePath(extra['initrd'], os.R_OK)
 
+    for opt in ['on_poweroff', 'on_reboot']:
+      if opt in extra and extra[opt] not in ('destroy', 'restart'):
+        raise errors.InvalidInput(
+          "%s must be one of 'destroy' or 'restart'" % opt)
+
     name = domains._findUnusedName(virt_con)
     memory = debmarshal.utils.parseKBytes(memory)
 
