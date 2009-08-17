@@ -212,6 +212,9 @@ def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
       results_queue.put((test, vm, True, 'cached'))
       return
 
+    disk_lock = open(disk_path + '.lock', 'w')
+    fcntl.lockf(disk_lock, fcntl.LOCK_EX)
+
     base.createSparseFile(disk_path, disk_size)
 
     try:
