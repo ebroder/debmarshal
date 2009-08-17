@@ -36,6 +36,7 @@ import Queue
 import subprocess
 import sys
 import threading
+import time
 
 import yaml
 
@@ -70,7 +71,7 @@ def parsePrepareArgs(argv):
   return parser.parse_args(argv)
 
 
-def prepareSummary(results_queue, stream=sys.stdout):
+def prepareSummary(results_queue, start_time, stream=sys.stdout):
   """Given a queue of results from installations, print out a summary.
 
   This prints out a unittest-style summary of the installs that
@@ -85,6 +86,8 @@ def prepareSummary(results_queue, stream=sys.stdout):
       VM installations. Each element in the queue should be of the
       form (test, vm_name, passed, error), where error is None if
       there was no error.
+    start_time: Time in seconds since the epoch when the test suite
+      started.
     stream: The stream to print the results to.
 
   Returns:
@@ -108,10 +111,11 @@ def prepareSummary(results_queue, stream=sys.stdout):
       stream.write('\n')
 
   stream.write('\n')
-  stream.write('%d VM%s built for %s\n' % (
+  stream.write('%d VM%s built for %s in %.2f seconds\n' % (
       result_count,
       's' if result_count != 1 else '',
-      result[0]))
+      result[0],
+      time.time() - start_time))
 
   if fail_count:
     stream.write('(%d failed)\n' % fail_count)
@@ -125,6 +129,8 @@ def prepareTest(test):
   Args:
     Path to a debmarshal test.
   """
+  start = time.time()
+
   # First, load the configuration
   config = yaml.safe_load(open(os.path.join(test, 'config.yml')))
 
@@ -167,7 +173,7 @@ def prepareTest(test):
       for t in threads:
         t.join()
 
-      return prepareSummary(results_queue)
+      return prepareSummary(results_queue, start)
     finally:
       httpd.terminate()
   finally:
