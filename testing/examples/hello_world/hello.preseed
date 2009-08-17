@@ -1,1 +1,28 @@
 # This is the preseed file passed to the debian-installer.
+
+### BEGIN COMMAND LINE ARGS
+d-i auto-install/enable boolean true
+d-i debconf/priority string critical
+d-i debian-installer/locale string en_US.UTF-8
+# hardy:
+d-i console-setup/layoutcode string us
+### END COMMAND LINE ARGS
+
+d-i mirror/country string enter information manually
+
+d-i partman-auto/method string regular
+d-i partman-auto/choose_recipe select atomic
+d-i partman/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+
+d-i passwd/root-login boolean true
+d-i passwd/root-password string fake_value
+d-i passwd/root-password-again string fake_value
+d-i passwd/make-user boolean false
+
+tasksel tasksel/first multiselect standard
+
+d-i finish-install/reboot_in_progress note
+
+d-i preseed/late_command string in-target passwd -d root
