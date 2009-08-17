@@ -54,6 +54,9 @@ setup(name="debmarshal",
       data_files=[(BUSCONFIGDIR, ['dbus/com.googlecode.debmarshal.conf']),
                   (SERVICEDIR, ['dbus/com.googlecode.debmarshal.service'])],
       entry_points="""
+[console_scripts]
+debmarshal = debmarshal.runner:main
+
 [debmarshal.distributions]
 ubuntu = debmarshal.distros.ubuntu:doInstall
 """,
