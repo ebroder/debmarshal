@@ -34,6 +34,9 @@ import urllib
 
 import yaml
 
+from debmarshal.distros import base
+from debmarshal import utils
+
 
 def genCommandLine(preseed):
   """Given a preseed file, generate a list of command line args.
@@ -178,7 +181,11 @@ def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
   try:
     config = yaml.safe_load(open(os.path.join(test, 'config.yml')))
 
+    domain = config['domain']
+
     vm_config = config['vms'][vm]
+
+    disk_size = utils.parseBytes(vm_config.get('disk', '10G'))
 
     dist_name = vm_config['distribution']
     arch = vm_config.get('arch', 'x86_64')
@@ -190,5 +197,15 @@ def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
     kernel, initrd = loadKernel(suite, deb_arch)
 
     preseed_path = os.path.join(test, '%s.preseed' % vm)
+
+    hash = hashConfig(vm, domain, suite, deb_arch, disk_size, preseed_path)
+
+    disk_dir = os.path.expanduser(os.path.join(
+        '~/.cache/debmarshal/disks/ubuntu'))
+    if not os.path.exists(disk_dir):
+      os.makedirs(disk_dir)
+
+    disk_path = os.path.join(disk_dir, hash)
+    base.createSparseFile(disk_path, disk_size)
   except:
     results_queue.put((test, vm, False, traceback.format_exc()))
