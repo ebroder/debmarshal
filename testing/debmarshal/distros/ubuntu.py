@@ -223,7 +223,6 @@ def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
       cmdline = genCommandLine(preseed_path)
       cmdline += ' preseed/url=http://%s:%s/%s.preseed' % (
         net_gateway, web_port, vm)
-      cmdline += ' apm=power_off'
 
       dom_name = privops.call('createDomain',
                               memory,
@@ -234,7 +233,8 @@ def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
                               arch,
                               {'kernel': kernel,
                                'initrd': initrd,
-                               'cmdline': cmdline})
+                               'cmdline': cmdline,
+                               'on_reboot': 'destroy'})
 
       # Now wait for the install to finish...
       #
