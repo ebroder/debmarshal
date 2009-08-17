@@ -33,6 +33,7 @@ __authors__ = [
 import optparse
 import os
 import Queue
+import signal
 import subprocess
 import sys
 import threading
@@ -178,7 +179,7 @@ def prepareTest(test):
 
       return prepareSummary(results_queue, start)
     finally:
-      httpd.terminate()
+      os.kill(httpd.pid, signal.SIGTERM)
   finally:
     privops.call('destroyNetwork', net_name)
 
