@@ -51,6 +51,10 @@ class VM(object):
       initrd: The initrd to boot with, if requested.
       cmdline: Additional command-line arguments to pass to the
         kernel.
+      on_poweroff: Action to take when the user requests a poweroff
+        (such as 'destroy' or 'restart')
+      on_reboot: Action to take when the user requests a reboot (such
+        as 'destroy' or 'restart')
   """
   __slots__ = ['name', 'memory', 'disks', 'network', 'mac', 'arch',
                'extra']

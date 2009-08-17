@@ -86,6 +86,11 @@ class Hypervisor(object):
       if vm.extra.get('cmdline'):
         etree.SubElement(xml_os, 'cmdline').text = vm.extra['cmdline']
 
+    if 'on_poweroff' in vm.extra:
+      etree.SubElement(xml, 'on_poweroff').text = vm.extra['on_poweroff']
+    if 'on_reboot' in vm.extra:
+      etree.SubElement(xml, 'on_reboot').text = vm.extra['on_reboot']
+
     devices = etree.SubElement(xml, 'devices')
     for disk_num, disk in enumerate(vm.disks):
       xml_disk = etree.SubElement(devices, 'disk')
