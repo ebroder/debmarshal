@@ -237,7 +237,7 @@ def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
     # TODO(ebroder): Figure out how to use some sort of select() loop
     #   instead of a while-sleep loop.
     while True:
-      time.sleep(60)
+      time.sleep(10)
 
       if dom_name not in qemu.QEMU.listDomains():
         break
