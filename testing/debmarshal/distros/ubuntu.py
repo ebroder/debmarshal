@@ -129,6 +129,34 @@ def loadKernel(suite, arch):
   return (kernel_cache, initrd_cache)
 
 
+def parseConfig(test, vm_name, vm_config):
+  """Parse the elements of the VM configuration.
+
+  This takes the generic VM configuration information and parses it
+  into the fields necessary both for installations and generating
+  config hashes.
+
+  Args:
+    test: Path to the debmarshal test for this VM.
+    vm_name: The (unqualified) hostname of the VM.
+    vm_config: The configuration dict for the VM
+
+  Returns:
+    A tuple with the parsed config information.
+  """
+  disk_size = utils.parseBytes(vm_config.get('disk', '10G'))
+
+  mem = vm_config.get('memory', '128M')
+  arch = vm_config.get('arch', 'x86_64')
+
+  dist_opts = vm_config.get('dist_opts', {})
+  suite = dist_opts.get('suite', 'jaunty')
+
+  preseed_path = os.path.join(test, '%s.preseed' % vm)
+
+  return (suite, arch, disk_size, preseed_path)
+
+
 class Ubuntu(object):
   """Collection class for Ubuntu-related methods.
 
@@ -136,7 +164,7 @@ class Ubuntu(object):
   handful of different methods, all of which are static anyway.
   """
   @staticmethod
-  def hashConfig(hostname, domain, suite, arch, disk, preseed_path):
+  def hashConfig(hostname, domain, test, vm_config)
     """Generate a hash representing a domain's configuration.
 
     This hash should be usable for things like disk image reuse.
@@ -144,10 +172,8 @@ class Ubuntu(object):
     Args:
       hostname: Hostname of the VM.
       domain: Domain name of the VM.
-      suite: Suite of the VM.
-      arch: (Debian-style) architecture of the VM.
-      disk: Size of the VM's disk, in bytes.
-      preseed_Path: Path to the preseed file for the VM.
+      test: The path to the debmarshal test.
+      vm_config: The configuration dict for the VM.
 
     Returns:
       Something that should sort of be a cryptographic hash of all the
@@ -156,8 +182,11 @@ class Ubuntu(object):
     to_hash = []
     to_hash.append(str(hostname))
     to_hash.append(str(domain))
+
+    suite, arch, disk_size, preseed_path = parseConfig(test, hostname, vm_config)
     to_hash.append(str(suite))
     to_hash.append(str(arch))
+    to_hash.append(str(disk_size))
     to_hash.append(open(preseed_path).read())
 
     return md5.md5('\n'.join(to_hash)).hexdigest()
@@ -195,20 +224,12 @@ class Ubuntu(object):
 
       vm_config = config['vms'][vm]
 
-      disk_size = utils.parseBytes(vm_config.get('disk', '10G'))
-      memory = vm_config.get('memory', '128M')
+      suite, arch, disk_size, preseed_path = parseConfig(
+        test, vm, vm_config)
 
-      dist_name = vm_config['distribution']
-      arch = vm_config.get('arch', 'x86_64')
       deb_arch = arch if arch != 'x86_64' else 'amd64'
 
-      dist_opts = vm_config.get('dist_opts', {})
-      suite = dist_opts.get('suite', 'jaunty')
-
-      preseed_path = os.path.join(test, '%s.preseed' % vm)
-
-      hash = Ubuntu.hashConfig(
-        vm, domain, suite, deb_arch, disk_size, preseed_path)
+      hash = Ubuntu.hashConfig(vm, domain, test, vm_config)
 
       disk_dir = os.path.join(
           '/var/tmp/debmarshal-%s/disks/ubuntu' % os.environ['USER'])
