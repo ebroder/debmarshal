@@ -129,134 +129,142 @@ def loadKernel(suite, arch):
   return (kernel_cache, initrd_cache)
 
 
-def hashConfig(hostname, domain, suite, arch, disk, preseed_path):
-  """Generate a hash representing a domain's configuration.
+class Ubuntu(object):
+  """Collection class for Ubuntu-related methods.
 
-  This hash should be usable for things like disk image reuse.
-
-  Args:
-    hostname: Hostname of the VM.
-    domain: Domain name of the VM.
-    suite: Suite of the VM.
-    arch: (Debian-style) architecture of the VM.
-    disk: Size of the VM's disk, in bytes.
-    preseed_Path: Path to the preseed file for the VM.
-
-  Returns:
-    Something that should sort of be a cryptographic hash of all the
-      input.
+  This class exists so we can tie the "ubuntu" distribution to a
+  handful of different methods, all of which are static anyway.
   """
-  to_hash = []
-  to_hash.append(str(hostname))
-  to_hash.append(str(domain))
-  to_hash.append(str(suite))
-  to_hash.append(str(arch))
-  to_hash.append(open(preseed_path).read())
+  @staticmethod
+  def hashConfig(hostname, domain, suite, arch, disk, preseed_path):
+    """Generate a hash representing a domain's configuration.
 
-  return md5.md5('\n'.join(to_hash)).hexdigest()
+    This hash should be usable for things like disk image reuse.
 
+    Args:
+      hostname: Hostname of the VM.
+      domain: Domain name of the VM.
+      suite: Suite of the VM.
+      arch: (Debian-style) architecture of the VM.
+      disk: Size of the VM's disk, in bytes.
+      preseed_Path: Path to the preseed file for the VM.
 
-def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
-  """Start and monitor an unattended Ubuntu install.
+    Returns:
+      Something that should sort of be a cryptographic hash of all the
+        input.
+    """
+    to_hash = []
+    to_hash.append(str(hostname))
+    to_hash.append(str(domain))
+    to_hash.append(str(suite))
+    to_hash.append(str(arch))
+    to_hash.append(open(preseed_path).read())
 
-  This function will start an unattended Ubuntu install, running in a
-  VM, as part of a debmarshal test. It will also monitor that install
-  to completion.
+    return md5.md5('\n'.join(to_hash)).hexdigest()
 
-  This is intended to be run as a separate thread of execution, so
-  that many installs can run in parallel.
+  @staticmethod
+  def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
+    """Start and monitor an unattended Ubuntu install.
 
-  Its success or failure is reported back to the spawning process
-  through the results_queue.
+    This function will start an unattended Ubuntu install, running in
+    a VM, as part of a debmarshal test. It will also monitor that
+    install to completion.
 
-  Args:
-    test: A path to a debmarshal test
-    vm: The hostname of the vm within the test to install
-    net_name: The name of a debmarshal network configured for this VM.
-    net_gateway: The gateway of the debmarshal network.
-    mac: The MAC address of this VM.
-    web_port: The port the test is being served over. The spawning
-      process should be serving the directory containing the
-      debmarshal test over HTTP.
-    results_queue: A Queue.Queue object that doInstall will store its
-      success or failure into that
-  """
-  try:
-    config = yaml.safe_load(open(os.path.join(test, 'config.yml')))
+    This is intended to be run as a separate thread of execution, so
+    that many installs can run in parallel.
 
-    domain = config['domain']
+    Its success or failure is reported back to the spawning process
+    through the results_queue.
 
-    vm_config = config['vms'][vm]
-
-    disk_size = utils.parseBytes(vm_config.get('disk', '10G'))
-    memory = vm_config.get('memory', '128M')
-
-    dist_name = vm_config['distribution']
-    arch = vm_config.get('arch', 'x86_64')
-    deb_arch = arch if arch != 'x86_64' else 'amd64'
-
-    dist_opts = vm_config.get('dist_opts', {})
-    suite = dist_opts.get('suite', 'jaunty')
-
-    preseed_path = os.path.join(test, '%s.preseed' % vm)
-
-    hash = hashConfig(vm, domain, suite, deb_arch, disk_size, preseed_path)
-
-    disk_dir = os.path.join(
-        '/var/tmp/debmarshal-%s/disks/ubuntu' % os.environ['USER'])
-    if not os.path.exists(disk_dir):
-      os.makedirs(disk_dir)
-
-    disk_path = os.path.join(disk_dir, hash)
-    disk_lock = open(disk_path + '.lock', 'w')
-    fcntl.lockf(disk_lock, fcntl.LOCK_EX)
-
-    if os.path.exists(disk_path):
-      results_queue.put((test, vm, True, 'cached'))
-      return
-
-    base.createSparseFile(disk_path, disk_size)
-
+    Args:
+      test: A path to a debmarshal test
+      vm: The hostname of the vm within the test to install
+      net_name: The name of a debmarshal network configured for this VM.
+      net_gateway: The gateway of the debmarshal network.
+      mac: The MAC address of this VM.
+      web_port: The port the test is being served over. The spawning
+        process should be serving the directory containing the
+        debmarshal test over HTTP.
+      results_queue: A Queue.Queue object that doInstall will store its
+        success or failure into that
+    """
     try:
-      kernel, initrd = loadKernel(suite, deb_arch)
+      config = yaml.safe_load(open(os.path.join(test, 'config.yml')))
 
-      cmdline = genCommandLine(preseed_path)
-      cmdline += ' preseed/url=http://%s:%s/%s.preseed' % (
-        net_gateway, web_port, vm)
-      cmdline += ' mirror/http/hostname=%s:9999' % net_gateway
-      cmdline += ' mirror/http/directory=/ubuntu'
-      cmdline += ' mirror/http/proxy='
+      domain = config['domain']
 
-      dom_name = privops.call('createDomain',
-                              memory,
-                              [disk_path],
-                              net_name,
-                              mac,
-                              'qemu',
-                              arch,
-                              {'kernel': kernel,
-                               'initrd': initrd,
-                               'cmdline': cmdline,
-                               'on_reboot': 'destroy'})
+      vm_config = config['vms'][vm]
 
-      # Now wait for the install to finish...
-      #
-      # libvirt has an API for integration with somebody else's main
-      # loop. Unfortunately, they forgot to make it usable by
-      # humans. libvirt-glib in Debian experimental might be a good
-      # jumping off point.
-      #
-      # TODO(ebroder): Figure out how to use some sort of select()
-      #   loop instead of a while-sleep loop.
-      while True:
-        time.sleep(10)
+      disk_size = utils.parseBytes(vm_config.get('disk', '10G'))
+      memory = vm_config.get('memory', '128M')
 
-        if dom_name not in qemu.QEMU.listDomains():
-          break
+      dist_name = vm_config['distribution']
+      arch = vm_config.get('arch', 'x86_64')
+      deb_arch = arch if arch != 'x86_64' else 'amd64'
 
-      results_queue.put((test, vm, True, None))
+      dist_opts = vm_config.get('dist_opts', {})
+      suite = dist_opts.get('suite', 'jaunty')
+
+      preseed_path = os.path.join(test, '%s.preseed' % vm)
+
+      hash = Ubuntu.hashConfig(
+        vm, domain, suite, deb_arch, disk_size, preseed_path)
+
+      disk_dir = os.path.join(
+          '/var/tmp/debmarshal-%s/disks/ubuntu' % os.environ['USER'])
+      if not os.path.exists(disk_dir):
+        os.makedirs(disk_dir)
+
+      disk_path = os.path.join(disk_dir, hash)
+      disk_lock = open(disk_path + '.lock', 'w')
+      fcntl.lockf(disk_lock, fcntl.LOCK_EX)
+
+      if os.path.exists(disk_path):
+        results_queue.put((test, vm, True, 'cached'))
+        return
+
+      base.createSparseFile(disk_path, disk_size)
+
+      try:
+        kernel, initrd = loadKernel(suite, deb_arch)
+
+        cmdline = genCommandLine(preseed_path)
+        cmdline += ' preseed/url=http://%s:%s/%s.preseed' % (
+          net_gateway, web_port, vm)
+        cmdline += ' mirror/http/hostname=%s:9999' % net_gateway
+        cmdline += ' mirror/http/directory=/ubuntu'
+        cmdline += ' mirror/http/proxy='
+
+        dom_name = privops.call('createDomain',
+                                memory,
+                                [disk_path],
+                                net_name,
+                                mac,
+                                'qemu',
+                                arch,
+                                {'kernel': kernel,
+                                 'initrd': initrd,
+                                 'cmdline': cmdline,
+                                 'on_reboot': 'destroy'})
+
+        # Now wait for the install to finish...
+        #
+        # libvirt has an API for integration with somebody else's main
+        # loop. Unfortunately, they forgot to make it usable by
+        # humans. libvirt-glib in Debian experimental might be a good
+        # jumping off point.
+        #
+        # TODO(ebroder): Figure out how to use some sort of select()
+        #   loop instead of a while-sleep loop.
+        while True:
+          time.sleep(10)
+
+          if dom_name not in qemu.QEMU.listDomains():
+            break
+
+        results_queue.put((test, vm, True, None))
+      except:
+        os.remove(disk_path)
+        raise
     except:
-      os.remove(disk_path)
-      raise
-  except:
-    results_queue.put((test, vm, False, traceback.format_exc()))
+      results_queue.put((test, vm, False, traceback.format_exc()))

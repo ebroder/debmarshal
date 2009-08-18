@@ -161,7 +161,7 @@ def prepareTest(test):
         dist = base.findDistribution(config['vms'][vm]['distribution'])
 
         threads.append(threading.Thread(
-            target=dist,
+            target=dist.doInstall,
             args=(test,
                   vm,
                   net_name,

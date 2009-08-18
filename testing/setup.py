@@ -58,7 +58,7 @@ setup(name="debmarshal",
 debmarshal = debmarshal.runner:main
 
 [debmarshal.distributions]
-ubuntu = debmarshal.distros.ubuntu:doInstall
+ubuntu = debmarshal.distros.ubuntu:Ubuntu
 """,
       long_description="""
 The Debmarshal testing framework is designed to make it easy to test
