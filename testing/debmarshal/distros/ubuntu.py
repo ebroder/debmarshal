@@ -157,6 +157,34 @@ def parseConfig(test, vm_name, vm_config):
   return (suite, arch, disk_size, preseed_path)
 
 
+def hashConfig(hostname, domain, test, vm_config):
+  """Generate a hash representing a domain's configuration.
+
+  This hash should be usable for things like disk image reuse.
+
+  Args:
+    hostname: Hostname of the VM.
+    domain: Domain name of the VM.
+    test: The path to the debmarshal test.
+    vm_config: The configuration dict for the VM.
+
+  Returns:
+    Something that should sort of be a cryptographic hash of all the
+      input.
+  """
+  to_hash = []
+  to_hash.append(str(hostname))
+  to_hash.append(str(domain))
+
+  suite, arch, disk_size, preseed_path = parseConfig(test, hostname, vm_config)
+  to_hash.append(str(suite))
+  to_hash.append(str(arch))
+  to_hash.append(str(disk_size))
+  to_hash.append(open(preseed_path).read())
+
+  return md5.md5('\n'.join(to_hash)).hexdigest()
+
+
 class Ubuntu(object):
   """Collection class for Ubuntu-related methods.
 
@@ -164,32 +192,28 @@ class Ubuntu(object):
   handful of different methods, all of which are static anyway.
   """
   @staticmethod
-  def hashConfig(hostname, domain, test, vm_config)
-    """Generate a hash representing a domain's configuration.
+  def diskPath(hostname, domain, test, vm_config, user=None):
+    """Generate a path for a given configuration's disk image.
 
-    This hash should be usable for things like disk image reuse.
+    This uses a hash of the parameters to a VM to generate the path to
+    use for caching that disk's image.
+
+    The generated path is unique to a given user.
 
     Args:
       hostname: Hostname of the VM.
       domain: Domain name of the VM.
       test: The path to the debmarshal test.
       vm_config: The configuration dict for the VM.
-
-    Returns:
-      Something that should sort of be a cryptographic hash of all the
-        input.
+      user: The user for whom the path is being generated.
     """
-    to_hash = []
-    to_hash.append(str(hostname))
-    to_hash.append(str(domain))
+    if user is None:
+      user = os.environ['USER']
 
-    suite, arch, disk_size, preseed_path = parseConfig(test, hostname, vm_config)
-    to_hash.append(str(suite))
-    to_hash.append(str(arch))
-    to_hash.append(str(disk_size))
-    to_hash.append(open(preseed_path).read())
+    hash = hashConfig(hostname, domain, test, vm_config)
 
-    return md5.md5('\n'.join(to_hash)).hexdigest()
+    disk = '/var/tmp/debmarshal-%s/disks/ubuntu/%s' % (user, hash)
+    return disk
 
   @staticmethod
   def doInstall(test, vm, net_name, net_gateway, mac, web_port, results_queue):
@@ -229,14 +253,11 @@ class Ubuntu(object):
 
       deb_arch = arch if arch != 'x86_64' else 'amd64'
 
-      hash = Ubuntu.hashConfig(vm, domain, test, vm_config)
-
-      disk_dir = os.path.join(
-          '/var/tmp/debmarshal-%s/disks/ubuntu' % os.environ['USER'])
+      disk_path = Ubuntu.diskPath(vm, domain, test, vm_config)
+      disk_dir = os.path.dirname(disk_path)
       if not os.path.exists(disk_dir):
         os.makedirs(disk_dir)
 
-      disk_path = os.path.join(disk_dir, hash)
       disk_lock = open(disk_path + '.lock', 'w')
       fcntl.lockf(disk_lock, fcntl.LOCK_EX)
 
