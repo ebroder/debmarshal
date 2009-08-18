@@ -146,15 +146,15 @@ def parseConfig(test, vm_name, vm_config):
   """
   disk_size = utils.parseBytes(vm_config.get('disk', '10G'))
 
-  mem = vm_config.get('memory', '128M')
+  memory = vm_config.get('memory', '128M')
   arch = vm_config.get('arch', 'x86_64')
 
   dist_opts = vm_config.get('dist_opts', {})
   suite = dist_opts.get('suite', 'jaunty')
 
-  preseed_path = os.path.join(test, '%s.preseed' % vm)
+  preseed_path = os.path.join(test, '%s.preseed' % vm_name)
 
-  return (suite, arch, disk_size, preseed_path)
+  return (memory, suite, arch, disk_size, preseed_path)
 
 
 def hashConfig(hostname, domain, test, vm_config):
@@ -176,7 +176,8 @@ def hashConfig(hostname, domain, test, vm_config):
   to_hash.append(str(hostname))
   to_hash.append(str(domain))
 
-  suite, arch, disk_size, preseed_path = parseConfig(test, hostname, vm_config)
+  memory, suite, arch, disk_size, preseed_path = parseConfig(
+    test, hostname, vm_config)
   to_hash.append(str(suite))
   to_hash.append(str(arch))
   to_hash.append(str(disk_size))
@@ -248,7 +249,7 @@ class Ubuntu(object):
 
       vm_config = config['vms'][vm]
 
-      suite, arch, disk_size, preseed_path = parseConfig(
+      memory, suite, arch, disk_size, preseed_path = parseConfig(
         test, vm, vm_config)
 
       deb_arch = arch if arch != 'x86_64' else 'amd64'
