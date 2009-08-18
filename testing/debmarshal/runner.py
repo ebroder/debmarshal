@@ -233,6 +233,8 @@ def runTest(test):
 
     try:
       images = {}
+      domains = {}
+
       for vm in vms:
         vm_config = config['vms'][vm]
         dist = base.findDistribution(vm_config['distribution'])
@@ -249,7 +251,24 @@ def runTest(test):
                               stderr=subprocess.PIPE)
         images[vm] = disk_path
 
+      for vm in vms:
+        vm_config = config['vms'][vm]
+        memory = vm_config.get('memory', '128M')
+        arch = vm_config.get('arch', '')
+
+        domains[vm] = privops.call('createDomain',
+                                   memory,
+                                   [images[vm]],
+                                   net_name,
+                                   net_vms[vm][1],
+                                   'qemu',
+                                   arch,
+                                   {})
+
     finally:
+      for domain in domains.values():
+        privops.call('destroyDomain', domain, 'qemu')
+
       for image in images.values():
         os.unlink(image)
 
