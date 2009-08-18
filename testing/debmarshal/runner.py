@@ -211,7 +211,22 @@ def runTest(test):
   Args:
     Path to the test to run.
   """
-  pass
+  start = time.time()
+
+  # First, load the configuration
+  config = yaml.safe_load(open(os.path.join(test, 'config.yml')))
+
+  # Next, network configuration. Configure the network as it will be
+  # for the test run.
+  vms = config['vms'].keys()
+  net_name, net_gate, net_mask, net_vms = privops.call('createNetwork',
+                                                       vms)
+
+  try:
+    pass
+
+  finally:
+    privops.call('destroyNetwork', net_name)
 
 
 def doRun(argv):
