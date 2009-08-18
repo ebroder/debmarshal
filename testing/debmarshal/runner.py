@@ -146,6 +146,17 @@ def prepareTest(test):
   net_name, net_gate, net_mask, net_vms = privops.call('createNetwork',
                                                        vms)
 
+  # If there's not already an ssh key packaged with the test to use,
+  # generate one.
+  key_path = os.path.join(test, 'id_rsa')
+  if not os.path.exists(key_path):
+    subprocess.check_call(['ssh-keygen',
+                           '-N', '',
+                           '-f', key_path],
+                          stdin=subprocess.PIPE,
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE)
+
   try:
     # Then, spawn the web server for serving the test configuration.
     httpd = subprocess.Popen(['python', '-m', 'debmarshal.web', test],
