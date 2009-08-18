@@ -45,7 +45,8 @@ from debmarshal.distros import base
 from debmarshal import privops
 
 
-USAGE = """Usage: debmarshal prepare [--options] [<test1> [<test2> ...]]"""
+USAGE = """Usage: debmarshal prepare [--options] [<test1> [<test2> ...]]
+       debmarshal run [--options] [<test1> [<test2> ...]]"""
 
 
 def usage():
@@ -204,6 +205,33 @@ def doPrepare(argv):
     prepareTest(test)
 
 
+def runTest(test):
+  """Actually run a debmarshal test.
+
+  Args:
+    Path to the test to run.
+  """
+  pass
+
+
+def doRun(argv):
+  """Actually run a series of tests.
+
+  If no tests are specified, the current directory is assumed.
+
+  Args:
+    Command line arguments after the "run" subcommand.
+
+  Returns:
+    The exit code for this subcommand.
+  """
+  if not argv:
+    argv = [os.getcwd()]
+
+  for test in argv:
+    runTest(test)
+
+
 def _main(argv):
   """The main test runner. Dispatcher to subcommands.
 
@@ -218,6 +246,8 @@ def _main(argv):
 
   if argv[0] == 'prepare':
     return doPrepare(argv[1:])
+  elif argv[0] == 'run':
+    return doRun(argv[1:])
   else:
     usage()
 
