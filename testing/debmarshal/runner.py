@@ -223,8 +223,16 @@ def runTest(test):
                                                        vms)
 
   try:
-    pass
+    # Then, spawn the web server for serving the test configuration.
+    httpd = subprocess.Popen(['python', '-m', 'debmarshal.web', test],
+                             stdout=subprocess.PIPE)
+    web_port = httpd.stdout.read()
 
+    try:
+      pass
+
+    finally:
+      os.kill(httpd.pid, signal.SIGTERM)
   finally:
     privops.call('destroyNetwork', net_name)
 
