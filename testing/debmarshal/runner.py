@@ -36,6 +36,7 @@ import Queue
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 
@@ -228,10 +229,30 @@ def runTest(test):
                              stdout=subprocess.PIPE)
     web_port = httpd.stdout.read()
 
+    domain = config['domain']
+
     try:
-      pass
+      images = {}
+      for vm in vms:
+        vm_config = config['vms'][vm]
+        dist = base.findDistribution(vm_config['distribution'])
+        pristine_disk_path = dist.diskPath(vm, domain, test, vm_config)
+
+        fd, disk_path = tempfile.mkstemp()
+        os.close(fd)
+        subprocess.check_call(['cp',
+                               '--sparse=always',
+                               pristine_disk_path,
+                               disk_path],
+                              stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE)
+        images[vm] = disk_path
 
     finally:
+      for image in images.values():
+        os.unlink(image)
+
       os.kill(httpd.pid, signal.SIGTERM)
   finally:
     privops.call('destroyNetwork', net_name)
