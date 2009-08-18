@@ -276,6 +276,46 @@ def runTest(test):
                                    arch,
                                    {})
 
+      # Wait for the master VM to boot up, then run the test
+      key_path = os.path.join(test, 'id_rsa')
+      master = vms[0]
+      master_ip = net_vms[master][0]
+      while True:
+        if not subprocess.call(['ssh',
+                                '-i', key_path,
+                                '-o', 'ConnectTimeout=1',
+                                '-l', 'root',
+                                master_ip,
+                                'true'],
+                               stdin=subprocess.PIPE,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE):
+          break
+        else:
+          time.sleep(5)
+
+      subprocess.check_call(['ssh',
+                             '-i', key_path,
+                             '-l', 'root',
+                             master_ip,
+                             'wget',
+                             '-N',
+                             '-O', '/root/script',
+                             'http://%s:%s/script' % (net_gate, web_port)],
+                            stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+      ret = subprocess.call(['ssh',
+                             '-i', key_path,
+                             '-l', 'root',
+                             master_ip,
+                             '/root/script',
+                             str(web_port)],
+                            stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+      print ret
+
     finally:
       for domain in domains.values():
         privops.call('destroyDomain', domain, 'qemu')
