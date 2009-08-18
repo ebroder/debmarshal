@@ -25,4 +25,8 @@ tasksel tasksel/first multiselect standard
 
 d-i finish-install/reboot_in_progress note
 
-d-i preseed/late_command string in-target passwd -d root
+d-i pkgsel/include string openssh-server
+d-i preseed/late_command string in-target passwd -d root; \
+    mkdir /target/root/.ssh; \
+    hostname=`debconf-get preseed/url | sed -e 's#/hello.preseed##'`; \
+    wget -O /target/root/.ssh/authorized_keys $hostname/id_rsa.pub
